@@ -35,32 +35,54 @@ import java.net.URI
 
 @Composable
 fun EnterBaseUrlDialog(
+    title: String,
+    hint: String? = null,
     currentBaseUrl: String,
     onCanceled: () -> Unit,
     onUrlEntered: (url: String) -> Unit,
 ) {
     Box(
         modifier =
-            Modifier.Companion
+            Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background.copy(alpha = .7f))
                 .clickable(onClick = onCanceled),
-        contentAlignment = Alignment.Companion.Center,
+        contentAlignment = Alignment.Center,
     ) {
         Card(
-            modifier = Modifier.Companion.padding(16.dp),
+            modifier = Modifier.padding(16.dp),
         ) {
             var url by remember { mutableStateOf("") }
 
             Column(
                 modifier =
-                    Modifier.Companion
+                    Modifier
                         .padding(8.dp)
                         .clickable(onClick = onCanceled),
             ) {
+                Text(
+                    modifier =
+                        Modifier
+                            .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                            .fillMaxWidth(),
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+
+                if (!hint.isNullOrBlank()) {
+                    Text(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 16.dp)
+                                .fillMaxWidth(),
+                        text = hint,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+
                 TextField(
                     modifier =
-                        Modifier.Companion
+                        Modifier
                             .padding(16.dp)
                             .fillMaxWidth(),
                     singleLine = true,
@@ -75,19 +97,19 @@ fun EnterBaseUrlDialog(
                         }
                     },
                     keyboardOptions =
-                        KeyboardOptions.Companion.Default.copy(
-                            keyboardType = KeyboardType.Companion.Uri,
-                            imeAction = ImeAction.Companion.Go,
+                        KeyboardOptions.Default.copy(
+                            keyboardType = KeyboardType.Uri,
+                            imeAction = ImeAction.Go,
                         ),
                     keyboardActions = KeyboardActions(onGo = { onUrlEntered(url) }),
                 )
-                Spacer(Modifier.Companion.height(16.dp))
+                Spacer(Modifier.height(16.dp))
                 Row {
-                    Spacer(Modifier.Companion.weight(1f))
+                    Spacer(Modifier.weight(1f))
                     Button(onClick = onCanceled) {
                         Text(stringResource(R.string.cancel))
                     }
-                    Spacer(Modifier.Companion.width(4.dp))
+                    Spacer(Modifier.width(4.dp))
                     Button(onClick = { onUrlEntered(url) }) {
                         Text(stringResource(R.string.ok))
                     }
@@ -100,7 +122,13 @@ fun EnterBaseUrlDialog(
 @Preview
 @Composable
 private fun EnterBaseUrlDialogPreview() {
-    EnterBaseUrlDialog("https://funke.wwwallet.org", {}, {})
+    EnterBaseUrlDialog(
+        title = "title",
+        hint = "hint",
+        currentBaseUrl = "https://funke.wwwallet.org",
+        onCanceled = {},
+        onUrlEntered = {},
+    )
 }
 
 private val String.isUrl: Boolean

@@ -5,7 +5,9 @@ import android.content.Intent
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.widget.Toast
+import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
+import androidx.webkit.WebViewFeature
 import io.yubicolabs.wwwwallet.BuildConfig
 import io.yubicolabs.wwwwallet.bridging.WalletJsBridge.Companion.JAVASCRIPT_BRIDGE_NAME
 
@@ -20,6 +22,7 @@ private val URL_IGNORE_LIST: Array<String> =
 
 class WalletWebViewClient(
     private val activity: Activity,
+    private val onErrorReceived: (description: String) -> Unit,
 ) : WebViewClientCompat() {
     override fun shouldOverrideUrlLoading(
         view: WebView,
@@ -48,5 +51,22 @@ class WalletWebViewClient(
         super.onPageFinished(view, url)
 
         view.evaluateJavascript("$JAVASCRIPT_BRIDGE_NAME.inject()") {}
+    }
+
+    override fun onReceivedError(
+        view: WebView,
+        request: WebResourceRequest,
+        error: WebResourceErrorCompat,
+    ) {
+        super.onReceivedError(view, request, error)
+
+        val description =
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION)) {
+                error.description.toString()
+            } else {
+                "Web Page Error"
+            }
+
+        onErrorReceived(description)
     }
 }
