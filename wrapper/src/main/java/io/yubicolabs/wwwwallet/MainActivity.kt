@@ -40,7 +40,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -63,6 +66,8 @@ import io.yubicolabs.wwwwallet.webkit.WalletWebChromeClient
 import io.yubicolabs.wwwwallet.webkit.WalletWebViewClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import ui.EnterBaseUrlDialog
 
 class MainActivity : ComponentActivity() {
     init {
@@ -120,7 +125,7 @@ class MainActivity : ComponentActivity() {
             "shortcut_open_funke",
             "shortcut_open_demo",
             "shortcut_open_qa",
-            -> {
+                -> {
                 val endpoint = shortcut.split("_").last()
                 lifecycleScope.launch {
                     vm.setBaseUrl("https://$endpoint.wwwallet.org")
@@ -128,12 +133,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            else -> {}
+            "shortcut_open_custom" -> {}
+
+            else -> YOLOLogger.e(tagForLog, "'$shortcut ' is not a valid shortcut identifier!")
         }
 
         super.onCreate(savedInstanceState)
 
         setContent {
+            var showCustomBaseUrlEntryDialog by remember { mutableStateOf(intent.identifier == "shortcut_open_custom") }
+
             MaterialTheme(
                 if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
             ) {
@@ -187,6 +196,20 @@ class MainActivity : ComponentActivity() {
                                 vm.browseToUrl(url)
                             }
                         }
+                    }
+
+                    if (showCustomBaseUrlEntryDialog) {
+                        EnterBaseUrlDialog(
+                            currentBaseUrl = runBlocking { vm.getBaseUrl() },
+                            onCanceled = { showCustomBaseUrlEntryDialog = false },
+                            onUrlEntered = {
+                                lifecycleScope.launch {
+                                    showCustomBaseUrlEntryDialog = false
+                                    vm.setBaseUrl(it)
+                                    vm.browseToUrl(it)
+                                }
+                            }
+                        )
                     }
                 }
             }

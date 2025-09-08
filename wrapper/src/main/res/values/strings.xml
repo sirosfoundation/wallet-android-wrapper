@@ -13,4 +13,5 @@
     <string name="shortcut_open_funke">funke.wwwallet.org</string>
     <string name="shortcut_open_demo">demo.wwwallet.org</string>
     <string name="shortcut_open_qa">qa.wwwallet.org</string>
+    <string name="shortcut_open_custom">Custom base url …</string>
 </resources>
