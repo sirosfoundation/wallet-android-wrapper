@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.WebpageError
 import io.yubicolabs.wwwwallet.logging.YOLOLogger
 import io.yubicolabs.wwwwallet.storage.ProfileStorage
 import kotlinx.coroutines.Dispatchers
@@ -42,8 +43,14 @@ class MainViewModel : ViewModel() {
     private val _url: MutableStateFlow<String> = MutableStateFlow("")
     var url: StateFlow<String> = _url.asStateFlow()
 
-    private val _updateBaseUrl: MutableStateFlow<Boolean> = MutableStateFlow(false)
-    var updateBaseUrl: StateFlow<Boolean> = _updateBaseUrl.asStateFlow()
+    sealed class UpdateReason {
+        object UserRequest : UpdateReason()
+
+        data class WebpageError(val message: String) : UpdateReason()
+    }
+
+    private val _updateBaseUrl: MutableStateFlow<UpdateReason?> = MutableStateFlow(null)
+    var updateBaseUrl: StateFlow<UpdateReason?> = _updateBaseUrl.asStateFlow()
 
     suspend fun browseToUrl(url: String) {
         _url.update { "" }
@@ -99,7 +106,7 @@ class MainViewModel : ViewModel() {
     suspend fun getBaseUrl(): String = profileStorage.restore().baseUrl
 
     suspend fun setBaseUrl(value: String) {
-        _updateBaseUrl.update { false }
+        updateBaseUrlCanceled()
         profileStorage.store(profileStorage.restore().copy(baseUrl = value))
     }
 
@@ -125,10 +132,16 @@ class MainViewModel : ViewModel() {
     }
 
     fun updateBaseUrlCanceled() {
-        _updateBaseUrl.update { false }
+        _updateBaseUrl.update { null }
     }
 
-    fun updateBaseUrl() {
-        _updateBaseUrl.update { true }
+    fun updateBaseUrl(reason: UpdateReason = UpdateReason.UserRequest) {
+        _updateBaseUrl.update { reason }
+    }
+
+    fun errorReceived(description: String) {
+        updateBaseUrl(
+            WebpageError(description),
+        )
     }
 }

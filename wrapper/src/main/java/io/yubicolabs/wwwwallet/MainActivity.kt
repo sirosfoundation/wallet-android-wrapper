@@ -35,9 +35,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import ch.qos.logback.classic.android.BasicLogcatConfigurator
+import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.WebpageError
 import io.yubicolabs.wwwwallet.bluetooth.BleClientHandler
 import io.yubicolabs.wwwwallet.bluetooth.BleServerHandler
 import io.yubicolabs.wwwwallet.bridging.DebugMenuHandler
@@ -61,7 +63,12 @@ class MainActivity : ComponentActivity() {
 
     val vm: MainViewModel by viewModels<MainViewModel>()
 
-    private val webViewClient: WebViewClient = WalletWebViewClient(this)
+    private val webViewClient: WebViewClient =
+        WalletWebViewClient(this) { description ->
+            vm.errorReceived(
+                description,
+            )
+        }
 
     private val webChromeClient: WebChromeClient = WalletWebChromeClient(this)
 
@@ -140,8 +147,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    if (updateBaseUrl) {
+                    updateBaseUrl?.let { reason ->
                         EnterBaseUrlDialog(
+                            title = stringResource(R.string.shortcut_open_custom),
+                            hint = if (reason is WebpageError) reason.message else null,
                             currentBaseUrl = runBlocking { vm.getBaseUrl() },
                             onCanceled = { vm.updateBaseUrlCanceled() },
                             onUrlEntered = {
