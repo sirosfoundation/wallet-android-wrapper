@@ -21,35 +21,20 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import ch.qos.logback.classic.android.BasicLogcatConfigurator
@@ -92,13 +77,13 @@ class MainActivity : ComponentActivity() {
             if (BuildConfig.DEBUG) {
                 DebugMenuHandler(
                     context = this,
-                    showUrlRow = { vm.showUrlRow(it) },
                     browseTo = {
                         lifecycleScope.launch {
                             vm.setBaseUrl(it)
                             vm.browseToUrl(it)
                         }
                     },
+                    updateBaseUrl = { vm.updateBaseUrl() },
                     copyToClipboard = { vm.copyToClipboard(it) },
                 )
             } else {
@@ -121,69 +106,26 @@ class MainActivity : ComponentActivity() {
             else -> YOLOLogger.e(tagForLog, "Cannot handle ${intent.scheme}.")
         }
 
-        when (val shortcut = intent.identifier) {
-            "shortcut_open_funke",
-            "shortcut_open_demo",
-            "shortcut_open_qa",
-                -> {
-                val endpoint = shortcut.split("_").last()
-                lifecycleScope.launch {
-                    vm.setBaseUrl("https://$endpoint.wwwallet.org")
-                    vm.browseToUrl(vm.getBaseUrl())
-                }
-            }
-
-            "shortcut_open_custom" -> {}
-
-            else -> YOLOLogger.e(tagForLog, "'$shortcut ' is not a valid shortcut identifier!")
-        }
+        vm.openedFromShortcut(intent.identifier)
 
         super.onCreate(savedInstanceState)
 
         setContent {
-            var showCustomBaseUrlEntryDialog by remember { mutableStateOf(intent.identifier == "shortcut_open_custom") }
-
             MaterialTheme(
                 if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
             ) {
                 enableEdgeToEdge()
 
-                val urlRow by vm.showUrlRow.collectAsState()
                 val url by vm.url.collectAsState()
+                val updateBaseUrl by vm.updateBaseUrl.collectAsState()
 
-                Scaffold(
-                    topBar = {
-                        if (urlRow) {
-                            TopAppBar(
-                                title = {
-                                    Text(text = stringResource(id = R.string.app_name))
-                                },
-                                actions = {
-                                    IconButton(onClick = {
-                                        lifecycleScope.launch {
-                                            vm.browseToUrl(vm.getBaseUrl())
-                                        }
-                                    }) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.baseline_refresh_24),
-                                            contentDescription = null,
-                                        )
-                                    }
-                                },
-                            )
-                        }
-                    },
-                ) { paddingValues ->
+                Scaffold { paddingValues ->
                     Column(
                         modifier =
                             Modifier
                                 .padding(paddingValues)
                                 .fillMaxHeight(),
                     ) {
-                        if (urlRow) {
-                            UrlRow(vm)
-                        }
-
                         WebView(
                             activity = this@MainActivity,
                             webViewClient = webViewClient,
@@ -198,58 +140,20 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    if (showCustomBaseUrlEntryDialog) {
+                    if (updateBaseUrl) {
                         EnterBaseUrlDialog(
                             currentBaseUrl = runBlocking { vm.getBaseUrl() },
-                            onCanceled = { showCustomBaseUrlEntryDialog = false },
+                            onCanceled = { vm.updateBaseUrlCanceled() },
                             onUrlEntered = {
                                 lifecycleScope.launch {
-                                    showCustomBaseUrlEntryDialog = false
                                     vm.setBaseUrl(it)
                                     vm.browseToUrl(it)
                                 }
-                            }
+                            },
                         )
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun ColumnScope.UrlRow(vm: MainViewModel) {
-    Row {
-        val scope = rememberCoroutineScope()
-        val tempUrl by vm.url.collectAsState()
-        val keyboardController = LocalSoftwareKeyboardController.current
-
-        TextField(
-            modifier = Modifier.weight(1.0f),
-            singleLine = true,
-            label = { Text(text = "Enter URL") },
-            value = tempUrl,
-            onValueChange = vm::updateUrl,
-            keyboardOptions =
-                KeyboardOptions(
-                    imeAction = ImeAction.Go,
-                ),
-            keyboardActions =
-                KeyboardActions {
-                    scope.launch {
-                        vm.browseToUrl(tempUrl)
-                    }
-                    keyboardController?.hide()
-                },
-        )
-
-        IconButton(onClick = {
-            scope.launch { vm.browseToUrl(tempUrl) }
-        }) {
-            Icon(
-                painter = painterResource(id = android.R.drawable.ic_menu_upload),
-                contentDescription = null,
-            )
         }
     }
 }
