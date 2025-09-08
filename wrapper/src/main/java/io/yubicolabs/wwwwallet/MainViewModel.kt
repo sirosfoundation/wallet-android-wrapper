@@ -42,13 +42,8 @@ class MainViewModel : ViewModel() {
     private val _url: MutableStateFlow<String> = MutableStateFlow("")
     var url: StateFlow<String> = _url.asStateFlow()
 
-    private val _showUrlRow: MutableStateFlow<Boolean> =
-        MutableStateFlow(BuildConfig.SHOW_URL_ROW)
-    var showUrlRow: StateFlow<Boolean> = _showUrlRow.asStateFlow()
-
-    fun updateUrl(url: String) {
-        _url.update { url }
-    }
+    private val _updateBaseUrl: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    var updateBaseUrl: StateFlow<Boolean> = _updateBaseUrl.asStateFlow()
 
     suspend fun browseToUrl(url: String) {
         _url.update { "" }
@@ -81,10 +76,6 @@ class MainViewModel : ViewModel() {
         _url.update { "webview://back" }
     }
 
-    fun showUrlRow(visible: Boolean) {
-        _showUrlRow.update { visible }
-    }
-
     fun parseIntent(intent: Intent) {
         viewModelScope.launch(Dispatchers.IO) {
             val uri: Uri = intent.data!!
@@ -108,6 +99,36 @@ class MainViewModel : ViewModel() {
     suspend fun getBaseUrl(): String = profileStorage.restore().baseUrl
 
     suspend fun setBaseUrl(value: String) {
+        _updateBaseUrl.update { false }
         profileStorage.store(profileStorage.restore().copy(baseUrl = value))
+    }
+
+    fun openedFromShortcut(shortcut: String?) {
+        when (shortcut) {
+            "shortcut_open_funke",
+            "shortcut_open_demo",
+            "shortcut_open_qa",
+            -> {
+                val endpoint = shortcut.split("_").last()
+                viewModelScope.launch {
+                    setBaseUrl("https://$endpoint.wwwallet.org")
+                    browseToUrl(getBaseUrl())
+                }
+            }
+
+            "shortcut_open_custom" -> {
+                updateBaseUrl()
+            }
+
+            else -> YOLOLogger.e(tagForLog, "'$shortcut ' is not a valid shortcut identifier!")
+        }
+    }
+
+    fun updateBaseUrlCanceled() {
+        _updateBaseUrl.update { false }
+    }
+
+    fun updateBaseUrl() {
+        _updateBaseUrl.update { true }
     }
 }

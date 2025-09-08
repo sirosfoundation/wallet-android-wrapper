@@ -15,6 +15,7 @@ import org.json.JSONArray
 private const val USE_DEMO_BASE_URL = "Use Demo Base URL (default)"
 private const val USE_FUNKE_BASE_URL = "Use Funke Base URL"
 private const val USE_QA_BASE_URL = "Use QA Base URL"
+private const val CUSTOM_BASE_URL = "Custom Base URL"
 
 private const val SHOW_LOGS = "Show Application Logs"
 private const val SEND_FEEDBACK_EMAIL = "Give Feedback via email"
@@ -26,8 +27,8 @@ typealias JSExecutor = (code: String, callback: ValueCallback<String>) -> Unit
 
 class DebugMenuHandler(
     val context: Context,
-    val showUrlRow: (Boolean) -> Unit,
     val browseTo: (String) -> Unit,
+    val updateBaseUrl: () -> Unit,
     val copyToClipboard: (String) -> Unit,
 ) {
     private var maxSeparatorsCount = 1
@@ -36,6 +37,7 @@ class DebugMenuHandler(
             USE_DEMO_BASE_URL to { js -> browseTo("https://demo.wwwallet.org/") },
             USE_FUNKE_BASE_URL to { js -> browseTo("https://funke.wwwallet.org/") },
             USE_QA_BASE_URL to { js -> browseTo("https://qa.wwwallet.org/") },
+            CUSTOM_BASE_URL to { js -> updateBaseUrl() },
             LIST_SEPARATOR * maxSeparatorsCount++ to {},
             SHOW_LOGS to { js ->
                 js("$JAVASCRIPT_BRIDGE_NAME.__captured_logs__") { logsJson ->
