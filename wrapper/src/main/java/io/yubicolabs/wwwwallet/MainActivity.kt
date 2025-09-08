@@ -155,8 +155,8 @@ class MainActivity : ComponentActivity() {
                             onCanceled = { vm.updateBaseUrlCanceled() },
                             onUrlEntered = {
                                 lifecycleScope.launch {
-                                    vm.setBaseUrl(it)
-                                    vm.browseToUrl(it)
+                                    val url = vm.setBaseUrl(it)
+                                    vm.browseToUrl(url)
                                 }
                             },
                         )

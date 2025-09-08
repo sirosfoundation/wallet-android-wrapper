@@ -105,9 +105,19 @@ class MainViewModel : ViewModel() {
 
     suspend fun getBaseUrl(): String = profileStorage.restore().baseUrl
 
-    suspend fun setBaseUrl(value: String) {
+    suspend fun setBaseUrl(value: String): String {
         updateBaseUrlCanceled()
-        profileStorage.store(profileStorage.restore().copy(baseUrl = value))
+
+        val sanitized =
+            when {
+                value.startsWith("https://") -> value
+                value.startsWith("http://") -> value.replace("http", "https")
+                else -> value // for direct ip addresses
+            }
+
+        profileStorage.store(profileStorage.restore().copy(baseUrl = sanitized))
+
+        return sanitized
     }
 
     fun openedFromShortcut(shortcut: String?) {
@@ -118,8 +128,8 @@ class MainViewModel : ViewModel() {
             -> {
                 val endpoint = shortcut.split("_").last()
                 viewModelScope.launch {
-                    setBaseUrl("https://$endpoint.wwwallet.org")
-                    browseToUrl(getBaseUrl())
+                    val url = setBaseUrl("https://$endpoint.wwwallet.org")
+                    browseToUrl(url)
                 }
             }
 
