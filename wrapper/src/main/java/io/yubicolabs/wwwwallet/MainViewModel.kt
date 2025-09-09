@@ -46,7 +46,9 @@ class MainViewModel : ViewModel() {
     sealed class UpdateReason {
         object UserRequest : UpdateReason()
 
-        data class WebpageError(val message: String) : UpdateReason()
+        object DeeplinkRequest : UpdateReason()
+
+        data class WebpageError(val errorMessage: String) : UpdateReason()
     }
 
     private val _updateBaseUrl: MutableStateFlow<UpdateReason?> = MutableStateFlow(null)
@@ -60,6 +62,13 @@ class MainViewModel : ViewModel() {
                 val uri = URI(url)
                 when (uri.scheme) {
                     "https", "http" -> url
+
+                    "wwwallet" -> {
+                        when (uri.host) {
+                            "change-provider" -> changeProviderRequested(uri) ?: it
+                            else -> url
+                        }
+                    }
 
                     "openid4vp", "haip" ->
                         URI(
@@ -154,5 +163,25 @@ class MainViewModel : ViewModel() {
         updateBaseUrl(
             WebpageError(description),
         )
+    }
+
+    private suspend fun changeProviderRequested(uri: URI): String? {
+        if (uri.query == null) {
+            updateBaseUrl(reason = UpdateReason.DeeplinkRequest)
+            return null
+        }
+
+        val queryParameters =
+            uri.query.split("&").associate {
+                val (k, v) = it.split("=")
+                k to v
+            }
+
+        if ("provider" in queryParameters) {
+            return setBaseUrl(queryParameters.getOrDefault("provider", getBaseUrl()))
+        } else {
+            updateBaseUrl(reason = UpdateReason.DeeplinkRequest)
+            return null
+        }
     }
 }

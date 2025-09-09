@@ -32,13 +32,14 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import ch.qos.logback.classic.android.BasicLogcatConfigurator
+import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.DeeplinkRequest
+import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.UserRequest
 import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.WebpageError
 import io.yubicolabs.wwwwallet.bluetooth.BleClientHandler
 import io.yubicolabs.wwwwallet.bluetooth.BleServerHandler
@@ -108,7 +109,7 @@ class MainActivity : ComponentActivity() {
         ) { vm.onBackPressed() }
 
         when (intent.scheme) {
-            "https", "openid4vp", "haip" -> vm.parseIntent(intent)
+            "https", "openid4vp", "haip", "wwwallet" -> vm.parseIntent(intent)
             null -> Unit
             else -> YOLOLogger.e(tagForLog, "Cannot handle ${intent.scheme}.")
         }
@@ -150,7 +151,12 @@ class MainActivity : ComponentActivity() {
                     updateBaseUrl?.let { reason ->
                         EnterBaseUrlDialog(
                             title = stringResource(R.string.shortcut_open_custom),
-                            hint = if (reason is WebpageError) reason.message else null,
+                            hint =
+                                when (reason) {
+                                    is WebpageError -> stringResource(R.string.shortcut_open_custom_by_error, reason.errorMessage)
+                                    is DeeplinkRequest -> stringResource(R.string.shortcut_open_custom_from_deeplink)
+                                    is UserRequest -> stringResource(R.string.shortcut_open_custom_by_user)
+                                },
                             currentBaseUrl = runBlocking { vm.getBaseUrl() },
                             onCanceled = { vm.updateBaseUrlCanceled() },
                             onUrlEntered = {
