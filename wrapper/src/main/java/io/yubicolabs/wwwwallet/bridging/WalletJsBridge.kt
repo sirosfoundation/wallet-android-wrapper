@@ -117,6 +117,23 @@ class WalletJsBridge(
 
     @JavascriptInterface
     @SuppressLint("unused")
+    fun updateAllCredentials(list: String) {
+        val credentials = JSONArray(list)
+        val message = "Received ${credentials.length()} credentials."
+
+        // TODO: Convert into credential information and pass through to digital credentials api.
+
+        YOLOLogger.i(tagForLog, message)
+        dispatcher.dispatch(EmptyCoroutineContext) {
+            webView.evaluateJavascript(
+                "window.alert('$message');",
+            ) {
+            }
+        }
+    }
+
+    @JavascriptInterface
+    @SuppressLint("unused")
     fun create(
         promiseUuid: String,
         options: String,
