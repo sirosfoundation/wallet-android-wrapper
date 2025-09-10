@@ -3,9 +3,12 @@ package io.yubicolabs.wwwwallet.bridging
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.webkit.ValueCallback
+import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.core.text.parseAsHtml
+import androidx.credentials.CredentialManager
 import io.yubicolabs.wwwwallet.BuildConfig
 import io.yubicolabs.wwwwallet.bridging.WalletJsBridge.Companion.JAVASCRIPT_BRIDGE_NAME
 import io.yubicolabs.wwwwallet.json.toList
@@ -16,6 +19,8 @@ private const val USE_DEMO_BASE_URL = "Use Demo Base URL (default)"
 private const val USE_FUNKE_BASE_URL = "Use Funke Base URL"
 private const val USE_QA_BASE_URL = "Use QA Base URL"
 private const val CUSTOM_BASE_URL = "Custom Base URL"
+
+private const val OPEN_CONFIG = "Open Passkey Preferences"
 
 private const val SHOW_LOGS = "Show Application Logs"
 private const val SEND_FEEDBACK_EMAIL = "Give Feedback via email"
@@ -38,6 +43,8 @@ class DebugMenuHandler(
             USE_FUNKE_BASE_URL to { js -> browseTo("https://funke.wwwallet.org/") },
             USE_QA_BASE_URL to { js -> browseTo("https://qa.wwwallet.org/") },
             CUSTOM_BASE_URL to { js -> updateBaseUrl() },
+            LIST_SEPARATOR * maxSeparatorsCount++ to {},
+            OPEN_CONFIG to { js -> openPasskeyProviderSettings() },
             LIST_SEPARATOR * maxSeparatorsCount++ to {},
             SHOW_LOGS to { js ->
                 js("$JAVASCRIPT_BRIDGE_NAME.__captured_logs__") { logsJson ->
@@ -124,6 +131,20 @@ class DebugMenuHandler(
                 copyToClipboard(logs.joinToString("\n"))
             }
             .show()
+    }
+
+    private fun openPasskeyProviderSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            val man = CredentialManager.create(context)
+            val int = man.createSettingsPendingIntent()
+            int.send()
+        } else {
+            Toast.makeText(
+                context,
+                "Not available on your OS version. You have ${Build.VERSION.SDK_INT} but it needs to be ${Build.VERSION_CODES.VANILLA_ICE_CREAM}.",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
     }
 
     private fun githubFeedback(

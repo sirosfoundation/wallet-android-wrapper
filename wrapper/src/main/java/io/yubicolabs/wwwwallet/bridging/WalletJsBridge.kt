@@ -165,7 +165,8 @@ class WalletJsBridge(
         YOLOLogger.i(tagForLog, "$JAVASCRIPT_BRIDGE_NAME.get($promiseUuid, $options) called.")
 
         val mappedOptions = JSONObject(options)
-        credentialsContainerByOption(mappedOptions)
+        val container = credentialsContainerByOption(mappedOptions)
+        container
             .get(
                 options = mappedOptions,
                 failureCallback = { th ->
