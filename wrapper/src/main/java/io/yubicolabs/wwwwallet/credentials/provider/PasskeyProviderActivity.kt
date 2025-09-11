@@ -32,9 +32,9 @@ import androidx.credentials.provider.CallingAppInfo
 import androidx.credentials.provider.PendingIntentHandler
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredential.PUBLIC_KEY_CREDENTIAL_TYPE
 import io.yubicolabs.wwwwallet.R
+import io.yubicolabs.wwwwallet.credentials.AndroidContainer
 import io.yubicolabs.wwwwallet.credentials.Container
 import io.yubicolabs.wwwwallet.credentials.ContainerYubico
-import io.yubicolabs.wwwwallet.credentials.SoftwareContainer
 import io.yubicolabs.wwwwallet.json.getNested
 import io.yubicolabs.wwwwallet.logging.YOLOLogger
 import io.yubicolabs.wwwwallet.tagForLog
@@ -43,11 +43,13 @@ import org.json.JSONObject
 
 class PasskeyProviderActivity : ComponentActivity() {
     lateinit var yubicoContainer: Container
+    lateinit var androidContainer: Container
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         yubicoContainer = ContainerYubico(activity = this)
+        androidContainer = AndroidContainer(context = this)
 
         val requestId = intent.getIntExtra(EXTRA_KEY_REQUEST_ID, 0)
         when (requestId) {
@@ -167,17 +169,18 @@ class PasskeyProviderActivity : ComponentActivity() {
 
             val requestJson =
                 JSONObject(publicKeyRequest.candidateQueryData.getString(BUNDLE_KEY_REQUEST, "{}"))
+            val requestId = requestJson.getNested("requestid")
             val userId = requestJson.getNested("user.id")
             val userName = requestJson.getNested("user.name")
             val userDisplayName = requestJson.getNested("user.displayName")
 
-//            val container = when (requestId) {
-//                CREATE_SECURITY_KEY_REQUEST_ID -> yubicoContainer
-//                CREATE_CLIENT_DEVICE_REQUEST_ID -> builtInContainer
-//
-//                else -> null
-//            }
-            val container = SoftwareContainer(applicationContext)
+            val container =
+                when (requestId) {
+                    CREATE_SECURITY_KEY_REQUEST_ID -> yubicoContainer
+                    CREATE_CLIENT_DEVICE_REQUEST_ID -> androidContainer
+
+                    else -> null
+                }
 
             if (container != null) {
                 createPasskey(

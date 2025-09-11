@@ -126,7 +126,6 @@ dependencies {
     implementation(libs.androidx.registry.provider)
     implementation(libs.androidx.registry.provider.play.services)
     implementation(libs.androidx.registry.digitalcredentials.mdoc)
-    implementation(libs.softauth)
 
     testImplementation(libs.junit)
     testImplementation(libs.test.json)

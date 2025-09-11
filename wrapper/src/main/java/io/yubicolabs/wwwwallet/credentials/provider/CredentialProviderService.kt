@@ -25,9 +25,8 @@ import androidx.credentials.provider.CredentialEntry
 import androidx.credentials.provider.ProviderClearCredentialStateRequest
 import androidx.credentials.provider.PublicKeyCredentialEntry
 import androidx.credentials.provider.RemoteEntry
-import com.yubico.webauthn.data.ByteArray
 import io.yubicolabs.wwwwallet.R
-import io.yubicolabs.wwwwallet.credentials.SoftwareContainer
+import io.yubicolabs.wwwwallet.credentials.AndroidContainer
 import io.yubicolabs.wwwwallet.json.getNested
 import io.yubicolabs.wwwwallet.json.toList
 import io.yubicolabs.wwwwallet.logging.YOLOLogger
@@ -136,7 +135,14 @@ open class CredentialProviderService() : AndroidCredentialProviderService() {
 
             val options = JSONObject(optionsJson)
             if (options != JSONObject.NULL) {
-                SoftwareContainer(applicationContext).get(
+                val container =
+                    when {
+                        // TODO ADD Yubikey abstraction / move to PasskeyProviderActivity
+//                    options.getOrNull<Boolean>("yubikey") != null -> ContainerYubico(activity = this)
+                        else -> AndroidContainer(applicationContext)
+                    }
+
+                container.get(
                     JSONObject(mapOf("publicKey" to options)),
                     successCallback = { buildInResponse ->
                         val response =
@@ -257,8 +263,7 @@ open class CredentialProviderService() : AndroidCredentialProviderService() {
         val displayname = get("userDisplayName") as String
 
         val clientDataHash =
-            ByteArray.fromBase64Url(getNested("response.clientDataJSON") as String)
-                .bytes
+            (getNested("response.clientDataJSON") as String).toByteArray()
 
         val bundle = Bundle()
         bundle.putString(BUNDLE_KEY_REQUEST_JSON, requestJson)
