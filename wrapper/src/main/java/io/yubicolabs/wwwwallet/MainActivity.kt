@@ -47,7 +47,7 @@ import io.yubicolabs.wwwwallet.bridging.DebugMenuHandler
 import io.yubicolabs.wwwwallet.bridging.WalletJsBridge
 import io.yubicolabs.wwwwallet.bridging.WalletJsBridge.Companion.JAVASCRIPT_BRIDGE_NAME
 import io.yubicolabs.wwwwallet.credentials.AndroidContainer
-import io.yubicolabs.wwwwallet.credentials.ContainerYubico
+import io.yubicolabs.wwwwallet.credentials.YubicoContainer
 import io.yubicolabs.wwwwallet.logging.YOLOLogger
 import io.yubicolabs.wwwwallet.webkit.WalletWebChromeClient
 import io.yubicolabs.wwwwallet.webkit.WalletWebViewClient
@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
         WalletJsBridge(
             webView,
             Dispatchers.Main,
-            ContainerYubico(activity = this),
+            YubicoContainer(activity = this),
             AndroidContainer(context = this),
             BleClientHandler(activity = this),
             BleServerHandler(activity = this),

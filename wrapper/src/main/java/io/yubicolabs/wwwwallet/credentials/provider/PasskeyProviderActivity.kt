@@ -31,7 +31,7 @@ import androidx.lifecycle.lifecycleScope
 import io.yubicolabs.wwwwallet.R
 import io.yubicolabs.wwwwallet.credentials.AndroidContainer
 import io.yubicolabs.wwwwallet.credentials.Container
-import io.yubicolabs.wwwwallet.credentials.ContainerYubico
+import io.yubicolabs.wwwwallet.credentials.YubicoContainer
 import io.yubicolabs.wwwwallet.logging.YOLOLogger
 import io.yubicolabs.wwwwallet.tagForLog
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +45,7 @@ class PasskeyProviderActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        yubicoContainer = ContainerYubico(activity = this)
+        yubicoContainer = YubicoContainer(activity = this)
         androidContainer = AndroidContainer(context = this)
 
         setContent {
@@ -121,7 +121,7 @@ class PasskeyProviderActivity : ComponentActivity() {
 
         val container =
             when (requestCode) {
-                GET_SECURITY_KEY_REQUEST_CODE -> ContainerYubico(this)
+                GET_SECURITY_KEY_REQUEST_CODE -> YubicoContainer(this)
                 GET_CLIENT_DEVICE_REQUEST_CODE -> AndroidContainer(this)
                 else -> null
             }
