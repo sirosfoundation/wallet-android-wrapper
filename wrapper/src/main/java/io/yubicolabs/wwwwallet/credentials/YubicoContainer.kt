@@ -58,7 +58,7 @@ sealed class Operation(
     ) : Operation(options, success, failure)
 }
 
-class ContainerYubico(
+class YubicoContainer(
     val activity: Activity,
 ) : Container {
     private val manager: YubiKitManager = YubiKitManager(activity)
