@@ -26,11 +26,12 @@ import androidx.credentials.CreatePublicKeyCredentialRequest
 import androidx.credentials.CreatePublicKeyCredentialResponse
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.CreateCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialUnknownException
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.lifecycle.lifecycleScope
 import io.yubicolabs.wwwwallet.R
-import io.yubicolabs.wwwwallet.credentials.AndroidContainer
 import io.yubicolabs.wwwwallet.credentials.Container
+import io.yubicolabs.wwwwallet.credentials.LocalContainer
 import io.yubicolabs.wwwwallet.credentials.YubicoContainer
 import io.yubicolabs.wwwwallet.logging.YOLOLogger
 import io.yubicolabs.wwwwallet.tagForLog
@@ -40,13 +41,13 @@ import org.json.JSONObject
 
 class PasskeyProviderActivity : ComponentActivity() {
     lateinit var yubicoContainer: Container
-    lateinit var androidContainer: Container
+    lateinit var localContainer: Container
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         yubicoContainer = YubicoContainer(activity = this)
-        androidContainer = AndroidContainer(context = this)
+        localContainer = LocalContainer(context = this)
 
         setContent {
             MaterialTheme(
@@ -121,8 +122,8 @@ class PasskeyProviderActivity : ComponentActivity() {
 
         val container =
             when (requestCode) {
-                GET_SECURITY_KEY_REQUEST_CODE -> YubicoContainer(this)
-                GET_CLIENT_DEVICE_REQUEST_CODE -> AndroidContainer(this)
+                GET_SECURITY_KEY_REQUEST_CODE -> yubicoContainer
+                GET_CLIENT_DEVICE_REQUEST_CODE -> localContainer
                 else -> null
             }
 
@@ -144,9 +145,9 @@ class PasskeyProviderActivity : ComponentActivity() {
             failureCallback = {
                 val result = Intent()
 
-                PendingIntentHandler.setCreateCredentialException(
+                PendingIntentHandler.setGetCredentialException(
                     result,
-                    CreateCredentialCancellationException(
+                    GetCredentialUnknownException(
                         it.message,
                     ),
                 )
@@ -158,7 +159,7 @@ class PasskeyProviderActivity : ComponentActivity() {
                         Toast.LENGTH_LONG,
                     ).show()
 
-                    setResult(RESULT_CANCELED, result)
+                    setResult(RESULT_OK, result)
                     finish()
                 }
             },
@@ -182,8 +183,7 @@ class PasskeyProviderActivity : ComponentActivity() {
             val container =
                 when (requestCode) {
                     CREATE_SECURITY_KEY_REQUEST_CODE -> yubicoContainer
-                    CREATE_CLIENT_DEVICE_REQUEST_CODE -> androidContainer
-
+                    CREATE_CLIENT_DEVICE_REQUEST_CODE -> localContainer
                     else -> null
                 }
 
@@ -221,7 +221,7 @@ class PasskeyProviderActivity : ComponentActivity() {
                             Toast.LENGTH_LONG,
                         ).show()
 
-                        setResult(RESULT_CANCELED, result)
+                        setResult(RESULT_OK, result)
                         finish()
                     }
                 },
