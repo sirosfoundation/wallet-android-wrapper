@@ -25,13 +25,13 @@ import androidx.credentials.provider.CredentialProviderService as AndroidCredent
 
 private const val BASE_ID: Int = 12341
 
-private const val CREATE_BASE_REQUEST_CODE: Int = BASE_ID + 0
-const val CREATE_SECURITY_KEY_REQUEST_CODE: Int = CREATE_BASE_REQUEST_CODE + 0
-const val CREATE_CLIENT_DEVICE_REQUEST_CODE: Int = CREATE_BASE_REQUEST_CODE + 1
+private const val CREATE_BASE_REQUEST_CODE_BASE: Int = BASE_ID + 0
+const val CREATE_SECURITY_KEY_REQUEST_CODE: Int = CREATE_BASE_REQUEST_CODE_BASE + 0
+const val CREATE_CLIENT_DEVICE_REQUEST_CODE: Int = CREATE_BASE_REQUEST_CODE_BASE + 1
 
-private const val GET_CREDENTIAL_REQUEST_CODE: Int = BASE_ID + 10
-const val GET_SECURITY_KEY_REQUEST_CODE: Int = GET_CREDENTIAL_REQUEST_CODE + 0
-const val GET_CLIENT_DEVICE_REQUEST_CODE: Int = GET_CREDENTIAL_REQUEST_CODE + 1
+private const val GET_CREDENTIAL_REQUEST_CODE_BASE: Int = BASE_ID + 10
+const val GET_SECURITY_KEY_REQUEST_CODE: Int = GET_CREDENTIAL_REQUEST_CODE_BASE + 0
+const val GET_CLIENT_DEVICE_REQUEST_CODE: Int = GET_CREDENTIAL_REQUEST_CODE_BASE + 1
 
 const val BUNDLE_KEY_REQUEST: String = "androidx.credentials.BUNDLE_KEY_REQUEST_JSON"
 
@@ -63,6 +63,12 @@ open class CredentialProviderService() : AndroidCredentialProviderService() {
                                 accountName = baseContext.getString(R.string.credential_provider_create_external_device_description),
                                 userId = userId,
                                 requestCode = CREATE_SECURITY_KEY_REQUEST_CODE,
+                                requestId = requestId,
+                            ),
+                            createCreateEntry(
+                                accountName = baseContext.getString(R.string.credential_provider_create_android_description),
+                                userId = userId,
+                                requestCode = CREATE_CLIENT_DEVICE_REQUEST_CODE,
                                 requestId = requestId,
                             ),
                         ),
@@ -132,6 +138,15 @@ open class CredentialProviderService() : AndroidCredentialProviderService() {
                 pendingIntent =
                     createPendingIntentForGetRequest(
                         GET_SECURITY_KEY_REQUEST_CODE,
+                        requestId,
+                        requestJson,
+                    ),
+            ),
+            AuthenticationAction(
+                title = applicationContext.getString(R.string.credential_provider_create_android_description),
+                pendingIntent =
+                    createPendingIntentForGetRequest(
+                        GET_CLIENT_DEVICE_REQUEST_CODE,
                         requestId,
                         requestJson,
                     ),
