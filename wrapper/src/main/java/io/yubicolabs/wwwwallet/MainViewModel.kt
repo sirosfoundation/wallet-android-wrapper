@@ -121,7 +121,7 @@ class MainViewModel : ViewModel() {
             when {
                 value.startsWith("https://") -> value
                 value.startsWith("http://") -> value.replace("http", "https")
-                value.first().isLetter() -> "https://$value" // forgot the https?
+                value.isNotEmpty() && value.first().isLetter() -> "https://$value" // forgot the https?
                 else -> value // for direct ip addresses
             }
 
