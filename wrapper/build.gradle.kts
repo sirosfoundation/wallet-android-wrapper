@@ -120,6 +120,7 @@ dependencies {
     implementation(libs.yubikit.fido)
     implementation(libs.logback)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.cbor)
 
     // digital credentials api
     implementation(libs.playservices.identity.credentials)

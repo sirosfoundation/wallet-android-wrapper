@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package io.yubicolabs.wwwwallet.credentials.provider
 
 import android.content.Intent
@@ -38,6 +40,7 @@ import io.yubicolabs.wwwwallet.tagForLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import kotlin.uuid.ExperimentalUuidApi
 
 class PasskeyProviderActivity : ComponentActivity() {
     lateinit var yubicoContainer: Container
@@ -47,7 +50,10 @@ class PasskeyProviderActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         yubicoContainer = YubicoContainer(activity = this)
-        localContainer = LocalContainer(context = this)
+        localContainer =
+            LocalContainer(context = this).apply {
+                YOLOLogger.i("KEY_STORE", "isStrongBoxed: $isStrongBoxed.")
+            }
 
         setContent {
             MaterialTheme(
