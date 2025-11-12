@@ -1,3 +1,7 @@
+# 0.1.3
+
+* Replaced app icon with new SIROS logo.
+
 # 0.1.2
 
 * hotterfix: use signing extension sdk
