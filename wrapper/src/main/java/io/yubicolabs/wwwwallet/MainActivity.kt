@@ -14,19 +14,33 @@ import android.webkit.WebSettings.LOAD_NO_CACHE
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -34,8 +48,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import ch.qos.logback.classic.android.BasicLogcatConfigurator
 import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.DeeplinkRequest
@@ -120,29 +139,24 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(
                 if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
             ) {
-                enableEdgeToEdge()
+                enableEdgeToEdge(
+                    SystemBarStyle.auto(android.graphics.Color.BLUE, android.graphics.Color.BLUE),
+                    SystemBarStyle.auto(android.graphics.Color.DKGRAY, android.graphics.Color.DKGRAY))
 
                 val url by vm.url.collectAsState()
                 val updateBaseUrl by vm.updateBaseUrl.collectAsState()
 
-                Scaffold { paddingValues ->
-                    Column(
-                        modifier =
-                            Modifier
-                                .padding(paddingValues)
-                                .fillMaxHeight(),
-                    ) {
-                        WebView(
-                            activity = this@MainActivity,
-                            webViewClient = webViewClient,
-                            webChromeClient = webChromeClient,
-                            javascriptInterfaceCreator = javascriptInterfaceCreator,
-                            javascriptInterfaceName = JAVASCRIPT_BRIDGE_NAME,
-                            url,
-                        ) { url ->
-                            lifecycleScope.launch {
-                                vm.browseToUrl(url)
-                            }
+                MainView(url) {
+                    WebView(
+                        activity = this@MainActivity,
+                        webViewClient = webViewClient,
+                        webChromeClient = webChromeClient,
+                        javascriptInterfaceCreator = javascriptInterfaceCreator,
+                        javascriptInterfaceName = JAVASCRIPT_BRIDGE_NAME,
+                        url,
+                    ) { url ->
+                        lifecycleScope.launch {
+                            vm.browseToUrl(url)
                         }
                     }
 
@@ -172,7 +186,73 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ColumnScope.WebView(
+fun MainView(url: String, content: @Composable () -> Unit) {
+    Scaffold { paddingValues ->
+        Column(
+            modifier =
+                Modifier
+                    .padding(paddingValues)
+                    .fillMaxHeight()
+                    .background(Color.DarkGray)
+        ) {
+            Row(Modifier
+                .background(Color.Blue, AbsoluteRoundedCornerShape(
+                    CornerSize(0), CornerSize(0),
+                    CornerSize(20), CornerSize(20)))
+                .padding(bottom = 8.dp, end = 8.dp)
+            ) {
+                Image(
+                    painterResource(R.drawable.ic_launcher_foreground),
+                    null,
+                    Modifier.size(56.dp)
+                )
+
+                Column(Modifier.padding(top = 8.dp)) {
+                    Text("Current Wallet", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                    Text(url.toUri().host ?: url, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                Button(onClick = {}, Modifier.padding(top = 8.dp)) {
+                    Icon(
+                        painterResource(R.drawable.baseline_refresh_24), null)
+                    Text("Switch Wallet")
+                }
+            }
+
+            Box(Modifier.weight(1f)) {
+                content()
+            }
+
+            Box(Modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .background(Color.DarkGray))
+        }
+    }
+}
+
+@Preview
+@Composable
+fun MainViewPreview() {
+    MaterialTheme(
+        if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
+    ) {
+        MainView("https://demo.wwwallet.org/") {
+            Box(Modifier
+                .fillMaxSize()
+                .background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("This is the web view.")
+            }
+        }
+    }
+}
+
+@Composable
+fun WebView(
     activity: Activity,
     webViewClient: WebViewClient,
     webChromeClient: WebChromeClient,
