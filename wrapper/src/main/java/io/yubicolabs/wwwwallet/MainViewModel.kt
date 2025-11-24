@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.WebpageError
@@ -29,10 +30,14 @@ class MainViewModel : ViewModel() {
                 profileStorage = ProfileStorage(value)
 
                 viewModelScope.launch {
-                    val baseurl = profileStorage.restore().baseUrl
+                    val profile = profileStorage.restore()
 
                     _url.update {
-                        baseurl
+                        profile.baseUrl
+                    }
+
+                    _hosts.update {
+                        profile.hosts
                     }
                 }
             }
@@ -42,6 +47,16 @@ class MainViewModel : ViewModel() {
 
     private val _url: MutableStateFlow<String> = MutableStateFlow("")
     var url: StateFlow<String> = _url.asStateFlow()
+
+    private val _hosts: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
+    val hosts: StateFlow<List<String>> = _hosts.asStateFlow()
+
+    var topBgColor = Color(red = 0, green = 52, blue = 149)
+
+    var buttonBgColor = Color(red = 0, green = 52, blue = 118)
+
+    var bottomBgColor = Color(red = 17, green = 24, blue = 39)
+
 
     sealed class UpdateReason {
         object UserRequest : UpdateReason()

@@ -14,7 +14,6 @@ import android.webkit.WebSettings.LOAD_NO_CACHE
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,6 +35,10 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +49,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -139,14 +145,18 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(
                 if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
             ) {
-                enableEdgeToEdge(
-                    SystemBarStyle.auto(android.graphics.Color.BLUE, android.graphics.Color.BLUE),
-                    SystemBarStyle.auto(android.graphics.Color.DKGRAY, android.graphics.Color.DKGRAY))
+                enableEdgeToEdge()
 
                 val url by vm.url.collectAsState()
+                val hosts by vm.hosts.collectAsState()
                 val updateBaseUrl by vm.updateBaseUrl.collectAsState()
 
-                MainView(url) {
+                MainView(url, hosts, listOf(vm.topBgColor, vm.buttonBgColor, vm.bottomBgColor),{
+                    lifecycleScope.launch {
+                        val url = vm.setBaseUrl(it)
+                        vm.browseToUrl(url)
+                    }
+                }) {
                     WebView(
                         activity = this@MainActivity,
                         webViewClient = webViewClient,
@@ -186,20 +196,23 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainView(url: String, content: @Composable () -> Unit) {
+fun MainView(url: String, hosts: List<String>,
+             colors: List<Color>,
+             onHostChange: (String) -> Unit,
+             content: @Composable () -> Unit
+) {
     Scaffold { paddingValues ->
         Column(
             modifier =
                 Modifier
-                    .padding(paddingValues)
+                    .background(Color.Black)
                     .fillMaxHeight()
-                    .background(Color.DarkGray)
         ) {
             Row(Modifier
-                .background(Color.Blue, AbsoluteRoundedCornerShape(
+                .background(colors.first(), AbsoluteRoundedCornerShape(
                     CornerSize(0), CornerSize(0),
                     CornerSize(20), CornerSize(20)))
-                .padding(bottom = 8.dp, end = 8.dp)
+                .padding(bottom = 8.dp, end = 8.dp, top = paddingValues.calculateTopPadding())
             ) {
                 Image(
                     painterResource(R.drawable.ic_launcher_foreground),
@@ -214,11 +227,7 @@ fun MainView(url: String, content: @Composable () -> Unit) {
 
                 Spacer(Modifier.weight(1f))
 
-                Button(onClick = {}, Modifier.padding(top = 8.dp)) {
-                    Icon(
-                        painterResource(R.drawable.baseline_refresh_24), null)
-                    Text("Switch Wallet")
-                }
+                HostsDropdownMenu(hosts, onHostChange, colors[1])
             }
 
             Box(Modifier.weight(1f)) {
@@ -227,8 +236,8 @@ fun MainView(url: String, content: @Composable () -> Unit) {
 
             Box(Modifier
                 .fillMaxWidth()
-                .height(16.dp)
-                .background(Color.DarkGray))
+                .height(32.dp)
+                .background(colors.last()))
         }
     }
 }
@@ -239,13 +248,51 @@ fun MainViewPreview() {
     MaterialTheme(
         if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
     ) {
-        MainView("https://demo.wwwallet.org/") {
+        MainView(
+            "https://demo.wwwallet.org/",
+            listOf("demo.wwwallet.org", "foo.example.org", "bar.example.org"),
+            listOf(Color(red = 0, green = 52, blue = 149),
+                Color(red = 0, green = 52, blue = 118),
+                Color(red = 17, green = 24, blue = 39)),
+            {}) {
             Box(Modifier
                 .fillMaxSize()
                 .background(Color.LightGray),
                 contentAlignment = Alignment.Center
             ) {
                 Text("This is the web view.")
+            }
+        }
+    }
+}
+
+@Composable
+fun HostsDropdownMenu(hosts: List<String>, onChange: (String) -> Unit, color: Color) {
+    var expanded by remember {
+        mutableStateOf(false)
+    }
+
+    Box(Modifier.padding(top = 8.dp)) {
+        Button(
+            { expanded = !expanded },
+            colors = ButtonColors(
+                color,
+                Color.White,
+                ButtonDefaults.buttonColors().disabledContainerColor,
+                ButtonDefaults.buttonColors().disabledContentColor
+            )
+        ) {
+            Icon(
+                painterResource(R.drawable.baseline_refresh_24), null)
+            Text("Switch Wallet")
+        }
+
+        DropdownMenu(expanded, onDismissRequest = { expanded = false }) {
+            for (host in hosts) {
+                DropdownMenuItem({ Text(host) }, onClick = {
+                    onChange(host)
+                    expanded = false
+                })
             }
         }
     }
@@ -292,7 +339,7 @@ private fun createWebViewFactory(
     webChromeClient: WebChromeClient,
     javascriptInterfaceCreator: (WebView) -> Any,
     javascriptInterfaceName: String,
-) = { context: Context ->
+) = { _: Context ->
     val webView =
         WebView(activity).apply {
             setNetworkAvailable(true)
