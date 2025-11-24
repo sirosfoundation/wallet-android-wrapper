@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.map
 
 data class Profile(
     val baseUrl: String,
+    val hosts: List<String>,
 )
 
 class ProfileStorage(
@@ -29,10 +30,14 @@ class ProfileStorage(
         }
     }
 
-    suspend fun restore(): Profile =
-        context.dataStore.data.map { preferences ->
+    suspend fun restore(): Profile {
+        val hosts = BuildConfig.HOSTS.split(",")
+
+        return context.dataStore.data.map { preferences ->
             Profile(
-                baseUrl = preferences[BASE_URL_KEY] ?: BuildConfig.BASE_URL,
+                baseUrl = preferences[BASE_URL_KEY] ?: hosts.first(),
+                hosts = hosts
             )
         }.first()
+    }
 }

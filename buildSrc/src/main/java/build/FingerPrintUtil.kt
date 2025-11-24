@@ -11,8 +11,8 @@ data class Target(
     val packageName: String
 )
 
-fun Project.getServerTargets(host: String): List<Target> {
-    val body = JsonSlurper().parse(URI.create("$host/.well-known/assetlinks.json").toURL())
+fun getServerTargets(host: String): List<Target> {
+    val body = JsonSlurper().parse(URI.create("https://$host/.well-known/assetlinks.json").toURL())
     val items = (body as? List<*>) ?: emptyList<Any?>()
     return items.mapNotNull { item ->
         if (item as? Map<*, *> != null) {

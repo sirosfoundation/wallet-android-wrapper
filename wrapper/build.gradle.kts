@@ -1,5 +1,6 @@
 import build.env
 import build.fileFromEnv
+import build.getHosts
 
 plugins {
     alias(libs.plugins.android.application)
@@ -43,7 +44,7 @@ android {
 
     buildTypes {
         all {
-            buildConfigField("String", "BASE_URL", "\"${env("WWWALLET_ANDROID_HOST")}\"")
+            buildConfigField("String", name = "HOSTS", value = "\"${getHosts().joinToString(",")}\"")
             buildConfigField("Boolean", "SHOW_URL_ROW", "false")
             buildConfigField("Boolean", "VISUALIZE_INJECTION", "false")
 

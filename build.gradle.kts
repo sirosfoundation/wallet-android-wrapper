@@ -1,5 +1,5 @@
-import build.env
 import build.getApkTargets
+import build.getHosts
 import build.getLogs
 import build.getReleaseQuoteAndAuthor
 import build.getServerTargets
@@ -44,41 +44,50 @@ tasks.register("createReleaseNotes") {
 }
 
 tasks.register("checkFingerprints") {
-    description = "Check apk's sha256fingerprint is ./well-known files on given host."
+    description = "Check apk's sha256fingerprint is ./well-known files on given hosts."
 
-    val host = env("WWWALLET_ANDROID_HOST")
     doLast {
-        val serverTargets = getServerTargets(host)
-        val apkTargets = getApkTargets()
+        for (host in getHosts()) {
+            val serverTargets = getServerTargets(host)
+            val apkTargets = getApkTargets()
 
-        val foundMatch = apkTargets.firstNotNullOfOrNull { apkTarget ->
-            serverTargets.firstNotNullOfOrNull { serverTarget ->
-                if (apkTarget.packageName == serverTarget.packageName) {
-                    val serverShaFound = serverTarget.shas.firstOrNull { serverSha ->
-                        apkTarget.shas.contains(serverSha)
-                    }
+            val foundMatch = apkTargets.firstNotNullOfOrNull { apkTarget ->
+                serverTargets.firstNotNullOfOrNull { serverTarget ->
+                    if (apkTarget.packageName == serverTarget.packageName) {
+                        val serverShaFound = serverTarget.shas.firstOrNull { serverSha ->
+                            apkTarget.shas.contains(serverSha)
+                        }
 
-                    if (serverShaFound != null) {
-                        serverTarget
+                        if (serverShaFound != null) {
+                            serverTarget
+                        } else {
+                            null
+                        }
                     } else {
                         null
                     }
-                } else {
-                    null
                 }
             }
-        }
 
-        if (foundMatch != null) {
-            println("✅ Found signatures for all apks(${apkTargets.joinToString(", ") { it.name.split('/').last() }}) with package '${foundMatch.packageName}' on server '$host'.")
-        } else {
-            throw GradleException(
-                "🙅Could not find any matching signarure from host '$host' for\n${
-                    apkTargets.joinToString(separator = "\n") {
-                        "  ${it.name} with package ${it.packageName} and sha ${it.shas.joinToString()}"
-                    }
-                }"
-            )
+            if (foundMatch != null) {
+                println(
+                    "✅ Found signatures for all apks(${
+                        apkTargets.joinToString(", ") {
+                            it.name.split(
+                                '/'
+                            ).last()
+                        }
+                    }) with package '${foundMatch.packageName}' on server '$host'."
+                )
+            } else {
+                throw GradleException(
+                    "🙅Could not find any matching signarure from host '$host' for\n${
+                        apkTargets.joinToString(separator = "\n") {
+                            "  ${it.name} with package ${it.packageName} and sha ${it.shas.joinToString()}"
+                        }
+                    }"
+                )
+            }
         }
     }
 }
