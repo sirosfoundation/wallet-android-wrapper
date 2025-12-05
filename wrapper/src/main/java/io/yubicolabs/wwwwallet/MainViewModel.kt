@@ -57,7 +57,6 @@ class MainViewModel : ViewModel() {
 
     var bottomBgColor = Color(red = 17, green = 24, blue = 39)
 
-
     sealed class UpdateReason {
         object UserRequest : UpdateReason()
 

@@ -151,7 +151,7 @@ class MainActivity : ComponentActivity() {
                 val hosts by vm.hosts.collectAsState()
                 val updateBaseUrl by vm.updateBaseUrl.collectAsState()
 
-                MainView(url, hosts, listOf(vm.topBgColor, vm.buttonBgColor, vm.bottomBgColor),{
+                MainView(url, hosts, listOf(vm.topBgColor, vm.buttonBgColor, vm.bottomBgColor), {
                     lifecycleScope.launch {
                         val url = vm.setBaseUrl(it)
                         vm.browseToUrl(url)
@@ -196,28 +196,37 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainView(url: String, hosts: List<String>,
-             colors: List<Color>,
-             onHostChange: (String) -> Unit,
-             content: @Composable () -> Unit
+fun MainView(
+    url: String,
+    hosts: List<String>,
+    colors: List<Color>,
+    onHostChange: (String) -> Unit,
+    content: @Composable () -> Unit,
 ) {
     Scaffold { paddingValues ->
         Column(
             modifier =
                 Modifier
                     .background(Color.Black)
-                    .fillMaxHeight()
+                    .fillMaxHeight(),
         ) {
-            Row(Modifier
-                .background(colors.first(), AbsoluteRoundedCornerShape(
-                    CornerSize(0), CornerSize(0),
-                    CornerSize(20), CornerSize(20)))
-                .padding(bottom = 8.dp, end = 8.dp, top = paddingValues.calculateTopPadding())
+            Row(
+                Modifier
+                    .background(
+                        colors.first(),
+                        AbsoluteRoundedCornerShape(
+                            CornerSize(0),
+                            CornerSize(0),
+                            CornerSize(20),
+                            CornerSize(20),
+                        ),
+                    )
+                    .padding(bottom = 8.dp, end = 8.dp, top = paddingValues.calculateTopPadding()),
             ) {
                 Image(
                     painterResource(R.drawable.ic_launcher_foreground),
                     null,
-                    Modifier.size(56.dp)
+                    Modifier.size(56.dp),
                 )
 
                 Column(Modifier.padding(top = 8.dp)) {
@@ -234,10 +243,12 @@ fun MainView(url: String, hosts: List<String>,
                 content()
             }
 
-            Box(Modifier
-                .fillMaxWidth()
-                .height(32.dp)
-                .background(colors.last()))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(32.dp)
+                    .background(colors.last()),
+            )
         }
     }
 }
@@ -251,14 +262,18 @@ fun MainViewPreview() {
         MainView(
             "https://demo.wwwallet.org/",
             listOf("demo.wwwallet.org", "foo.example.org", "bar.example.org"),
-            listOf(Color(red = 0, green = 52, blue = 149),
+            listOf(
+                Color(red = 0, green = 52, blue = 149),
                 Color(red = 0, green = 52, blue = 118),
-                Color(red = 17, green = 24, blue = 39)),
-            {}) {
-            Box(Modifier
-                .fillMaxSize()
-                .background(Color.LightGray),
-                contentAlignment = Alignment.Center
+                Color(red = 17, green = 24, blue = 39),
+            ),
+            {},
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center,
             ) {
                 Text("This is the web view.")
             }
@@ -267,7 +282,11 @@ fun MainViewPreview() {
 }
 
 @Composable
-fun HostsDropdownMenu(hosts: List<String>, onChange: (String) -> Unit, color: Color) {
+fun HostsDropdownMenu(
+    hosts: List<String>,
+    onChange: (String) -> Unit,
+    color: Color,
+) {
     var expanded by remember {
         mutableStateOf(false)
     }
@@ -275,15 +294,18 @@ fun HostsDropdownMenu(hosts: List<String>, onChange: (String) -> Unit, color: Co
     Box(Modifier.padding(top = 8.dp)) {
         Button(
             { expanded = !expanded },
-            colors = ButtonColors(
-                color,
-                Color.White,
-                ButtonDefaults.buttonColors().disabledContainerColor,
-                ButtonDefaults.buttonColors().disabledContentColor
-            )
+            colors =
+                ButtonColors(
+                    color,
+                    Color.White,
+                    ButtonDefaults.buttonColors().disabledContainerColor,
+                    ButtonDefaults.buttonColors().disabledContentColor,
+                ),
         ) {
             Icon(
-                painterResource(R.drawable.baseline_refresh_24), null)
+                painterResource(R.drawable.baseline_refresh_24),
+                null,
+            )
             Text("Switch Wallet")
         }
 

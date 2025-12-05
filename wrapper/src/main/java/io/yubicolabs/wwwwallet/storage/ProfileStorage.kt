@@ -36,7 +36,7 @@ class ProfileStorage(
         return context.dataStore.data.map { preferences ->
             Profile(
                 baseUrl = preferences[BASE_URL_KEY] ?: hosts.first(),
-                hosts = hosts
+                hosts = hosts,
             )
         }.first()
     }
