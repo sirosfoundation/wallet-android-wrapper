@@ -38,7 +38,7 @@ if (visualize) {
             link.setAttribute('id', 'android-injection-visualization')
             link.setAttribute('href', 'javascript:JAVASCRIPT_BRIDGE.openDebugMenu()')
             link.setAttribute('style', 'position:absolute;top:-0px;right:0;padding:0.5em;z-index:9999999;rotate:180deg;')
-            link.innerHTML = '🤖'
+            link.textContent = '🤖'
             body.appendChild(link)
         }
     } else {
@@ -65,7 +65,7 @@ JAVASCRIPT_BRIDGE.overrideHints = function(newHints) {
            viz = '¿¿'
         }
 
-        document.getElementById('android-injection-visualization').innerHTML = viz
+        document.getElementById('android-injection-visualization').textContent = viz
     } else {
         console.log('no viz, no update.')
     }
