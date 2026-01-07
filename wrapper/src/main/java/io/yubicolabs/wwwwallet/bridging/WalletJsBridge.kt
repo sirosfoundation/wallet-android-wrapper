@@ -121,12 +121,6 @@ class WalletJsBridge(
         // TODO: Convert into credential information and pass through to digital credentials api.
 
         YOLOLogger.i(tagForLog, message)
-        dispatcher.dispatch(EmptyCoroutineContext) {
-            webView.evaluateJavascript(
-                "window.alert('$message');",
-            ) {
-            }
-        }
     }
 
     @JavascriptInterface
