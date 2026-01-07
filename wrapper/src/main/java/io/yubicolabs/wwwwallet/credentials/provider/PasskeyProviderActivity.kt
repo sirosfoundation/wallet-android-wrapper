@@ -113,17 +113,13 @@ class PasskeyProviderActivity : ComponentActivity() {
     }
 
     private fun getRequest() {
-        val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent)
-        if (request == null) {
-            return
-        }
+        val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent) ?: return
         val credentialId = intent.getStringExtra(EXTRA_KEY_CREDENTIAL_ID)
+
         YOLOLogger.d(tagForLog, "Get credential request found.")
 
-        val publicKeyRequest = request.credentialOptions.firstOrNull() as? GetPublicKeyCredentialOption
-        if (publicKeyRequest == null) {
-            return
-        }
+        val publicKeyRequest =
+            request.credentialOptions.firstOrNull() as? GetPublicKeyCredentialOption ?: return
 
         val publicKeyRequestJson = JSONObject(publicKeyRequest.requestJson)
         publicKeyRequestJson.getJSONArray("allowCredentials").put(
