@@ -117,7 +117,8 @@ class BleServerHandler(
 
         val advertiser = adapter!!.bluetoothLeAdvertiser
         val settings =
-            AdvertiseSettings.Builder()
+            AdvertiseSettings
+                .Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
                 .setConnectable(true)
                 .setTimeout(0)
@@ -125,7 +126,8 @@ class BleServerHandler(
                 .build()
 
         val data =
-            AdvertiseData.Builder()
+            AdvertiseData
+                .Builder()
                 .setIncludeTxPowerLevel(false)
                 .addServiceUuid(ParcelUuid(serviceUuid))
                 .build()
@@ -151,15 +153,14 @@ class BleServerHandler(
         success()
     }
 
-    fun status(): String {
-        return state.let {
+    fun status(): String =
+        state.let {
             when (it) {
                 is Advertising -> "Advertising: ${it.server}"
                 is Connected -> "Connected."
                 is Disconnected -> "Disconnected."
             }
         }
-    }
 
     fun disconnect() {
         state.let {

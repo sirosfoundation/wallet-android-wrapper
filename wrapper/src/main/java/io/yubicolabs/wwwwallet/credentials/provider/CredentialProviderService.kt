@@ -45,7 +45,7 @@ const val EXTRA_KEY_REQUEST_ID = "KEY_REQUEST_ID"
 const val EXTRA_KEY_CREDENTIAL_ID = "KEY_CREDENTIAL_ID"
 
 @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-open class CredentialProviderService() : AndroidCredentialProviderService() {
+open class CredentialProviderService : AndroidCredentialProviderService() {
     companion object {
         private var runningNumberPendingIntentNumber: Int = 1
     }
@@ -175,16 +175,17 @@ open class CredentialProviderService() : AndroidCredentialProviderService() {
 
         val icon = Icon.createWithResource(applicationContext, R.mipmap.ic_launcher)
 
-        return PublicKeyCredentialEntry.Builder(
-            context = applicationContext,
-            username = username,
-            pendingIntent = pendingIntent,
-            beginGetPublicKeyCredentialOption = option,
-        ).setIcon(
-            icon,
-        ).setDisplayName(
-            displayName,
-        ).build()
+        return PublicKeyCredentialEntry
+            .Builder(
+                context = applicationContext,
+                username = username,
+                pendingIntent = pendingIntent,
+                beginGetPublicKeyCredentialOption = option,
+            ).setIcon(
+                icon,
+            ).setDisplayName(
+                displayName,
+            ).build()
     }
 
     private fun getAllResponsesToOptions(requestOptions: List<BeginGetPublicKeyCredentialOption>): MutableList<Any?> {

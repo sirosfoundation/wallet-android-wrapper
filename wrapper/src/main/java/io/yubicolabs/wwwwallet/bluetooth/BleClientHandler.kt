@@ -317,15 +317,14 @@ class BleClientHandler(
             }
         }
 
-    fun status(): String {
-        return state.let {
+    fun status(): String =
+        state.let {
             when (it) {
                 is Scanning -> "Scanning: ${it.scanner}."
                 is Connected -> "Connected."
                 is Disconnected -> "Disconnected."
             }
         }
-    }
 
     fun createClient(
         serviceUuid: String,

@@ -48,7 +48,9 @@ class MainViewModel : ViewModel() {
 
         object DeeplinkRequest : UpdateReason()
 
-        data class WebpageError(val errorMessage: String) : UpdateReason()
+        data class WebpageError(
+            val errorMessage: String,
+        ) : UpdateReason()
     }
 
     private val _updateBaseUrl: MutableStateFlow<UpdateReason?> = MutableStateFlow(null)

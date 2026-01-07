@@ -352,11 +352,12 @@ class WalletJsBridge(
 }
 
 private fun JSONArray.toByteArray(): ByteArray =
-    (0 until length()).mapNotNull { index ->
-        val value = get(index)
-        if (value is Int) {
-            value.toByte()
-        } else {
-            null
-        }
-    }.toByteArray()
+    (0 until length())
+        .mapNotNull { index ->
+            val value = get(index)
+            if (value is Int) {
+                value.toByte()
+            } else {
+                null
+            }
+        }.toByteArray()

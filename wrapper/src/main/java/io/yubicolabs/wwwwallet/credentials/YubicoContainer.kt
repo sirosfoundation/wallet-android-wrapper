@@ -383,7 +383,8 @@ class YubicoContainer(
                     }
                 }
 
-            AlertDialog.Builder(activity)
+            AlertDialog
+                .Builder(activity)
                 .setTitle("Select one")
                 .setItems(items, listener)
                 .setNegativeButton(android.R.string.cancel) { dialog, which ->
@@ -391,8 +392,7 @@ class YubicoContainer(
                     dialog.dismiss()
 
                     failure()
-                }
-                .show()
+                }.show()
         }
     }
 
@@ -407,15 +407,15 @@ class YubicoContainer(
                 }
 
             val dialog =
-                AlertDialog.Builder(activity)
+                AlertDialog
+                    .Builder(activity)
                     .setTitle("Pin Required")
                     .setView(pinEdit)
                     .setPositiveButton(android.R.string.ok) { dialog, which ->
                         YOLOLogger.i(tagForLog, "PIN entered.")
                         dialog.dismiss()
                         callback(pinEdit.text.toString())
-                    }
-                    .setNegativeButton(android.R.string.cancel) { dialog, which ->
+                    }.setNegativeButton(android.R.string.cancel) { dialog, which ->
                         YOLOLogger.i(tagForLog, "PIN entry cancelled.")
                         dialog.dismiss()
                         callback(null)

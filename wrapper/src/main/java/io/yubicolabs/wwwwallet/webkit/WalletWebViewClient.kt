@@ -30,7 +30,9 @@ class WalletWebViewClient(
     ): Boolean {
         if (
             URL_IGNORE_LIST.any {
-                request.url.host?.lowercase()?.startsWith(it) == true
+                request.url.host
+                    ?.lowercase()
+                    ?.startsWith(it) == true
             }
         ) {
             if (BuildConfig.DEBUG) {

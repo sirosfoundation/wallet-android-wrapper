@@ -232,13 +232,12 @@ private fun createWebViewFactory(
     webView.webChromeClient = webChromeClient
 
     ServiceWorkerController
-        .getInstance().apply {
+        .getInstance()
+        .apply {
             serviceWorkerWebSettings.allowContentAccess = true
             setServiceWorkerClient(
                 object : ServiceWorkerClient() {
-                    override fun shouldInterceptRequest(request: WebResourceRequest?): WebResourceResponse? {
-                        return super.shouldInterceptRequest(request)
-                    }
+                    override fun shouldInterceptRequest(request: WebResourceRequest?): WebResourceResponse? = super.shouldInterceptRequest(request)
                 },
             )
         }

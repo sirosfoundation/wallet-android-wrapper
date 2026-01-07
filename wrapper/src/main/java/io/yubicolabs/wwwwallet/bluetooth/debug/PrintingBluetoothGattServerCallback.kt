@@ -13,7 +13,7 @@ import io.yubicolabs.wwwwallet.bluetooth.toHumanReadable
 import io.yubicolabs.wwwwallet.logging.YOLOLogger
 import io.yubicolabs.wwwwallet.tagForLog
 
-open class PrintingBluetoothGattServerCallback() : BluetoothGattServerCallback() {
+open class PrintingBluetoothGattServerCallback : BluetoothGattServerCallback() {
     override fun onConnectionStateChange(
         device: BluetoothDevice?,
         status: Int,

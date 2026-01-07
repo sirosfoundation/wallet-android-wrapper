@@ -100,11 +100,12 @@ class PasskeyProviderActivity : ComponentActivity() {
             GET_CLIENT_DEVICE_REQUEST_CODE -> getRequest()
 
             else -> {
-                Toast.makeText(
-                    applicationContext,
-                    "Found unexpected request.",
-                    Toast.LENGTH_SHORT,
-                ).show()
+                Toast
+                    .makeText(
+                        applicationContext,
+                        "Found unexpected request.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
 
                 YOLOLogger.e(tagForLog, "Could not identify request. Ignored.")
                 finish()
@@ -149,11 +150,12 @@ class PasskeyProviderActivity : ComponentActivity() {
                 )
                 setResult(RESULT_OK, result)
 
-                Toast.makeText(
-                    this,
-                    "Passkey for user '${credentialJson.getNested("response.userDisplayName")}' returned 🎉.",
-                    Toast.LENGTH_LONG,
-                ).show()
+                Toast
+                    .makeText(
+                        this,
+                        "Passkey for user '${credentialJson.getNested("response.userDisplayName")}' returned 🎉.",
+                        Toast.LENGTH_LONG,
+                    ).show()
 
                 finish()
             },
@@ -168,11 +170,12 @@ class PasskeyProviderActivity : ComponentActivity() {
                 )
 
                 lifecycleScope.launch(Dispatchers.Main) {
-                    Toast.makeText(
-                        this@PasskeyProviderActivity,
-                        "Passkey getting failed: '${it.message}'.",
-                        Toast.LENGTH_LONG,
-                    ).show()
+                    Toast
+                        .makeText(
+                            this@PasskeyProviderActivity,
+                            "Passkey getting failed: '${it.message}'.",
+                            Toast.LENGTH_LONG,
+                        ).show()
 
                     setResult(RESULT_OK, result)
                     finish()
@@ -222,11 +225,12 @@ class PasskeyProviderActivity : ComponentActivity() {
                     )
 
                     lifecycleScope.launch(Dispatchers.Main) {
-                        Toast.makeText(
-                            this@PasskeyProviderActivity,
-                            "Passkey creation failed: '${it.message}'.",
-                            Toast.LENGTH_LONG,
-                        ).show()
+                        Toast
+                            .makeText(
+                                this@PasskeyProviderActivity,
+                                "Passkey creation failed: '${it.message}'.",
+                                Toast.LENGTH_LONG,
+                            ).show()
 
                         setResult(RESULT_OK, result)
                         finish()

@@ -30,9 +30,10 @@ class ProfileStorage(
     }
 
     suspend fun restore(): Profile =
-        context.dataStore.data.map { preferences ->
-            Profile(
-                baseUrl = preferences[BASE_URL_KEY] ?: BuildConfig.BASE_URL,
-            )
-        }.first()
+        context.dataStore.data
+            .map { preferences ->
+                Profile(
+                    baseUrl = preferences[BASE_URL_KEY] ?: BuildConfig.BASE_URL,
+                )
+            }.first()
 }

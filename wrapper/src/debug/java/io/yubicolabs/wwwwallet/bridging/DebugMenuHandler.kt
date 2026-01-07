@@ -81,7 +81,8 @@ class DebugMenuHandler(
         val items = actions.keys.toTypedArray()
         val theme = io.yubicolabs.wwwwallet.R.style.Theme_Wwwallet_Dialog
 
-        AlertDialog.Builder(context, theme)
+        AlertDialog
+            .Builder(context, theme)
             .setTitle("Debug Menu (v${BuildConfig.VERSION_NAME})")
             .setItems(
                 items,
@@ -93,16 +94,13 @@ class DebugMenuHandler(
                 } else {
                     jsExecutor("window.alert('Option $which (${items[which]}) is not implemented.')") {}
                 }
-            }
-            .setPositiveButton(android.R.string.ok) { dialog, which ->
+            }.setPositiveButton(android.R.string.ok) { dialog, which ->
                 jsExecutor("console.log('OK')") {}
                 dialog.dismiss()
-            }
-            .setNegativeButton(android.R.string.cancel) { dialog, which ->
+            }.setNegativeButton(android.R.string.cancel) { dialog, which ->
                 jsExecutor("console.log('Not OK')") {}
                 dialog.dismiss()
-            }
-            .show()
+            }.show()
     }
 
     fun showLogs(
@@ -111,26 +109,26 @@ class DebugMenuHandler(
     ) {
         val theme = io.yubicolabs.wwwwallet.R.style.Theme_Wwwallet_Dialog
 
-        AlertDialog.Builder(context, theme)
+        AlertDialog
+            .Builder(context, theme)
             .setTitle("Log")
             .setItems(
-                logs.map { log ->
-                    log.replace(
-                        Regex("[0-9]+: (.*)"),
-                        "<tt>$1</tt>",
-                    ).parseAsHtml()
-                }
-                    .toTypedArray(),
+                logs
+                    .map { log ->
+                        log
+                            .replace(
+                                Regex("[0-9]+: (.*)"),
+                                "<tt>$1</tt>",
+                            ).parseAsHtml()
+                    }.toTypedArray(),
             ) { dialog, which ->
                 copyToClipboard(logs[which])
                 dialog.dismiss()
-            }
-            .setPositiveButton(android.R.string.ok) { dialog, which ->
+            }.setPositiveButton(android.R.string.ok) { dialog, which ->
                 dialog.dismiss()
             }.setNeutralButton("📋") { dialog, which ->
                 copyToClipboard(logs.joinToString("\n"))
-            }
-            .show()
+            }.show()
     }
 
     private fun openPasskeyProviderSettings() {
@@ -139,11 +137,12 @@ class DebugMenuHandler(
             val int = man.createSettingsPendingIntent()
             int.send()
         } else {
-            Toast.makeText(
-                context,
-                "Not available on your OS version. You have ${Build.VERSION.SDK_INT} but it needs to be ${Build.VERSION_CODES.VANILLA_ICE_CREAM}.",
-                Toast.LENGTH_LONG,
-            ).show()
+            Toast
+                .makeText(
+                    context,
+                    "Not available on your OS version. You have ${Build.VERSION.SDK_INT} but it needs to be ${Build.VERSION_CODES.VANILLA_ICE_CREAM}.",
+                    Toast.LENGTH_LONG,
+                ).show()
         }
     }
 
