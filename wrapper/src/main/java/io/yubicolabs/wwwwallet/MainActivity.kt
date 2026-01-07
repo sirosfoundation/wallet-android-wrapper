@@ -21,48 +21,40 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import ch.qos.logback.classic.android.BasicLogcatConfigurator
+import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.DeeplinkRequest
+import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.UserRequest
+import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.WebpageError
 import io.yubicolabs.wwwwallet.bluetooth.BleClientHandler
 import io.yubicolabs.wwwwallet.bluetooth.BleServerHandler
 import io.yubicolabs.wwwwallet.bridging.DebugMenuHandler
 import io.yubicolabs.wwwwallet.bridging.WalletJsBridge
 import io.yubicolabs.wwwwallet.bridging.WalletJsBridge.Companion.JAVASCRIPT_BRIDGE_NAME
 import io.yubicolabs.wwwwallet.credentials.AndroidContainer
-import io.yubicolabs.wwwwallet.credentials.ContainerYubico
-import io.yubicolabs.wwwwallet.credentials.SoftwareContainer
+import io.yubicolabs.wwwwallet.credentials.YubicoContainer
 import io.yubicolabs.wwwwallet.logging.YOLOLogger
 import io.yubicolabs.wwwwallet.webkit.WalletWebChromeClient
 import io.yubicolabs.wwwwallet.webkit.WalletWebViewClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import ui.EnterBaseUrlDialog
 
 class MainActivity : ComponentActivity() {
     init {
@@ -71,7 +63,12 @@ class MainActivity : ComponentActivity() {
 
     val vm: MainViewModel by viewModels<MainViewModel>()
 
-    private val webViewClient: WebViewClient = WalletWebViewClient(this)
+    private val webViewClient: WebViewClient =
+        WalletWebViewClient(this) { description ->
+            vm.errorReceived(
+                description,
+            )
+        }
 
     private val webChromeClient: WebChromeClient = WalletWebChromeClient(this)
 
@@ -79,21 +76,20 @@ class MainActivity : ComponentActivity() {
         WalletJsBridge(
             webView,
             Dispatchers.Main,
-            ContainerYubico(activity = this),
+            YubicoContainer(activity = this),
             AndroidContainer(context = this),
-            SoftwareContainer(applicationContext),
             BleClientHandler(activity = this),
             BleServerHandler(activity = this),
             if (BuildConfig.DEBUG) {
                 DebugMenuHandler(
                     context = this,
-                    showUrlRow = { vm.showUrlRow(it) },
                     browseTo = {
                         lifecycleScope.launch {
                             vm.setBaseUrl(it)
                             vm.browseToUrl(it)
                         }
                     },
+                    updateBaseUrl = { vm.updateBaseUrl() },
                     copyToClipboard = { vm.copyToClipboard(it) },
                 )
             } else {
@@ -111,25 +107,12 @@ class MainActivity : ComponentActivity() {
         ) { vm.onBackPressed() }
 
         when (intent.scheme) {
-            "https", "openid4vp", "haip" -> vm.parseIntent(intent)
+            "https", "openid4vp", "haip", "wwwallet" -> vm.parseIntent(intent)
             null -> Unit
             else -> YOLOLogger.e(tagForLog, "Cannot handle ${intent.scheme}.")
         }
 
-        when (val shortcut = intent.identifier) {
-            "shortcut_open_funke",
-            "shortcut_open_demo",
-            "shortcut_open_qa",
-            -> {
-                val endpoint = shortcut.split("_").last()
-                lifecycleScope.launch {
-                    vm.setBaseUrl("https://$endpoint.wwwallet.org")
-                    vm.browseToUrl(vm.getBaseUrl())
-                }
-            }
-
-            else -> {}
-        }
+        vm.openedFromShortcut(intent.identifier)
 
         super.onCreate(savedInstanceState)
 
@@ -139,42 +122,16 @@ class MainActivity : ComponentActivity() {
             ) {
                 enableEdgeToEdge()
 
-                val urlRow by vm.showUrlRow.collectAsState()
                 val url by vm.url.collectAsState()
+                val updateBaseUrl by vm.updateBaseUrl.collectAsState()
 
-                Scaffold(
-                    topBar = {
-                        if (urlRow) {
-                            TopAppBar(
-                                title = {
-                                    Text(text = stringResource(id = R.string.app_name))
-                                },
-                                actions = {
-                                    IconButton(onClick = {
-                                        lifecycleScope.launch {
-                                            vm.browseToUrl(vm.getBaseUrl())
-                                        }
-                                    }) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.baseline_refresh_24),
-                                            contentDescription = null,
-                                        )
-                                    }
-                                },
-                            )
-                        }
-                    },
-                ) { paddingValues ->
+                Scaffold { paddingValues ->
                     Column(
                         modifier =
                             Modifier
                                 .padding(paddingValues)
                                 .fillMaxHeight(),
                     ) {
-                        if (urlRow) {
-                            UrlRow(vm)
-                        }
-
                         WebView(
                             activity = this@MainActivity,
                             webViewClient = webViewClient,
@@ -188,45 +145,28 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
+                    updateBaseUrl?.let { reason ->
+                        EnterBaseUrlDialog(
+                            title = stringResource(R.string.shortcut_open_custom),
+                            hint =
+                                when (reason) {
+                                    is WebpageError -> stringResource(R.string.shortcut_open_custom_by_error, reason.errorMessage)
+                                    is DeeplinkRequest -> stringResource(R.string.shortcut_open_custom_from_deeplink)
+                                    is UserRequest -> stringResource(R.string.shortcut_open_custom_by_user)
+                                },
+                            currentBaseUrl = runBlocking { vm.getBaseUrl() },
+                            onCanceled = { vm.updateBaseUrlCanceled() },
+                            onUrlEntered = {
+                                lifecycleScope.launch {
+                                    val url = vm.setBaseUrl(it)
+                                    vm.browseToUrl(url)
+                                }
+                            },
+                        )
+                    }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun ColumnScope.UrlRow(vm: MainViewModel) {
-    Row {
-        val scope = rememberCoroutineScope()
-        val tempUrl by vm.url.collectAsState()
-        val keyboardController = LocalSoftwareKeyboardController.current
-
-        TextField(
-            modifier = Modifier.weight(1.0f),
-            singleLine = true,
-            label = { Text(text = "Enter URL") },
-            value = tempUrl,
-            onValueChange = vm::updateUrl,
-            keyboardOptions =
-                KeyboardOptions(
-                    imeAction = ImeAction.Go,
-                ),
-            keyboardActions =
-                KeyboardActions {
-                    scope.launch {
-                        vm.browseToUrl(tempUrl)
-                    }
-                    keyboardController?.hide()
-                },
-        )
-
-        IconButton(onClick = {
-            scope.launch { vm.browseToUrl(tempUrl) }
-        }) {
-            Icon(
-                painter = painterResource(id = android.R.drawable.ic_menu_upload),
-                contentDescription = null,
-            )
         }
     }
 }

@@ -1,5 +1,6 @@
 import build.env
 import build.fileFromEnv
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -10,12 +11,12 @@ plugins {
 
 android {
     namespace = "io.yubicolabs.wwwwallet"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = namespace
         minSdk = 33
-        targetSdk = 35
+        targetSdk = 36
         versionCode = (property("wallet.versionCode") as String).toInt()
         versionName = property("wallet.versionName") as String
 
@@ -70,10 +71,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+        }
     }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -116,17 +118,17 @@ dependencies {
     implementation(libs.coroutines)
     implementation(libs.webkit)
     implementation(libs.ausweis)
-    implementation(libs.yubikit.android)
-    implementation(libs.yubikit.fido)
+    implementation(libs.yubikit.fork)
     implementation(libs.logback)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.cbor)
+    implementation(libs.cose)
 
     // digital credentials api
     implementation(libs.playservices.identity.credentials)
     implementation(libs.androidx.registry.provider)
     implementation(libs.androidx.registry.provider.play.services)
     implementation(libs.androidx.registry.digitalcredentials.mdoc)
-    implementation(libs.softauth)
 
     testImplementation(libs.junit)
     testImplementation(libs.test.json)

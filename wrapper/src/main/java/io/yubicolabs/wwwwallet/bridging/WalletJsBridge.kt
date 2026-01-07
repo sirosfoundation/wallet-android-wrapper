@@ -24,7 +24,6 @@ class WalletJsBridge(
     private val dispatcher: CoroutineDispatcher,
     private val securityKeyCredentialsContainer: Container,
     private val clientDeviceCredentialsContainer: Container,
-    private val emulatedCredentialsContainer: Container,
     private val bleClientHandler: BleClientHandler,
     private val bleServerHandler: BleServerHandler,
     private val debugMenuHandler: DebugMenuHandler?,
@@ -47,8 +46,6 @@ class WalletJsBridge(
                         "security-key" -> securityKeyCredentialsContainer
                         "client-device" -> clientDeviceCredentialsContainer
                         "hybrid" -> null // explicitly not supported
-                        // not in spec: added for testing
-                        "emulator" -> emulatedCredentialsContainer
                         else -> {
                             // error case: unknown hint.
                             YOLOLogger.e(tagForLog, "Hint '$hint' not supported. Ignoring.")
@@ -182,7 +179,8 @@ class WalletJsBridge(
         YOLOLogger.i(tagForLog, "$JAVASCRIPT_BRIDGE_NAME.get($promiseUuid, $options) called.")
 
         val mappedOptions = JSONObject(options)
-        credentialsContainerByOption(mappedOptions)
+        val container = credentialsContainerByOption(mappedOptions)
+        container
             .get(
                 options = mappedOptions,
                 failureCallback = { th ->

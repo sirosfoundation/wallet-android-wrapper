@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.yubicolabs.wwwwallet.MainViewModel.UpdateReason.WebpageError
 import io.yubicolabs.wwwwallet.logging.YOLOLogger
 import io.yubicolabs.wwwwallet.storage.ProfileStorage
 import kotlinx.coroutines.Dispatchers
@@ -42,13 +43,16 @@ class MainViewModel : ViewModel() {
     private val _url: MutableStateFlow<String> = MutableStateFlow("")
     var url: StateFlow<String> = _url.asStateFlow()
 
-    private val _showUrlRow: MutableStateFlow<Boolean> =
-        MutableStateFlow(BuildConfig.SHOW_URL_ROW)
-    var showUrlRow: StateFlow<Boolean> = _showUrlRow.asStateFlow()
+    sealed class UpdateReason {
+        object UserRequest : UpdateReason()
 
-    fun updateUrl(url: String) {
-        _url.update { url }
+        object DeeplinkRequest : UpdateReason()
+
+        data class WebpageError(val errorMessage: String) : UpdateReason()
     }
+
+    private val _updateBaseUrl: MutableStateFlow<UpdateReason?> = MutableStateFlow(null)
+    var updateBaseUrl: StateFlow<UpdateReason?> = _updateBaseUrl.asStateFlow()
 
     suspend fun browseToUrl(url: String) {
         _url.update { "" }
@@ -58,6 +62,13 @@ class MainViewModel : ViewModel() {
                 val uri = URI(url)
                 when (uri.scheme) {
                     "https", "http" -> url
+
+                    "wwwallet" -> {
+                        when (uri.host) {
+                            "change-provider" -> changeProviderRequested(uri) ?: it
+                            else -> url
+                        }
+                    }
 
                     "openid4vp", "haip" ->
                         URI(
@@ -79,10 +90,6 @@ class MainViewModel : ViewModel() {
 
     fun onBackPressed() {
         _url.update { "webview://back" }
-    }
-
-    fun showUrlRow(visible: Boolean) {
-        _showUrlRow.update { visible }
     }
 
     fun parseIntent(intent: Intent) {
@@ -107,7 +114,74 @@ class MainViewModel : ViewModel() {
 
     suspend fun getBaseUrl(): String = profileStorage.restore().baseUrl
 
-    suspend fun setBaseUrl(value: String) {
-        profileStorage.store(profileStorage.restore().copy(baseUrl = value))
+    suspend fun setBaseUrl(value: String): String {
+        updateBaseUrlCanceled()
+
+        val sanitized =
+            when {
+                value.startsWith("https://") -> value
+                value.startsWith("http://") -> value.replace("http", "https")
+                value.isNotEmpty() && value.first().isLetter() -> "https://$value" // forgot the https?
+                else -> value // for direct ip addresses
+            }
+
+        profileStorage.store(profileStorage.restore().copy(baseUrl = sanitized))
+
+        return sanitized
+    }
+
+    fun openedFromShortcut(shortcut: String?) {
+        when (shortcut) {
+            "shortcut_open_funke",
+            "shortcut_open_demo",
+            "shortcut_open_qa",
+            -> {
+                val endpoint = shortcut.split("_").last()
+                viewModelScope.launch {
+                    val url = setBaseUrl("https://$endpoint.wwwallet.org")
+                    browseToUrl(url)
+                }
+            }
+
+            "shortcut_open_custom" -> {
+                updateBaseUrl()
+            }
+
+            else -> YOLOLogger.e(tagForLog, "'$shortcut ' is not a valid shortcut identifier!")
+        }
+    }
+
+    fun updateBaseUrlCanceled() {
+        _updateBaseUrl.update { null }
+    }
+
+    fun updateBaseUrl(reason: UpdateReason = UpdateReason.UserRequest) {
+        _updateBaseUrl.update { reason }
+    }
+
+    fun errorReceived(description: String) {
+        updateBaseUrl(
+            WebpageError(description),
+        )
+    }
+
+    private suspend fun changeProviderRequested(uri: URI): String? {
+        if (uri.query == null) {
+            updateBaseUrl(reason = UpdateReason.DeeplinkRequest)
+            return null
+        }
+
+        val queryParameters =
+            uri.query.split("&").associate {
+                val (k, v) = it.split("=")
+                k to v
+            }
+
+        if ("provider" in queryParameters) {
+            return setBaseUrl(queryParameters.getOrDefault("provider", getBaseUrl()))
+        } else {
+            updateBaseUrl(reason = UpdateReason.DeeplinkRequest)
+            return null
+        }
     }
 }

@@ -1,7 +1,7 @@
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut
         android:enabled="true"
-        android:icon="@mipmap/ic_launcher_foreground"
+        android:icon="@mipmap/ic_launcher"
         android:shortcutId="shortcut_open_demo"
         android:shortcutShortLabel="@string/shortcut_open_demo">
         <intent
@@ -14,7 +14,7 @@
     </shortcut>
     <shortcut
         android:enabled="true"
-        android:icon="@mipmap/ic_launcher_foreground"
+        android:icon="@mipmap/ic_launcher"
         android:shortcutId="shortcut_open_funke"
         android:shortcutShortLabel="@string/shortcut_open_funke">
         <intent
@@ -27,12 +27,25 @@
     </shortcut>
     <shortcut
         android:enabled="true"
-        android:icon="@mipmap/ic_launcher_foreground"
+        android:icon="@mipmap/ic_launcher"
         android:shortcutId="shortcut_open_qa"
         android:shortcutShortLabel="@string/shortcut_open_qa">
         <intent
             android:action="android.intent.action.VIEW"
             android:identifier="shortcut_open_qa"
+            android:targetClass="io.yubicolabs.wwwwallet.MainActivity"
+            android:targetPackage="io.yubicolabs.wwwwallet" />
+        <categories android:name="android.shortcut.conversation" />
+        <capability-binding android:key="actions.intent.CREATE_MESSAGE" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutId="shortcut_open_custom"
+        android:shortcutShortLabel="@string/shortcut_open_custom">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:identifier="shortcut_open_custom"
             android:targetClass="io.yubicolabs.wwwwallet.MainActivity"
             android:targetPackage="io.yubicolabs.wwwwallet" />
         <categories android:name="android.shortcut.conversation" />

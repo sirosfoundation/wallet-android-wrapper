@@ -1,3 +1,21 @@
+# 0.1.3
+
+* Replaced app icon with new SIROS logo.
+
+# 0.1.2
+
+* hotterfix: use signing extension sdk
+
+# 0.1.1
+
+* hotfix: add signing extension sdk
+
+# 0.1.0
+
+* passkeys provider
+* sign extension
+* minor bug fixes
+
 # 0.0.16
 
 * release version preparation
