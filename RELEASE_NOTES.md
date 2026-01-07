@@ -1,3 +1,11 @@
+# 0.1.4
+
+- Fixed complete JS breakdown because of illegal `innerHTML` calls in conjunction with 
+  `require-trusted-types-for` Content-Security-Policy.
+- Updated dependencies and SDK.
+- Fixed `LocalContainer` not adhering to specifications.
+- Appeased ktlintcheck.
+
 # 0.1.3
 
 * Replaced app icon with new SIROS logo.
