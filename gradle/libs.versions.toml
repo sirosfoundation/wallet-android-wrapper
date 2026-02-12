@@ -48,7 +48,6 @@ webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 ausweis = { group = "com.governikus.ausweisapp", name = "sdkwrapper", version.ref = "ausweis" }
 yubikit-android = { group = "com.yubico.yubikit", name = "android", version.ref = "yubikit" }
 yubikit-fido = { group = "com.yubico.yubikit", name = "fido", version.ref = "yubikit" }
-yubikit-fork = { group = "com.github.mariobodemann", name = "yubikit-android", version.ref = "yubifork" }
 logback = { group = "com.github.tony19", name = "logback-android", version.ref = "logback" }
 test-json = { group = "org.json", name = "json", version.ref = "test-json" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxtest" }

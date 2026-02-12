@@ -9,9 +9,7 @@ import android.util.Base64.NO_PADDING
 import android.util.Base64.NO_WRAP
 import android.util.Base64.URL_SAFE
 import android.util.Base64.encodeToString
-import android.view.KeyEvent
 import android.widget.EditText
-import android.widget.TextView
 import com.yubico.yubikit.android.YubiKitManager
 import com.yubico.yubikit.android.transport.nfc.NfcConfiguration
 import com.yubico.yubikit.android.transport.nfc.NfcNotAvailable
@@ -21,17 +19,15 @@ import com.yubico.yubikit.android.transport.usb.UsbYubiKeyDevice
 import com.yubico.yubikit.core.YubiKeyDevice
 import com.yubico.yubikit.core.fido.CtapException
 import com.yubico.yubikit.core.util.Callback
-import com.yubico.yubikit.core.util.Result
-import com.yubico.yubikit.fido.client.BasicWebAuthnClient
 import com.yubico.yubikit.fido.client.MultipleAssertionsAvailable
+import com.yubico.yubikit.fido.client.WebAuthnClient
+import com.yubico.yubikit.fido.client.clientdata.ClientDataProvider
 import com.yubico.yubikit.fido.client.extensions.CredBlobExtension
 import com.yubico.yubikit.fido.client.extensions.CredPropsExtension
 import com.yubico.yubikit.fido.client.extensions.CredProtectExtension
 import com.yubico.yubikit.fido.client.extensions.HmacSecretExtension
 import com.yubico.yubikit.fido.client.extensions.LargeBlobExtension
 import com.yubico.yubikit.fido.client.extensions.MinPinLengthExtension
-import com.yubico.yubikit.fido.client.extensions.SignExtension
-import com.yubico.yubikit.fido.ctap.Ctap2Session
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredential
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialCreationOptions
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialDescriptor
@@ -71,12 +67,12 @@ class YubicoContainer(
     private val manager: YubiKitManager = YubiKitManager(activity)
 
     private val usbListener: Callback<UsbYubiKeyDevice> =
-        Callback<UsbYubiKeyDevice> { device ->
+        Callback { device ->
             deviceConnected(device)
         }
 
     private val nfcListener: Callback<NfcYubiKeyDevice> =
-        Callback<NfcYubiKeyDevice> { device ->
+        Callback { device ->
             deviceConnected(device)
         }
 
@@ -188,48 +184,28 @@ class YubicoContainer(
         operation: CreateOperation,
         pin: String?,
     ) {
-        Ctap2Session.create(device) { result: Result<Ctap2Session, Exception> ->
-            if (result.isSuccess) {
-                createWithCtap2Session(
-                    result.value,
-                    operation,
-                    pin,
-                )
-            } else {
-                YOLOLogger.e(tagForLog, "Couldn't create session.", result.actualError)
-                operation.failure(result.actualError)
-            }
-        }
-    }
-
-    private fun createWithCtap2Session(
-        session: Ctap2Session,
-        operation: CreateOperation,
-        pin: String?,
-    ) {
-        val client = createClient(session)
+        val client = createClient(device)
 
         val createOptions = operation.options
         val publicKey = createOptions.publicKey!!
         val kitOptions = PublicKeyCredentialCreationOptions.fromMap(publicKey.toMap())
         val domain = publicKey.rp?.id ?: ""
-        val json: ByteArray =
-            getClientOptions(
-                type = "webauthn.create",
-                origin = domain,
-                challenge =
-                    encodeToString(
-                        kitOptions.challenge,
-                        NO_PADDING or NO_WRAP or URL_SAFE,
+        val provider = ClientDataProvider.fromClientDataJson(getClientOptions(
+            type = "webauthn.create",
+            origin = domain,
+            challenge =
+                encodeToString(
+                    kitOptions.challenge,
+                    NO_PADDING or NO_WRAP or URL_SAFE,
                     ),
-            )
+            ))
         val enterprise = null
         val state = null
 
         try {
             val result: PublicKeyCredential =
                 client.makeCredential(
-                    json,
+                    provider,
                     kitOptions,
                     domain,
                     pin?.toCharArray(),
@@ -247,13 +223,13 @@ class YubicoContainer(
             operation.failure(th)
         } finally {
             lastOperation = null
-            session.close()
+            client.close()
         }
     }
 
-    private fun createClient(session: Ctap2Session) =
-        BasicWebAuthnClient(
-            session,
+    private fun createClient(device: YubiKeyDevice) =
+        WebAuthnClient.create(
+            device,
             listOf(
                 CredPropsExtension(),
                 CredBlobExtension(),
@@ -261,8 +237,7 @@ class YubicoContainer(
                 HmacSecretExtension(),
                 MinPinLengthExtension(),
                 LargeBlobExtension(),
-                SignExtension(),
-            ),
+            )
         )
 
     private fun getWithDevice(
@@ -270,46 +245,26 @@ class YubicoContainer(
         operation: GetOperation,
         pin: String?,
     ) {
-        Ctap2Session.create(device) { result: Result<Ctap2Session, Exception> ->
-            if (result.isSuccess) {
-                getWithCtap2Session(
-                    result.value,
-                    operation,
-                    pin,
-                )
-            } else {
-                YOLOLogger.e(tagForLog, "Couldn't get session.", result.actualError)
-                operation.failure(result.actualError)
-            }
-        }
-    }
-
-    private fun getWithCtap2Session(
-        session: Ctap2Session,
-        operation: GetOperation,
-        pin: String?,
-    ) {
-        val client = createClient(session)
+        val client = createClient(device)
 
         val getOptions = operation.options
         val publicKey = getOptions.publicKey!!
         val kitOptions = PublicKeyCredentialRequestOptions.fromMap(publicKey.toMap())
         val domain = publicKey.rpId ?: ""
-        val json =
-            getClientOptions(
-                type = "webauthn.get",
-                origin = domain,
-                challenge =
-                    encodeToString(
-                        kitOptions.challenge,
-                        NO_PADDING or NO_WRAP or URL_SAFE,
+        val provider = ClientDataProvider.fromClientDataJson(getClientOptions(
+            type = "webauthn.get",
+            origin = domain,
+            challenge =
+                encodeToString(
+                    kitOptions.challenge,
+                    NO_PADDING or NO_WRAP or URL_SAFE,
                     ),
-            )
+            ))
         val enterprise = null
         try {
             val result =
                 client.getAssertion(
-                    json,
+                    provider,
                     kitOptions,
                     domain,
                     pin?.toCharArray(),
@@ -329,7 +284,7 @@ class YubicoContainer(
             operation.failure(th)
         } finally {
             lastOperation = null
-            session.close()
+            client.close()
         }
     }
 
@@ -370,24 +325,19 @@ class YubicoContainer(
         Dispatchers.Main.dispatch(EmptyCoroutineContext) {
             val items = available.users.map { it.displayName }.toTypedArray()
             val listener =
-                object : DialogInterface.OnClickListener {
-                    override fun onClick(
-                        dialog: DialogInterface?,
-                        which: Int,
-                    ) {
-                        val credential = available.select(which)
-                        YOLOLogger.i(tagForLog, "credential selected: $credential")
-                        dialog?.dismiss()
+                DialogInterface.OnClickListener { dialog, which ->
+                    val credential = available.select(which)
+                    YOLOLogger.i(tagForLog, "credential selected: $credential")
+                    dialog?.dismiss()
 
-                        success(credential)
-                    }
+                    success(credential)
                 }
 
             AlertDialog
                 .Builder(activity)
                 .setTitle("Select one")
                 .setItems(items, listener)
-                .setNegativeButton(android.R.string.cancel) { dialog, which ->
+                .setNegativeButton(android.R.string.cancel) { dialog, _ ->
                     YOLOLogger.i(tagForLog, "No user selected.")
                     dialog.dismiss()
 
@@ -411,29 +361,21 @@ class YubicoContainer(
                     .Builder(activity)
                     .setTitle("Pin Required")
                     .setView(pinEdit)
-                    .setPositiveButton(android.R.string.ok) { dialog, which ->
+                    .setPositiveButton(android.R.string.ok) { dialog, _ ->
                         YOLOLogger.i(tagForLog, "PIN entered.")
                         dialog.dismiss()
                         callback(pinEdit.text.toString())
-                    }.setNegativeButton(android.R.string.cancel) { dialog, which ->
+                    }.setNegativeButton(android.R.string.cancel) { dialog, _ ->
                         YOLOLogger.i(tagForLog, "PIN entry cancelled.")
                         dialog.dismiss()
                         callback(null)
                     }.show()
 
-            pinEdit.setOnEditorActionListener(
-                object : TextView.OnEditorActionListener {
-                    override fun onEditorAction(
-                        v: TextView,
-                        actionId: Int,
-                        event: KeyEvent?,
-                    ): Boolean {
-                        dialog.dismiss()
-                        callback(v.text.toString())
-                        return true
-                    }
-                },
-            )
+            pinEdit.setOnEditorActionListener { v, _, _ ->
+                dialog.dismiss()
+                callback(v.text.toString())
+                true
+            }
         }
     }
 }
@@ -478,7 +420,6 @@ private fun Byte.toHumanReadable(): String =
         CtapException.ERR_PIN_AUTH_INVALID -> "ERR_PIN_AUTH_INVALID"
         CtapException.ERR_PIN_AUTH_BLOCKED -> "ERR_PIN_AUTH_BLOCKED"
         CtapException.ERR_PIN_NOT_SET -> "ERR_PIN_NOT_SET"
-        CtapException.ERR_PIN_REQUIRED -> "ERR_PIN_REQUIRED"
         CtapException.ERR_PIN_POLICY_VIOLATION -> "ERR_PIN_POLICY_VIOLATION"
         CtapException.ERR_PIN_TOKEN_EXPIRED -> "ERR_PIN_TOKEN_EXPIRED"
         CtapException.ERR_REQUEST_TOO_LARGE -> "ERR_REQUEST_TOO_LARGE"
@@ -496,19 +437,6 @@ private fun Byte.toHumanReadable(): String =
         CtapException.ERR_VENDOR_FIRST -> "ERR_VENDOR_FIRST"
         CtapException.ERR_VENDOR_LAST -> "ERR_VENDOR_LAST"
         else -> "Unknown CTAP ERROR"
-    }
-
-private val <T> Result<T, Exception>.actualError: Throwable
-    get() {
-        val error: Throwable =
-            try {
-                value
-                IllegalStateException("No error found.")
-            } catch (actualError: Throwable) {
-                actualError
-            }
-
-        return error
     }
 
 private val JSONObject.publicKey: JSONObject?
