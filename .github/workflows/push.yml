@@ -60,11 +60,7 @@ jobs:
         with:
           log-accepted-android-sdk-licenses: false
           cmdline-tools-version: ${{ env.ANDROID_CMDLINE_TOOLS }}
-          packages: |
-            tools 
-            platform-tools 
-            platforms;android-${{ env.ANDROID_TARGET_SDK }}
-            build-tools;${{ env.ANDROID_BUILD_TOOLS }}
+          packages: 'tools platform-tools platforms;android-${{ env.ANDROID_TARGET_SDK }} build-tools;${{ env.ANDROID_BUILD_TOOLS }}'
 
       - name: Add build-tools to PATH
         run: echo "$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}" >> $GITHUB_PATH
@@ -92,6 +88,6 @@ jobs:
       - name: Run Connected Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33
+          api-level: ${{ env.ANDROID_TARGET_SDK }}
           arch: x86_64
           script: ./gradlew connectedCheck --stacktrace
