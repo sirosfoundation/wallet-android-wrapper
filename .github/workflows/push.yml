@@ -51,8 +51,16 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      # https://github.com/android-actions/setup-android
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          log-accepted-android-sdk-licenses: false
+          cmdline-tools-version: 14742923
+          packages: 'tools platform-tools build-tools'
+
+      - name: Try and find android build-tools
+        run: apksigner
 
       - name: Code Style
         run: ./gradlew ktlintCheck
