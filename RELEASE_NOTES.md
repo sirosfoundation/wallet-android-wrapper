@@ -1,3 +1,11 @@
+# 0.1.5
+
+- Updated dependencies and SDK.
+- Switch to new web app location: https://id.siros.org
+- Reworked YubiKit SDK interception: Leave alone, only intercept, if `security-key` was selected.
+- Fixed WebView link handling: Show everything, which is *not* in id.siros.org in the browser 
+  instead of inside the wrapper app.
+
 # 0.1.4
 
 - Fixed complete JS breakdown because of illegal `innerHTML` calls in conjunction with 
