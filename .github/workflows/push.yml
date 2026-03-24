@@ -36,9 +36,6 @@ jobs:
       - name: Update ubuntu
         run: sudo apt-get update
 
-      - name: Install Android SDK
-        run: sudo apt-get install -y android-sdk
-
       - name: Try and find android build-tools
         run: apksigner
 
@@ -56,6 +53,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Code Style
         run: ./gradlew ktlintCheck

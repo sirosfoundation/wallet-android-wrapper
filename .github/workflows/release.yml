@@ -36,9 +36,6 @@ jobs:
       - name: Update ubuntu
         run: sudo apt-get update
 
-      - name: Install Android SDK
-        run: sudo apt-get install -y android-sdk
-
       - name: Checkout code
         uses: actions/checkout@v6
 
@@ -47,6 +44,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Code Style
         run: ./gradlew ktlintCheck
@@ -60,32 +60,14 @@ jobs:
       - name: Create release notes
         run: ./gradlew createReleaseNotes
 
-      - name: Create GitHub release
-        id: create_release
-        uses: comnoco/create-release-action@v2
+      - name: Create GitHub Release and Upload Assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ inputs.tag || github.ref }}
-          release_name: Release ${{ github.ref_name }}
-          body_path: .release-note.md
-
-      - name: Upload Release APK
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./wrapper/build/outputs/apk/release/wrapper-release.apk
-          asset_name: wwwallet-${{ github.ref_name }}.apk
-          asset_content_type: application/vnd.android.package-archive
-
-      - name: Upload Debug APK
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./wrapper/build/outputs/apk/debug/wrapper-debug.apk
-          asset_name: wwwallet-debug-${{ github.ref_name }}.apk
-          asset_content_type: application/vnd.android.package-archive
+        run: |
+          TAG=${{ inputs.tag || github.ref_name }}
+          
+          gh release create "$TAG" \
+            --title "Release $TAG" \
+            --notes-file .release-note.md \
+            ./wrapper/build/outputs/apk/release/wrapper-release.apk#wwwallet-${TAG}.apk \
+            ./wrapper/build/outputs/apk/debug/wrapper-debug.apk#wwwallet-debug-${TAG}.apk
