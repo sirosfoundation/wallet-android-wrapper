@@ -31,6 +31,9 @@ jobs:
       WWWALLET_ANDROID_KEY_PASSWORD: ${{ secrets.WWWALLET_ANDROID_KEY_PASSWORD }}
       WWWALLET_ANDROID_STORE_PASSWORD: ${{ secrets.WWWALLET_ANDROID_STORE_PASSWORD }}
       WWWALLET_ANDROID_STORE_B64: ${{ secrets.WWWALLET_ANDROID_STORE_B64 }}
+      ANDROID_TARGET_SDK: ${{ vars.ANDROID_TARGET_SDK }}
+      ANDROID_BUILD_TOOLS: ${{ vars.ANDROID_BUILD_TOOLS }}
+      ANDROID_CMDLINE_TOOLS: ${{ vars.ANDROID_CMDLINE_TOOLS }}
 
     steps:
       - name: Update ubuntu
@@ -50,8 +53,15 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           log-accepted-android-sdk-licenses: false
-          cmdline-tools-version: 14742923
-          packages: 'tools platform-tools platforms;android-36 build-tools;36.0.0'
+          cmdline-tools-version: ${{ env.ANDROID_CMDLINE_TOOLS }}
+          packages: |
+            tools 
+            platform-tools 
+            platforms;android-${{ env.ANDROID_TARGET_SDK }}
+            build-tools;${{ env.ANDROID_BUILD_TOOLS }}
+
+      - name: Add build-tools to PATH
+        run: echo "$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}" >> $GITHUB_PATH
 
       - name: Code Style
         run: ./gradlew ktlintCheck
