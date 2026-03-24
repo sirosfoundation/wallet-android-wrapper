@@ -54,9 +54,6 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Try and find android build-tools
-        run: apksigner
-
       - name: Code Style
         run: ./gradlew ktlintCheck
 
