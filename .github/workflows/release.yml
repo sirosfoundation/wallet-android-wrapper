@@ -51,7 +51,7 @@ jobs:
         with:
           log-accepted-android-sdk-licenses: false
           cmdline-tools-version: 14742923
-          packages: 'tools platform-tools build-tools'
+          packages: 'tools platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Code Style
         run: ./gradlew ktlintCheck
