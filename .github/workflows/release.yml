@@ -49,7 +49,7 @@ jobs:
           java-version: '21'
 
       # https://github.com/android-actions/setup-android
-      - name: Setup Android SDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           log-accepted-android-sdk-licenses: false
