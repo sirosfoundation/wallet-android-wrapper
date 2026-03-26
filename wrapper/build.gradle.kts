@@ -210,7 +210,9 @@ abstract class GenerateManifestTask : DefaultTask() {
             <?xml version="1.0" encoding="utf-8"?>
             <manifest xmlns:android="http://schemas.android.com/apk/res/android">
                 <application>
-                    <activity android:name="org.siros.wwwallet.MainActivity">
+                    <activity 
+                        android:name="org.siros.wwwallet.MainActivity"
+                        android:exported="true">
                         $shortcuts
                         $intentFilters
                     </activity>
