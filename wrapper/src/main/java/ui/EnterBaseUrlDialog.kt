@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.siros.wwwallet.BuildConfig
 import java.net.URI
 
 @Composable
@@ -125,7 +126,7 @@ private fun EnterBaseUrlDialogPreview() {
     EnterBaseUrlDialog(
         title = "title",
         hint = "hint",
-        currentBaseUrl = "https://funke.wwwallet.org",
+        currentBaseUrl = "https://${BuildConfig.BASE_DOMAIN1}/",
         onCanceled = {},
         onUrlEntered = {},
     )

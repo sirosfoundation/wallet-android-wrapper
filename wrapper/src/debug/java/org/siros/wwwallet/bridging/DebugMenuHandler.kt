@@ -17,9 +17,6 @@ import org.siros.wwwallet.json.toList
 import org.siros.wwwallet.logging.YOLOLogger
 import java.net.URLEncoder
 
-private const val USE_DEMO_BASE_URL = "Use Demo Base URL (default)"
-private const val USE_FUNKE_BASE_URL = "Use Funke Base URL"
-private const val USE_QA_BASE_URL = "Use QA Base URL"
 private const val CUSTOM_BASE_URL = "Custom Base URL"
 
 private const val OPEN_CONFIG = "Open Passkey Preferences"
@@ -39,44 +36,45 @@ class DebugMenuHandler(
     val copyToClipboard: (String) -> Unit,
 ) {
     private var maxSeparatorsCount = 1
-    private val actions: Map<String, (JSExecutor) -> Unit> =
-        mapOf(
-            USE_DEMO_BASE_URL to { _ -> browseTo("https://demo.wwwallet.org/") },
-            USE_FUNKE_BASE_URL to { _ -> browseTo("https://funke.wwwallet.org/") },
-            USE_QA_BASE_URL to { _ -> browseTo("https://qa.wwwallet.org/") },
-            CUSTOM_BASE_URL to { _ -> updateBaseUrl() },
-            LIST_SEPARATOR * maxSeparatorsCount++ to {},
-            OPEN_CONFIG to { _ -> openPasskeyProviderSettings() },
-            LIST_SEPARATOR * maxSeparatorsCount++ to {},
-            SHOW_LOGS to { js ->
-                js("$JAVASCRIPT_BRIDGE_NAME.__captured_logs__") { logsJson ->
-                    showLogs(
-                        collectLogs(logsJson),
-                        copyToClipboard,
-                    )
-                }
-            },
-            SEND_FEEDBACK_EMAIL to { js ->
-                js("$JAVASCRIPT_BRIDGE_NAME.__captured_logs__") { logsJson ->
-                    emailFeedback(
-                        createIssueBody(
-                            collectLogs(logsJson),
-                            Int.MAX_VALUE,
-                        ),
-                    )
-                }
-            },
-            SEND_FEEDBACK_GITHUB to { js ->
-                js("$JAVASCRIPT_BRIDGE_NAME.__captured_logs__") { logsJson ->
-                    githubFeedback(
-                        createIssueBody(
-                            collectLogs(logsJson),
-                            Int.MAX_VALUE,
-                        ),
-                    )
-                }
-            },
-        )
+    private val actions: Map<String, (JSExecutor) -> Unit> by lazy {
+        BuildConfig::class.java.declaredFields
+            .filter { it.name.startsWith("BASE_DOMAIN") }
+            .associate { "Use ${it.get(null)}" to { _: JSExecutor -> browseTo("https://${it.get(null)}/") } } +
+                mapOf(
+                    CUSTOM_BASE_URL to { _ -> updateBaseUrl() },
+                    LIST_SEPARATOR * maxSeparatorsCount++ to {},
+                    OPEN_CONFIG to { _ -> openPasskeyProviderSettings() },
+                    LIST_SEPARATOR * maxSeparatorsCount++ to {},
+                    SHOW_LOGS to { js ->
+                        js("$JAVASCRIPT_BRIDGE_NAME.__captured_logs__") { logsJson ->
+                            showLogs(
+                                collectLogs(logsJson),
+                                copyToClipboard,
+                            )
+                        }
+                    },
+                    SEND_FEEDBACK_EMAIL to { js ->
+                        js("$JAVASCRIPT_BRIDGE_NAME.__captured_logs__") { logsJson ->
+                            emailFeedback(
+                                createIssueBody(
+                                    collectLogs(logsJson),
+                                    Int.MAX_VALUE,
+                                ),
+                            )
+                        }
+                    },
+                    SEND_FEEDBACK_GITHUB to { js ->
+                        js("$JAVASCRIPT_BRIDGE_NAME.__captured_logs__") { logsJson ->
+                            githubFeedback(
+                                createIssueBody(
+                                    collectLogs(logsJson),
+                                    Int.MAX_VALUE,
+                                ),
+                            )
+                        }
+                    },
+                )
+    }
 
     fun onMenuOpened(jsExecutor: JSExecutor) {
         jsExecutor("console.log('Developer encountered.')") {}

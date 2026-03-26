@@ -1,5 +1,9 @@
 import build.env
 import build.fileFromEnv
+import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.*
+import java.io.File
+
 
 plugins {
     alias(libs.plugins.android.application)
@@ -42,7 +46,18 @@ android {
 
     buildTypes {
         all {
-            buildConfigField("String", "BASE_URL", "\"${env("WWWALLET_ANDROID_HOST")}\"")
+            val baseDomains: List<String> by rootProject.extra
+            var i = 0
+
+            for (baseDomain in baseDomains) {
+                i += 1
+                buildConfigField("String", "BASE_DOMAIN$i", "\"${baseDomain}\"")
+            }
+
+            resValue("string", "shortcut_open_base_domain1", baseDomains[0])
+            resValue("string", "shortcut_open_base_domain2", baseDomains.getOrNull(1) ?: baseDomains[0])
+            resValue("string", "shortcut_open_base_domain3", baseDomains.getOrNull(2) ?: baseDomains[0])
+
             buildConfigField("Boolean", "SHOW_URL_ROW", "false")
             buildConfigField("Boolean", "VISUALIZE_INJECTION", "false")
 
@@ -72,6 +87,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
 
     composeOptions {
@@ -150,3 +166,79 @@ configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
         ),
     )
 }
+
+abstract class GenerateManifestTask : DefaultTask() {
+    @get:Input
+    abstract val baseDomains: ListProperty<String>
+
+    @get:Input
+    abstract val showShortcuts: Property<Boolean>
+
+    @get:OutputFile
+    abstract val outputFile: RegularFileProperty
+
+    @TaskAction
+    fun generate() {
+        val domains = baseDomains.get()
+        val outFile = outputFile.get().asFile
+
+        outFile.parentFile.mkdirs()
+
+        val shortcuts = if (showShortcuts.get()) {
+            """
+                        <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />"""
+        } else {
+            ""
+        }
+
+        val intentFilters = domains.joinToString("\n") { domain ->
+            """
+                        <intent-filter android:autoVerify="true">
+                            <action android:name="android.intent.action.VIEW" />
+                            <category android:name="android.intent.category.DEFAULT" />
+                            <category android:name="android.intent.category.BROWSABLE" />
+                            <data android:scheme="http" />
+                            <data android:scheme="https" />
+                            <data android:host="$domain" />
+                        </intent-filter>"""
+        }
+
+        // We target the MainActivity specifically to merge these filters into it
+        val xml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+                <application>
+                    <activity android:name="org.siros.wwwallet.MainActivity">
+                        $shortcuts
+                        $intentFilters
+                    </activity>
+                </application>
+            </manifest>
+            """.trimIndent()
+
+        outFile.writeText(xml)
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+
+        val manifestTaskProvider = tasks.register(
+            "generate${variant.name.replaceFirstChar { it.uppercase() }}Manifest",
+            GenerateManifestTask::class.java
+        ) {
+            val baseDomains: List<String> by rootProject.extra
+            this.baseDomains.set(baseDomains)
+
+            showShortcuts.set(variant.debuggable)
+
+            outputFile.set(File("generated/manifests/${variant.name}/AndroidManifest.xml"))
+        }
+
+        variant.sources.manifests.addGeneratedManifestFile(
+            manifestTaskProvider,
+            { it.outputFile }
+        )
+    }
+}
+

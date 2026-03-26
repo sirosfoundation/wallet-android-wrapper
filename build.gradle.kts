@@ -1,4 +1,3 @@
-import build.env
 import build.getApkTargets
 import build.getLogs
 import build.getReleaseQuoteAndAuthor
@@ -11,6 +10,9 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.ktlint) apply false
 }
+
+// TODO: List of supported installations for debugging. Reduce to one for final production!
+val baseDomains by extra(listOf("id.siros.org", "demo.wwwallet.org", "qa.wwwallet.org"))
 
 tasks.register("createReleaseNotes") {
     description = "Create a release log of all recent commits."
@@ -45,9 +47,9 @@ tasks.register("createReleaseNotes") {
 tasks.register("checkFingerprints") {
     description = "Check apk's sha256fingerprint is ./well-known files on given host."
 
-    val host = env("WWWALLET_ANDROID_HOST")
+    val url = "https://${baseDomains[0]}/"
     doLast {
-        val serverTargets = getServerTargets(host)
+        val serverTargets = getServerTargets(url)
         val apkTargets = getApkTargets()
 
         val foundMatch = apkTargets.firstNotNullOfOrNull { apkTarget ->
@@ -69,10 +71,10 @@ tasks.register("checkFingerprints") {
         }
 
         if (foundMatch != null) {
-            println("✅ Found signatures for all apks(${apkTargets.joinToString(", ") { it.name.split('/').last() }}) with package '${foundMatch.packageName}' on server '$host'.")
+            println("✅ Found signatures for all apks(${apkTargets.joinToString(", ") { it.name.split('/').last() }}) with package '${foundMatch.packageName}' on server '$url'.")
         } else {
             throw GradleException(
-                "🙅Could not find any matching signarure from host '$host' for\n${
+                "🙅Could not find any matching signarure from host '$url' for\n${
                     apkTargets.joinToString(separator = "\n") {
                         "  ${it.name} with package ${it.packageName} and sha ${it.shas.joinToString()}"
                     }

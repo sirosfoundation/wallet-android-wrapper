@@ -1,43 +1,41 @@
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
     <shortcut
         android:enabled="true"
         android:icon="@mipmap/ic_launcher"
-        android:shortcutId="shortcut_open_demo"
-        android:shortcutShortLabel="@string/shortcut_open_demo">
+        android:shortcutId="shortcut_open_base_domain1"
+        android:shortcutShortLabel="@string/shortcut_open_base_domain1">
         <intent
             android:action="android.intent.action.VIEW"
-            android:identifier="shortcut_open_demo"
+            android:identifier="shortcut_open_base_domain1"
             android:targetClass="org.siros.wwwallet.MainActivity"
-            android:targetPackage="org.siros.wwwallet" />
-        <categories android:name="android.shortcut.conversation" />
-        <capability-binding android:key="actions.intent.CREATE_MESSAGE" />
+            android:targetPackage="org.siros.id" />
     </shortcut>
+
     <shortcut
         android:enabled="true"
         android:icon="@mipmap/ic_launcher"
-        android:shortcutId="shortcut_open_funke"
-        android:shortcutShortLabel="@string/shortcut_open_funke">
+        android:shortcutId="shortcut_open_base_domain2"
+        android:shortcutShortLabel="@string/shortcut_open_base_domain2">
         <intent
             android:action="android.intent.action.VIEW"
-            android:identifier="shortcut_open_funke"
+            android:identifier="shortcut_open_base_domain2"
             android:targetClass="org.siros.wwwallet.MainActivity"
-            android:targetPackage="org.siros.wwwallet" />
-        <categories android:name="android.shortcut.conversation" />
-        <capability-binding android:key="actions.intent.CREATE_MESSAGE" />
+            android:targetPackage="org.siros.id" />
     </shortcut>
+
     <shortcut
         android:enabled="true"
         android:icon="@mipmap/ic_launcher"
-        android:shortcutId="shortcut_open_qa"
-        android:shortcutShortLabel="@string/shortcut_open_qa">
+        android:shortcutId="shortcut_open_base_domain3"
+        android:shortcutShortLabel="@string/shortcut_open_base_domain3">
         <intent
             android:action="android.intent.action.VIEW"
-            android:identifier="shortcut_open_qa"
+            android:identifier="shortcut_open_base_domain3"
             android:targetClass="org.siros.wwwallet.MainActivity"
-            android:targetPackage="org.siros.wwwallet" />
-        <categories android:name="android.shortcut.conversation" />
-        <capability-binding android:key="actions.intent.CREATE_MESSAGE" />
+            android:targetPackage="org.siros.id" />
     </shortcut>
+
     <shortcut
         android:enabled="true"
         android:icon="@mipmap/ic_launcher"
@@ -47,10 +45,7 @@
             android:action="android.intent.action.VIEW"
             android:identifier="shortcut_open_custom"
             android:targetClass="org.siros.wwwallet.MainActivity"
-            android:targetPackage="org.siros.wwwallet" />
-        <categories android:name="android.shortcut.conversation" />
-        <capability-binding android:key="actions.intent.CREATE_MESSAGE" />
+            android:targetPackage="org.siros.id" />
     </shortcut>
 
-    <!-- Specify more shortcuts here. -->
 </shortcuts>

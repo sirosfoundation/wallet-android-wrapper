@@ -132,23 +132,24 @@ class MainViewModel : ViewModel() {
     }
 
     fun openedFromShortcut(shortcut: String?) {
-        when (shortcut) {
-            "shortcut_open_funke",
-            "shortcut_open_demo",
-            "shortcut_open_qa",
-            -> {
-                val endpoint = shortcut.split("_").last()
-                viewModelScope.launch {
-                    val url = setBaseUrl("https://$endpoint.wwwallet.org")
-                    browseToUrl(url)
-                }
-            }
+        if (shortcut == "shortcut_open_custom") {
+            updateBaseUrl()
 
-            "shortcut_open_custom" -> {
-                updateBaseUrl()
-            }
+            return
+        }
 
-            else -> YOLOLogger.e(tagForLog, "'$shortcut ' is not a valid shortcut identifier!")
+        val shortcutMap = BuildConfig::class.java.declaredFields
+            .filter { it.name.startsWith("BASE_DOMAIN") }
+            .associate { "shortcut_open_${it.name.lowercase()}" to it.get(null) as String }
+
+        val domain = shortcutMap[shortcut]
+
+        if (!domain.isNullOrEmpty()) {
+            viewModelScope.launch {
+                browseToUrl(setBaseUrl("https://$domain/"))
+            }
+        } else {
+            YOLOLogger.e(tagForLog, "'$shortcut ' is not a valid shortcut identifier!")
         }
     }
 

@@ -9,9 +9,6 @@
     <string name="credential_provider_standby_message">Please wait …</string>
     <string name="title_activity_credential_create">Credential Create Activity</string>
 
-    <string name="shortcut_open_funke">funke.wwwallet.org</string>
-    <string name="shortcut_open_demo">demo.wwwallet.org</string>
-    <string name="shortcut_open_qa">qa.wwwallet.org</string>
     <string name="shortcut_open_custom">New Provider Url</string>
     <string name="shortcut_open_custom_from_deeplink">from deeplink</string>
     <string name="shortcut_open_custom_by_user">manually</string>

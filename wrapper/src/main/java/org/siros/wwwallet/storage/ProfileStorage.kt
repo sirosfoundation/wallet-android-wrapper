@@ -33,7 +33,7 @@ class ProfileStorage(
         context.dataStore.data
             .map { preferences ->
                 Profile(
-                    baseUrl = preferences[BASE_URL_KEY] ?: BuildConfig.BASE_URL,
+                    baseUrl = preferences[BASE_URL_KEY] ?: "https://${BuildConfig.BASE_DOMAIN1}/",
                 )
             }.first()
 }
