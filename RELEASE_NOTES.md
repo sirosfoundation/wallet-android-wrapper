@@ -1,3 +1,9 @@
+# 0.1.6
+
+- Fixes debug shortcuts.
+- Refactored support for debugging with multiple instances of wwWallet: Use a single source of truth.
+- Only show shortcuts in debug build.
+
 # 0.1.5
 
 - Updated dependencies and SDK.
