@@ -1,6 +1,5 @@
 package ui
 
-import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -108,11 +107,11 @@ fun EnterBaseUrlDialog(
                 Row {
                     Spacer(Modifier.weight(1f))
                     Button(onClick = onCanceled) {
-                        Text(stringResource(R.string.cancel))
+                        Text(stringResource(android.R.string.cancel))
                     }
                     Spacer(Modifier.width(4.dp))
                     Button(onClick = { onUrlEntered(url) }) {
-                        Text(stringResource(R.string.ok))
+                        Text(stringResource(android.R.string.ok))
                     }
                 }
             }
