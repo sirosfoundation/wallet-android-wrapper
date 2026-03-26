@@ -138,9 +138,10 @@ class MainViewModel : ViewModel() {
             return
         }
 
-        val shortcutMap = BuildConfig::class.java.declaredFields
-            .filter { it.name.startsWith("BASE_DOMAIN") }
-            .associate { "shortcut_open_${it.name.lowercase()}" to it.get(null) as String }
+        val shortcutMap =
+            BuildConfig::class.java.declaredFields
+                .filter { it.name.startsWith("BASE_DOMAIN") }
+                .associate { "shortcut_open_${it.name.lowercase()}" to it.get(null) as String }
 
         val domain = shortcutMap[shortcut]
 

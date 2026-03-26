@@ -1,7 +1,6 @@
 import build.env
 import build.fileFromEnv
 import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.*
 import java.io.File
 
 
@@ -184,15 +183,17 @@ abstract class GenerateManifestTask : DefaultTask() {
 
         outFile.parentFile.mkdirs()
 
-        val shortcuts = if (showShortcuts.get()) {
-            """
+        val shortcuts =
+            if (showShortcuts.get()) {
+                """
                         <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />"""
-        } else {
-            ""
-        }
+            } else {
+                ""
+            }
 
-        val intentFilters = domains.joinToString("\n") { domain ->
-            """
+        val intentFilters =
+            domains.joinToString("\n") { domain ->
+                """
                         <intent-filter android:autoVerify="true">
                             <action android:name="android.intent.action.VIEW" />
                             <category android:name="android.intent.category.DEFAULT" />
@@ -201,10 +202,11 @@ abstract class GenerateManifestTask : DefaultTask() {
                             <data android:scheme="https" />
                             <data android:host="$domain" />
                         </intent-filter>"""
-        }
+            }
 
         // We target the MainActivity specifically to merge these filters into it
-        val xml = """
+        val xml =
+            """
             <?xml version="1.0" encoding="utf-8"?>
             <manifest xmlns:android="http://schemas.android.com/apk/res/android">
                 <application>
@@ -223,22 +225,22 @@ abstract class GenerateManifestTask : DefaultTask() {
 androidComponents {
     onVariants { variant ->
 
-        val manifestTaskProvider = tasks.register(
-            "generate${variant.name.replaceFirstChar { it.uppercase() }}Manifest",
-            GenerateManifestTask::class.java
-        ) {
-            val baseDomains: List<String> by rootProject.extra
-            this.baseDomains.set(baseDomains)
+        val manifestTaskProvider =
+            tasks.register(
+                "generate${variant.name.replaceFirstChar { it.uppercase() }}Manifest",
+                GenerateManifestTask::class.java,
+            ) {
+                val baseDomains: List<String> by rootProject.extra
+                this.baseDomains.set(baseDomains)
 
-            showShortcuts.set(variant.debuggable)
+                showShortcuts.set(variant.debuggable)
 
-            outputFile.set(File("generated/manifests/${variant.name}/AndroidManifest.xml"))
-        }
+                outputFile.set(File("generated/manifests/${variant.name}/AndroidManifest.xml"))
+            }
 
         variant.sources.manifests.addGeneratedManifestFile(
             manifestTaskProvider,
-            { it.outputFile }
+            { it.outputFile },
         )
     }
 }
-
