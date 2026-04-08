@@ -55,7 +55,7 @@ jobs:
 
       # https://github.com/android-actions/setup-android
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           log-accepted-android-sdk-licenses: false
           cmdline-tools-version: ${{ env.ANDROID_CMDLINE_TOOLS }}
