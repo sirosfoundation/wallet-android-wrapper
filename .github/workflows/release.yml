@@ -70,6 +70,18 @@ jobs:
       - name: Create release notes
         run: ./gradlew createReleaseNotes
 
+      - name: Prepare release artifacts
+        run: |
+          TAG=${{ inputs.tag || github.ref_name }}
+          
+          mkdir -p release-assets
+          
+          cp ./wrapper/build/outputs/apk/release/wrapper-release.apk \
+             ./release-assets/wwwallet-${TAG}.apk
+          
+          cp ./wrapper/build/outputs/apk/debug/wrapper-debug.apk \
+             ./release-assets/wwwallet-debug-${TAG}.apk
+
       - name: Create GitHub Release and Upload Assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -79,5 +91,5 @@ jobs:
           gh release create "$TAG" \
             --title "Release $TAG" \
             --notes-file .release-note.md \
-            ./wrapper/build/outputs/apk/release/wrapper-release.apk#wwwallet-${TAG}.apk \
-            ./wrapper/build/outputs/apk/debug/wrapper-debug.apk#wwwallet-debug-${TAG}.apk
+            ./release-assets/wwwallet-${TAG}.apk \
+            ./release-assets/wwwallet-debug-${TAG}.apk
