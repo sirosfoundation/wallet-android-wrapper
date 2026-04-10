@@ -20,3 +20,7 @@ package-lock.json
 *.keystore
 wrapper/build/
 wrapper/release/
+
+fastlane/report.xml
+Gemfile
+Gemfile.lock
