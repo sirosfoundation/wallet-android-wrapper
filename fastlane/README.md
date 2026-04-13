@@ -15,13 +15,21 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## Android
 
-### android test
+### android upload_metadata
 
 ```sh
-[bundle exec] fastlane android test
+[bundle exec] fastlane android upload_metadata
 ```
 
-Runs all the tests
+Upload Play Store Metadata
+
+### android upload_screenshots
+
+```sh
+[bundle exec] fastlane android upload_screenshots
+```
+
+Upload Play Store Screenshots
 
 ----
 
