@@ -78,7 +78,11 @@ JAVASCRIPT_BRIDGE.overrideHints = function(newHints) {
 // override functions on navigator
 function overrideNavigatorCredentialsWithBridgeCall(method) {
 
-    JAVASCRIPT_BRIDGE[method + "Wrapped"] = navigator.credentials[method].bind(navigator.credentials);
+    // Even though this *shouldn*t* be called multiple times, it *is*. So make sure
+    // to not store a reference to the overriding method accidentally, instead of the original method.
+    if (typeof JAVASCRIPT_BRIDGE[method + "Wrapped"] === "undefined") {
+        JAVASCRIPT_BRIDGE[method + "Wrapped"] = navigator.credentials[method].bind(navigator.credentials);
+    }
 
     navigator.credentials[method] = (options) => {
         console.log("Executing " + method + " with request: ", options);
