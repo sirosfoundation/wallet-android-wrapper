@@ -1,11 +1,11 @@
 <resources>
-    <string name="app_name">wwWallet</string>
+    <string name="app_name">SIROS ID</string>
     <string name="asset_statements" translatable="false">
         [{
-  \"include\": \"https://demo.wwwallet.org/.well-known/assetlinks.json\"
+  \"include\": \"https://id.siros.org/.well-known/assetlinks.json\"
 }]
     </string>
-    <string name="credential_provider_create_android_description">Stored in wwWallet</string>
+    <string name="credential_provider_create_android_description">Stored in SIROS ID</string>
     <string name="credential_provider_standby_message">Please wait …</string>
     <string name="title_activity_credential_create">Credential Create Activity</string>
 
