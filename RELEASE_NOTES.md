@@ -1,3 +1,9 @@
+# 0.1.7
+
+- Fixed app display name.
+- Updated dependencies.
+- Fixed recursion in injected JavaScript.
+
 # 0.1.6
 
 - Fixes debug shortcuts.
