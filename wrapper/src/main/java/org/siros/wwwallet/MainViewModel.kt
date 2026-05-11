@@ -29,8 +29,14 @@ class MainViewModel : ViewModel() {
                 viewModelScope.launch {
                     val baseurl = profileStorage.restore().baseUrl
 
-                    _url.update {
-                        baseurl
+                    // Only update, if this is not set, yet, as otherwise a race condition might
+                    // occur, and this call would override an already acquired URL with which
+                    // the app was called. (That is non-obvious from the code flow, but the
+                    // race condition *will* appear otherwise!)
+                    if (_url.value.isBlank()) {
+                        _url.update {
+                            baseurl
+                        }
                     }
                 }
             }
