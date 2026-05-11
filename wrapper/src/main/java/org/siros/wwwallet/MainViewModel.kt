@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -95,22 +94,25 @@ class MainViewModel : ViewModel() {
 
     fun parseIntent(intent: Intent) {
         viewModelScope.launch(Dispatchers.IO) {
-            val uri: Uri = intent.data!!
+            val uri = intent.data ?: return@launch
+
             browseToUrl(uri.toString())
         }
     }
 
     fun copyToClipboard(text: String) {
+        val activity = activity
+
         if (activity == null) {
             YOLOLogger.e(tagForLog, "NULL activity, closing.")
             return
-        } else {
-            val manager =
-                activity!!.applicationContext.getSystemService(ClipboardManager::class.java)
-
-            val clip = ClipData.newPlainText("wwWallet log", text)
-            manager.setPrimaryClip(clip)
         }
+
+        val manager =
+            activity.applicationContext.getSystemService(ClipboardManager::class.java)
+
+        val clip = ClipData.newPlainText("wwWallet log", text)
+        manager.setPrimaryClip(clip)
     }
 
     suspend fun getBaseUrl(): String = profileStorage.restore().baseUrl
@@ -150,7 +152,7 @@ class MainViewModel : ViewModel() {
                 browseToUrl(setBaseUrl("https://$domain/"))
             }
         } else {
-            YOLOLogger.e(tagForLog, "'$shortcut ' is not a valid shortcut identifier!")
+            YOLOLogger.e(tagForLog, "'$shortcut' is not a valid shortcut identifier!")
         }
     }
 
