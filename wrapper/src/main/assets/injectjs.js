@@ -40,9 +40,9 @@ if (visualize) {
         } else {
             link = document.createElement("a")
             link.setAttribute('id', 'android-injection-visualization')
-            link.setAttribute('href', 'javascript:JAVASCRIPT_BRIDGE.openDebugMenu()')
             link.setAttribute('style', 'position:absolute;top:-0px;right:0;padding:0.5em;z-index:9999999;rotate:180deg;')
             link.textContent = '🤖'
+            link.onclick = () => JAVASCRIPT_BRIDGE.openDebugMenu()
             body.appendChild(link)
         }
     } else {
