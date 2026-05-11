@@ -80,7 +80,7 @@
 
 * Slowdown of BLE communication
 * Polish build system (on version to change)
-* see [media/wwrapper-ble-presentment.mov](screencast) for setup of [App Verifier](https://install.appcenter.ms/orgs/eu-digital-identity-wallet/apps/mdoc-verifier-testing/distribution_groups/eudi%20verifier%20(testing)%20public).
+* see [screencast](media/wwrapper-ble-presentment.mov) for setup of [App Verifier](https://install.appcenter.ms/orgs/eu-digital-identity-wallet/apps/mdoc-verifier-testing/distribution_groups/eudi%20verifier%20(testing)%20public).
 
 
 # 0.0.11
