@@ -1,3 +1,8 @@
+# 0.1.8
+
+- Fixed reception of new credential.
+- Updated dependencies.
+
 # 0.1.7
 
 - Fixed app display name.
