@@ -21,7 +21,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -188,7 +187,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ColumnScope.WebView(
+fun WebView(
     activity: Activity,
     webViewClient: WebViewClient,
     webChromeClient: WebChromeClient,
@@ -228,7 +227,7 @@ private fun createWebViewFactory(
     webChromeClient: WebChromeClient,
     javascriptInterfaceCreator: (WebView) -> Any,
     javascriptInterfaceName: String,
-) = { context: Context ->
+) = { _: Context ->
     val webView =
         WebView(activity).apply {
             setNetworkAvailable(true)
