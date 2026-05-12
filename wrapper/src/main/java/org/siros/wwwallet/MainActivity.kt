@@ -3,6 +3,7 @@ package org.siros.wwwallet
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.ServiceWorkerClient
@@ -104,11 +105,7 @@ class MainActivity : ComponentActivity() {
             owner = this,
         ) { vm.onBackPressed() }
 
-        when (intent.scheme) {
-            "https", "openid4vp", "haip", "wwwallet" -> vm.parseIntent(intent)
-            null -> Unit
-            else -> YOLOLogger.e(tagForLog, "Cannot handle ${intent.scheme}.")
-        }
+        handleIntent(intent)
 
         vm.openedFromShortcut(intent.identifier)
 
@@ -172,6 +169,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent) {
+        when (intent.scheme) {
+            "https", "openid4vp", "haip", "wwwallet" -> vm.parseIntent(intent)
+            null -> Unit
+            else -> YOLOLogger.e(tagForLog, "Cannot handle ${intent.scheme}.")
         }
     }
 }
