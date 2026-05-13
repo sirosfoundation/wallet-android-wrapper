@@ -12,6 +12,8 @@ import android.util.Base64.encodeToString
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.FrameLayout
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.yubico.yubikit.android.YubiKitManager
 import com.yubico.yubikit.android.transport.nfc.NfcConfiguration
 import com.yubico.yubikit.android.transport.nfc.NfcNotAvailable
@@ -36,6 +38,9 @@ import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialDescriptor
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialRequestOptions
 import com.yubico.yubikit.fido.webauthn.SerializationType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
@@ -65,6 +70,10 @@ sealed class Operation(
 class YubicoContainer(
     val activity: Activity,
 ) : Container {
+    companion object {
+        private const val PIN_CACHE_TIMEOUT_MS = 60_000L
+    }
+
     private val manager: YubiKitManager = YubiKitManager(activity)
 
     private var usbDevice: WeakReference<YubiKeyDevice>? = null
@@ -81,7 +90,24 @@ class YubicoContainer(
             deviceConnected(device)
         }
 
+    private var pinResetJob: Job? = null
+
     private var pin: String? = null
+        set(value) {
+            field = value
+            pinResetJob?.cancel()
+
+            if (value != null) {
+                YOLOLogger.i(tagForLog, "Start PIN timeout.")
+
+                pinResetJob =
+                    (activity as? LifecycleOwner)?.lifecycleScope?.launch {
+                        delay(PIN_CACHE_TIMEOUT_MS)
+                        pin = null
+                        YOLOLogger.i(tagForLog, "PIN cleared after timeout.")
+                    }
+            }
+        }
 
     private fun startDiscoveries() {
         val usbDevice = this.usbDevice?.get()
@@ -151,6 +177,7 @@ class YubicoContainer(
         device: YubiKeyDevice,
     ) {
         if (!pin.isNullOrBlank()) {
+            pin = pin // Refresh timer
             routeToCorrectMethodWithPin(operation, device, pin)
             return
         }
