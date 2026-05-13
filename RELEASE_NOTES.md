@@ -1,3 +1,9 @@
+# 0.1.9
+
+- Improved YubiKey login:
+  - Remember PIN for 1 minute to avoid forcing the user to re-enter it up to 3 times for a login.
+  - Reuse a still plugged in USB YubiKey to avoid forcing the user to replug up to 3 times for a login.
+
 # 0.1.8
 
 - Fixed reception of new credential.
