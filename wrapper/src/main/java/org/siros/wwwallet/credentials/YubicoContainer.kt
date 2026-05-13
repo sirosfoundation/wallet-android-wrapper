@@ -41,6 +41,7 @@ import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
 import org.siros.wwwallet.logging.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import java.lang.ref.WeakReference
 import kotlin.coroutines.EmptyCoroutineContext
 
 sealed class Operation(
@@ -66,8 +67,12 @@ class YubicoContainer(
 ) : Container {
     private val manager: YubiKitManager = YubiKitManager(activity)
 
+    private var usbDevice: WeakReference<YubiKeyDevice>? = null
+
     private val usbListener: Callback<UsbYubiKeyDevice> =
         Callback { device ->
+            usbDevice = WeakReference(device)
+
             deviceConnected(device)
         }
 
@@ -79,6 +84,16 @@ class YubicoContainer(
     private var pin: String? = null
 
     private fun startDiscoveries() {
+        val usbDevice = this.usbDevice?.get()
+
+        // If we still have a reference to a plugged-in USB device, just use that.
+        // This way, users aren't forced to constantly unplug and replug their keys.
+        //
+        // If the key is not plugged in anymore, WebAuthnClient.create() will throw,
+        // hence routeToCorrectMethodWithPin will fail, which will remove the outdated reference.
+        if (usbDevice != null) deviceConnected(usbDevice)
+
+        // Start discovery anyway, in case USB key is un- and then replugged.
         manager.startUsbDiscovery(
             UsbConfiguration().handlePermissions(true),
             usbListener,
@@ -104,14 +119,14 @@ class YubicoContainer(
     ) {
         YOLOLogger.i(tagForLog, "yubico create implementation called.")
 
-        startDiscoveries()
-
         lastOperation =
             Operation.CreateOperation(
                 options = options,
                 success = successCallback,
                 failure = failureCallback,
             )
+
+        startDiscoveries()
     }
 
     override fun get(
@@ -121,14 +136,14 @@ class YubicoContainer(
     ) {
         YOLOLogger.i(tagForLog, "yubico get implementation called.")
 
-        startDiscoveries()
-
         lastOperation =
             Operation.GetOperation(
                 options = options,
                 success = successCallback,
                 failure = failureCallback,
             )
+
+        startDiscoveries()
     }
 
     private fun askForPin(
@@ -177,7 +192,7 @@ class YubicoContainer(
                     )
             }
         } catch (e: Throwable) {
-            this.pin = null // Reset. This error might be due to an invalid PIN.
+            usbDevice = null // Reset. This error might be due to an unplugged USB key.
             YOLOLogger.e(tagForLog, "An unknown error appeared. Hide now.", e)
         }
     }
@@ -240,6 +255,11 @@ class YubicoContainer(
             operation.failure(th)
         } finally {
             lastOperation = null
+
+            // Finally stop discovery, since our operation is done.
+            manager.stopUsbDiscovery()
+            manager.stopNfcDiscovery(activity)
+
             client.close()
         }
     }
@@ -309,6 +329,11 @@ class YubicoContainer(
             operation.failure(th)
         } finally {
             lastOperation = null
+
+            // Finally stop discovery, since our operation is done.
+            manager.stopUsbDiscovery()
+            manager.stopNfcDiscovery(activity)
+
             client.close()
         }
     }
