@@ -76,6 +76,8 @@ class YubicoContainer(
             deviceConnected(device)
         }
 
+    private var pin: String? = null
+
     private fun startDiscoveries() {
         manager.startUsbDiscovery(
             UsbConfiguration().handlePermissions(true),
@@ -133,9 +135,15 @@ class YubicoContainer(
         operation: Operation,
         device: YubiKeyDevice,
     ) {
+        if (!pin.isNullOrBlank()) {
+            routeToCorrectMethodWithPin(operation, device, pin)
+            return
+        }
+
         // ask user for pin
         requestPin { providedPin ->
             if (providedPin != null) {
+                pin = providedPin
                 routeToCorrectMethodWithPin(operation, device, providedPin)
             } else {
                 operation.failure(
@@ -169,6 +177,7 @@ class YubicoContainer(
                     )
             }
         } catch (e: Throwable) {
+            this.pin = null // Reset. This error might be due to an invalid PIN.
             YOLOLogger.e(tagForLog, "An unknown error appeared. Hide now.", e)
         }
     }
@@ -226,6 +235,7 @@ class YubicoContainer(
             )
             operation.failure(ctap)
         } catch (th: Throwable) {
+            this.pin = null // Reset. This error might be due to an invalid PIN.
             YOLOLogger.e(tagForLog, "Unexpected error: '${th.message}'.", th)
             operation.failure(th)
         } finally {
@@ -294,6 +304,7 @@ class YubicoContainer(
             YOLOLogger.i(tagForLog, "Found several assertions. User selection needed.")
             requestSelection(multiple, kitOptions, operation)
         } catch (th: Throwable) {
+            this.pin = null // Reset. This error might be due to an invalid PIN.
             YOLOLogger.e(tagForLog, "Unexpected error: '${th.message}'.", th)
             operation.failure(th)
         } finally {
