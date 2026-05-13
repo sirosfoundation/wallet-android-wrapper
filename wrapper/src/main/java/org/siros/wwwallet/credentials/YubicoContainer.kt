@@ -9,7 +9,9 @@ import android.util.Base64.NO_PADDING
 import android.util.Base64.NO_WRAP
 import android.util.Base64.URL_SAFE
 import android.util.Base64.encodeToString
+import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.FrameLayout
 import com.yubico.yubikit.android.YubiKitManager
 import com.yubico.yubikit.android.transport.nfc.NfcConfiguration
 import com.yubico.yubikit.android.transport.nfc.NfcNotAvailable
@@ -366,13 +368,26 @@ class YubicoContainer(
                     maxLines = 1
                     minLines = 1
                     inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                    layoutParams =
+                        FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                        )
                 }
+
+            val density = activity.resources.displayMetrics.density
+            val marginHorizontal = (20 * density).toInt()
+            val marginVertical = (8 * density).toInt()
+
+            val container = FrameLayout(activity)
+            container.addView(pinEdit)
+            container.setPadding(marginHorizontal, marginVertical, marginHorizontal, marginVertical)
 
             val dialog =
                 AlertDialog
                     .Builder(activity)
                     .setTitle("Pin Required")
-                    .setView(pinEdit)
+                    .setView(container)
                     .setPositiveButton(android.R.string.ok) { dialog, _ ->
                         YOLOLogger.i(tagForLog, "PIN entered.")
                         dialog.dismiss()
