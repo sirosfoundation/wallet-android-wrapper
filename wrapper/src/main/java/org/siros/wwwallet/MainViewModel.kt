@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -14,7 +16,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.siros.wwwallet.logging.YOLOLogger
 import org.siros.wwwallet.storage.ProfileStorage
-import java.net.URI
 import java.net.URISyntaxException
 
 @SuppressLint("StaticFieldLeak")
@@ -65,9 +66,17 @@ class MainViewModel : ViewModel() {
 
         _url.update {
             try {
-                val uri = URI(url)
+                val uri = url.toUri()
                 when (uri.scheme) {
-                    "https", "http" -> url
+                    "http" -> {
+                        // Only ever allow HTTPS calls.
+                        uri
+                            .buildUpon()
+                            .scheme("https")
+                            .build()
+                            .toString()
+                    }
+                    "https" -> url
 
                     "wwwallet" -> {
                         when (uri.host) {
@@ -77,13 +86,15 @@ class MainViewModel : ViewModel() {
                     }
 
                     "openid4vp", "haip" ->
-                        URI(
-                            "https",
-                            URI(getBaseUrl()).host,
-                            "/cb",
-                            uri.query,
-                            uri.fragment,
-                        ).toASCIIString()
+                        Uri
+                            .Builder()
+                            .scheme("https")
+                            .authority(getBaseUrl().toUri().authority)
+                            .path("/cb")
+                            .encodedQuery(uri.encodedQuery)
+                            .encodedFragment(uri.encodedFragment)
+                            .build()
+                            .toString()
 
                     else -> url
                 }
@@ -176,17 +187,17 @@ class MainViewModel : ViewModel() {
         )
     }
 
-    private suspend fun changeProviderRequested(uri: URI): String? {
+    private suspend fun changeProviderRequested(uri: Uri): String? {
         if (uri.query == null) {
             updateBaseUrl(reason = UpdateReason.DeeplinkRequest)
             return null
         }
 
         val queryParameters =
-            uri.query.split("&").associate {
+            uri.query?.split("&")?.associate {
                 val (k, v) = it.split("=")
                 k to v
-            }
+            } ?: emptyMap()
 
         if ("provider" in queryParameters) {
             return setBaseUrl(queryParameters.getOrDefault("provider", getBaseUrl()))

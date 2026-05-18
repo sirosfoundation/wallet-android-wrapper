@@ -179,7 +179,10 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent) {
         when (intent.scheme) {
-            "https", "openid4vp", "haip", "wwwallet" -> vm.parseIntent(intent)
+            // Also handle `http` links: e.g. manually entered URLs automatically
+            // use the `http` scheme and didn't have a chance to upgrade, yet.
+            // Upgrade will happen in MainViewModel#browseToUrl()
+            "http", "https", "openid4vp", "haip", "wwwallet" -> vm.parseIntent(intent)
             null -> Unit
             else -> YOLOLogger.e(tagForLog, "Cannot handle ${intent.scheme}.")
         }
