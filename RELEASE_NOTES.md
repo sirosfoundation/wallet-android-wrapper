@@ -1,3 +1,8 @@
+# 0.1.10
+
+- Improved YubiKey login even more, by simplifying the USB discovery of still plugged in keys.
+- Fixed handling of `http` URLs delivered by the OS. (Typically happens, when manually entering URLs.)
+
 # 0.1.9
 
 - Improved YubiKey login:
