@@ -46,7 +46,6 @@ import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
 import org.siros.wwwallet.logging.YOLOLogger
 import org.siros.wwwallet.tagForLog
-import java.lang.ref.WeakReference
 import kotlin.coroutines.EmptyCoroutineContext
 
 sealed class Operation(
@@ -76,12 +75,8 @@ class YubicoContainer(
 
     private val manager: YubiKitManager = YubiKitManager(activity)
 
-    private var usbDevice: WeakReference<YubiKeyDevice>? = null
-
     private val usbListener: Callback<UsbYubiKeyDevice> =
         Callback { device ->
-            usbDevice = WeakReference(device)
-
             deviceConnected(device)
         }
 
@@ -110,16 +105,6 @@ class YubicoContainer(
         }
 
     private fun startDiscoveries() {
-        val usbDevice = this.usbDevice?.get()
-
-        // If we still have a reference to a plugged-in USB device, just use that.
-        // This way, users aren't forced to constantly unplug and replug their keys.
-        //
-        // If the key is not plugged in anymore, WebAuthnClient.create() will throw,
-        // hence routeToCorrectMethodWithPin will fail, which will remove the outdated reference.
-        if (usbDevice != null) deviceConnected(usbDevice)
-
-        // Start discovery anyway, in case USB key is un- and then replugged.
         manager.startUsbDiscovery(
             UsbConfiguration().handlePermissions(true),
             usbListener,
@@ -219,7 +204,6 @@ class YubicoContainer(
                     )
             }
         } catch (e: Throwable) {
-            usbDevice = null // Reset. This error might be due to an unplugged USB key.
             YOLOLogger.e(tagForLog, "An unknown error appeared. Hide now.", e)
         }
     }
