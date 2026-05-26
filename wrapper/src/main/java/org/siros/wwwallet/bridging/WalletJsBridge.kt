@@ -4,8 +4,13 @@ import android.annotation.SuppressLint
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.credentials.registry.digitalcredentials.openid4vp.OpenId4VpRegistry
+import androidx.credentials.registry.provider.RegistryManager
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -97,15 +102,35 @@ class WalletJsBridge(
         }
     }
 
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+        }
+
     @JavascriptInterface
     @Suppress("unused")
     fun updateAllCredentials(list: String) {
-        val credentials = JSONArray(list)
-        val message = "Received ${credentials.length()} credentials."
+        val credentials = json.decodeFromString<List<DcApiCredential>>(list)
 
-        // TODO: Convert into credential information and pass through to digital credentials api.
+        YOLOLogger.i(tagForLog, "Received ${credentials.size} credentials.")
 
-        YOLOLogger.i(tagForLog, message)
+        CoroutineScope(dispatcher).launch {
+            if (credentials.isEmpty()) return@launch
+
+            val sdJwts = credentials.mapNotNull { it.sdJwt }
+            val mDocs = credentials.mapNotNull { it.mDoc }
+
+            if (sdJwts.isEmpty() && mDocs.isEmpty()) return@launch
+
+            val rm = RegistryManager.create(webView.context)
+            val request = OpenId4VpRegistry(sdJwts + mDocs, webView.context.packageName)
+
+            try {
+                rm.registerCredentials(request)
+            } catch (e: Exception) {
+                YOLOLogger.e(tagForLog, e.stackTraceToString())
+            }
+        }
     }
 
     @JavascriptInterface

@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.serialization)
 }
 
 android {
@@ -118,6 +119,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.fragment)
+    implementation(libs.androidx.registry.digitalcredentials.openid)
+    implementation(libs.androidx.registry.digitalcredentials.sdjwtvc)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
@@ -133,6 +136,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.cbor)
     implementation(libs.cose)
+    implementation(libs.kotlinx.serialization)
 
     // digital credentials api
     implementation(libs.playservices.identity.credentials)
