@@ -1,9 +1,12 @@
 package org.siros.wwwallet.bridging
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.core.graphics.createBitmap
 import androidx.credentials.registry.digitalcredentials.openid4vp.OpenId4VpRegistry
 import androidx.credentials.registry.provider.RegistryManager
 import kotlinx.coroutines.CoroutineDispatcher
@@ -110,17 +113,32 @@ class WalletJsBridge(
     @JavascriptInterface
     @Suppress("unused")
     fun updateAllCredentials(list: String) {
-        val credentials = json.decodeFromString<List<DcApiCredential>>(list)
+        val credentials: List<DcApiCredential>
+
+        try {
+            credentials = json.decodeFromString(list)
+        }
+        catch (e: Exception) {
+            YOLOLogger.e(tagForLog, e.stackTraceToString())
+            return
+        }
 
         YOLOLogger.i(tagForLog, "Received ${credentials.size} credentials.")
 
         CoroutineScope(dispatcher).launch {
-            if (credentials.isEmpty()) return@launch
+            if (credentials.isEmpty()) {
+                return@launch
+            }
 
+            val bitmap = getAppIconBitmap()
+
+            credentials.forEach { it.bitmap =  bitmap }
             val sdJwts = credentials.mapNotNull { it.sdJwt }
             val mDocs = credentials.mapNotNull { it.mDoc }
 
-            if (sdJwts.isEmpty() && mDocs.isEmpty()) return@launch
+            if (sdJwts.isEmpty() && mDocs.isEmpty()) {
+                return@launch
+            }
 
             val rm = RegistryManager.create(webView.context)
             val request = OpenId4VpRegistry(sdJwts + mDocs, webView.context.packageName)
@@ -359,6 +377,17 @@ class WalletJsBridge(
                 "${JAVASCRIPT_BRIDGE_NAME}.__reject__('$promiseUuid', '$wrapped')",
             ) {}
         }
+    }
+
+    private fun getAppIconBitmap(): Bitmap {
+        val drawable = webView.context.packageManager.getApplicationIcon(webView.context.packageName)
+        val bitmap = createBitmap(32, 32)
+        val canvas = Canvas(bitmap)
+
+        drawable.setBounds(0, 0, 32, 32)
+        drawable.draw(canvas)
+
+        return bitmap
     }
 }
 
