@@ -117,8 +117,7 @@ class WalletJsBridge(
 
         try {
             credentials = json.decodeFromString(list)
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             YOLOLogger.e(tagForLog, e.stackTraceToString())
             return
         }
@@ -132,7 +131,7 @@ class WalletJsBridge(
 
             val bitmap = getAppIconBitmap()
 
-            credentials.forEach { it.bitmap =  bitmap }
+            credentials.forEach { it.bitmap = bitmap }
             val sdJwts = credentials.mapNotNull { it.sdJwt }
             val mDocs = credentials.mapNotNull { it.mDoc }
 

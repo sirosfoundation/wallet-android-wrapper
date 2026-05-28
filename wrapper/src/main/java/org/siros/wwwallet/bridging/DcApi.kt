@@ -30,19 +30,18 @@ data class DcApiCredential(
     val fields: List<DcApiField>? = null,
     val verifiableCredentialType: String? = null,
     val claims: List<DcApiClaim>? = null,
-
     @Transient
     var bitmap: Bitmap = createBitmap(1, 1),
 ) {
-
     val sdJwt: SdJwtEntry?
         get() {
             if (format != "sd-jwt") return null
 
             val verifiableCredentialType = verifiableCredentialType ?: return null
-            val claims = claims?.map {
-                SdJwtClaim(it.path.split("."), it.value.toNativeValue(), setOf(it.displayProperties))
-            } ?: return null
+            val claims =
+                claims?.map {
+                    SdJwtClaim(it.path.split("."), it.value.toNativeValue(), setOf(it.displayProperties))
+                } ?: return null
 
             return SdJwtEntry(verifiableCredentialType, claims, setOf(displayProperties), id)
         }
@@ -64,7 +63,7 @@ data class DcApiCredential(
 @Serializable
 data class DcApiDisplay(
     val title: String,
-    val subtitle: String?
+    val subtitle: String?,
 )
 
 @Serializable
@@ -77,9 +76,8 @@ data class DcApiField(
 data class DcApiClaim(
     val path: String,
     val value: JsonElement,
-    val display: Map<String, String>
+    val display: Map<String, String>,
 ) {
-
     val displayProperties: VerificationFieldDisplayProperties
         get() {
             val name: String
@@ -87,17 +85,14 @@ data class DcApiClaim(
 
             if (display.containsKey(locale)) {
                 name = display[locale]!!
-            }
-            else if (display.containsKey("en-US")) {
+            } else if (display.containsKey("en-US")) {
                 name = display["en-US"]!!
-            }
-            else {
+            } else {
                 val key = display.keys.firstOrNull()
 
                 if (key == null || display[key] == null) {
                     name = path
-                }
-                else {
+                } else {
                     name = display[key]!!
                 }
             }
@@ -107,14 +102,16 @@ data class DcApiClaim(
         }
 }
 
-fun JsonElement.toNativeValue(): Any? {
-    return when (this) {
+fun JsonElement.toNativeValue(): Any? =
+    when (this) {
         is JsonNull -> null
         is JsonPrimitive -> {
-            if (isString) content
-            else booleanOrNull ?: longOrNull ?: doubleOrNull ?: content
+            if (isString) {
+                content
+            } else {
+                booleanOrNull ?: longOrNull ?: doubleOrNull ?: content
+            }
         }
         is JsonArray -> map { it.toNativeValue() }
         is JsonObject -> mapValues { it.value.toNativeValue() }
     }
-}
