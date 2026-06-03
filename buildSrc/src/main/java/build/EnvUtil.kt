@@ -9,10 +9,15 @@ import java.io.File
 import java.util.Base64
 
 fun Project.env(name: String): String {
-    val variable = System.getenv(name)
+    val variable = System.getenv(name) ?: run {
+        val localProps = java.util.Properties()
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) localPropsFile.inputStream().use { localProps.load(it) }
+        localProps.getProperty(name)
+    }
 
     if (variable.isNullOrBlank()) {
-        throw GradleException("Environment variable '$name' not set or blank. Check build settings.")
+        throw GradleException("'$name' not set. Add it as an environment variable or to local.properties.")
     } else {
         return variable
     }
