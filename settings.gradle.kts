@@ -21,6 +21,10 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://www.jitpack.io") }
+
+        // FaceTec ships its SDK as a bare .aar with no Maven repository; consume it
+        // from wrapper/libs via flatDir module-style coordinates instead.
+        flatDir { dirs(rootDir.resolve("wrapper/libs")) }
     }
 }
 
