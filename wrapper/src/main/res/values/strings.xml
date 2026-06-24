@@ -3,6 +3,8 @@
     <string name="asset_statements" translatable="false">
         [{
   \"include\": \"https://id.siros.org/.well-known/assetlinks.json\"
+},{
+  \"include\": \"https://coordinates-spy-computational-twist.trycloudflare.com/.well-known/assetlinks.json\"
 }]
     </string>
     <string name="credential_provider_create_android_description">Stored in SIROS ID</string>
@@ -13,4 +15,7 @@
     <string name="shortcut_open_custom_from_deeplink">from deeplink</string>
     <string name="shortcut_open_custom_by_user">manually</string>
     <string name="shortcut_open_custom_by_error">due to error: "%1$s"</string>
+
+    <string name="photo_id_match_camera_permission_denied">Camera permission is required to verify your identity.</string>
+    <string name="photo_id_match_initialization_failed">Could not start identity verification. Please try again later.</string>
 </resources>
