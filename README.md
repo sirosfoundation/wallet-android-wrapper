@@ -51,6 +51,7 @@ WWWALLET_ANDROID_RELEASE_KEY_ALIAS=<release-alias>
 WWWALLET_ANDROID_KEY_PASSWORD=<password>
 WWWALLET_ANDROID_STORE_PASSWORD=<password>
 WWWALLET_ANDROID_STORE_B64=<base64-encoded keystore>
+FACETEC_API_BEARER_TOKEN=<facetec-api-bearer-token>
 ```
 
 `WWWALLET_ANDROID_STORE_B64` is your keystore file encoded as Base64:
