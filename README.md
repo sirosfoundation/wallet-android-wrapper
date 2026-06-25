@@ -25,6 +25,106 @@ This project uses gradle as a build tool:
 The above commands will build and install the Android application (apk) on all connected phones.
 
 
+Local development
+-----------------
+
+Download and install [Android Studio](https://developer.android.com/studio), then open this repository as a project. Gradle project sync will start automatically and fail — this is expected, because the build requires several environment variables that are not yet set. You need to configure them in your shell before invoking Gradle. First, you need to make sure that your have a keystore for Android development.
+
+```shell
+echo y | keytool -genkeypair \
+ -dname "cn=<Your Name>, ou=<Unit>, o=<Org>, c=<Country>" \
+ -alias wwWallet \
+ -keypass <password> \
+ -keystore </path/to/>android.keystore \
+ -storepass <password> \
+ -validity 20000 \
+ -keyalg RSA \
+ -keysize 2048
+```
+
+Now configure the required build variables. You can set them either as shell environment variables or in `local.properties` (which is already git-ignored). The `local.properties` approach works best with Android Studio, which does not inherit shell environment variables.
+
+```properties
+WWWALLET_ANDROID_APPLICATION_ID=org.siros.wwwallet
+WWWALLET_ANDROID_KEY_ALIAS=<alias>
+WWWALLET_ANDROID_RELEASE_KEY_ALIAS=<release-alias>
+WWWALLET_ANDROID_KEY_PASSWORD=<password>
+WWWALLET_ANDROID_STORE_PASSWORD=<password>
+WWWALLET_ANDROID_STORE_B64=<base64-encoded keystore>
+```
+
+`WWWALLET_ANDROID_STORE_B64` is your keystore file encoded as Base64:
+
+```shell
+base64 -i /path/to/android.keystore
+```
+
+Signing up and signing in with Webauthn will not work unless the wallet-frontend server serves the Android keystore certificate fingerprint on /.well-known/assetlinks.json.
+This can be achieved by retrieving the Android keystore certificate fingerprint.
+
+```shell
+keytool -list -v \
+    -keystore /path/to/android.keystore \
+    -alias wwWallet \
+    -storepass <password>
+```
+
+Then, look for the SHA256: line in the output — it's already in the `XX:XX:XX:...` format the `WELLKNOWN_*` vars expect.
+
+Prepend that string to the environment variable values `WELLKNOWN_ANDROID_PACKAGE_NAMES_AND_CERTS` and `WELLKNOWN_ANDROID_PACKAGE_NAMES_AND_FINGERPRINTS`
+as `org.siros.id::<fingerprint>,` (mind the comma) on your own wallet-frontend server instances. Deploy your wallet-frontend application with the new environment variable values.
+Verify that your `/.well-known/assetlinks.json` endpoint contains the following json:
+
+```json
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "org.siros.id",
+      "sha256_cert_fingerprints": [
+        "<fingerprint>"
+      ]
+    }
+  }
+]
+```
+
+Another requirement for webauthn to work is that the go-wallet-backend instance that your wallet-frontend connects to is deployed with the following environment variable:
+
+```shell
+WALLET_SERVER_RP_ORIGIN=android:apk-key-hash:<your-apk-key-hash>
+```
+
+You can get the value of `your-apk-key-hash` by executing the following command
+
+```shell
+  keytool -list -v \
+    -keystore /path/to/android.keystore \
+    -alias wwWallet \
+    -storepass <password> \
+  | grep "SHA256:" \
+  | awk '{print $2}' \
+  | tr -d ':' \
+  | xxd -r -p \
+  | base64 \
+  | tr '+/' '-_' \
+  | tr -d '='
+```
+
+Also make sure that the webauthn origin is configured with your apk-key-hash in your go-wallet-backend config.
+
+```
+webauthn: {
+  origin: [
+    "<your-apk-key-hash>",
+    "<your-wallet-url>",
+  ],
+}
+```
 
 Wrapping
 --------
