@@ -115,6 +115,25 @@ You can get the value of `your-apk-key-hash` by executing the following command
   | tr -d '='
 ```
 
+or
+
+```shell
+(TMP_STORE=$(mktemp /tmp/keystore.XXXXXX); \
+echo "$WWWALLET_ANDROID_STORE_B64" | base64 -d > "$TMP_STORE"; \
+keytool -list \
+  -keystore "$TMP_STORE" \
+  -storepass "$WWWALLET_ANDROID_STORE_PASSWORD" \
+  -alias "$WWWALLET_ANDROID_KEY_ALIAS" \
+| grep "SHA-256" \
+| awk '{print $3}' \
+| tr -d ':' \
+| xxd -r -p \
+| base64 \
+| tr '+/' '-_' \
+| tr -d '='; \
+rm "$TMP_STORE")
+```
+
 Also make sure that the webauthn origin is configured with your apk-key-hash in your go-wallet-backend config.
 
 ```
