@@ -25,6 +25,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // FaceTec only ships native libraries for these ABIs.
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        }
     }
 
     signingConfigs {
@@ -60,6 +65,17 @@ android {
             buildConfigField("Boolean", "SHOW_URL_ROW", "false")
             buildConfigField("Boolean", "VISUALIZE_INJECTION", "false")
 
+            // facetec-api endpoint that proxies FaceTec SDK session requests and turns
+            // accepted photo-ID matches into a credentialOfferURI. The bearer token is a
+            // secret and must only come from the environment / local.properties, never
+            // be hardcoded here.
+            buildConfigField(
+                "String",
+                "FACETEC_API_BASE_URL",
+                "\"https://ft1-dev-api.common.siros.org/v1/process-request\"",
+            )
+            buildConfigField("String", "FACETEC_API_BEARER_TOKEN", "\"${env("FACETEC_API_BEARER_TOKEN")}\"")
+
             signingConfig = signingConfigs.getByName("all")
         }
 
@@ -81,6 +97,13 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    lint {
+        // The FaceTec SDK locale folders (values-af, values-de, …) only carry
+        // facetec-strings.xml, not a full translation of this app's own strings.xml —
+        // that's intentional, not a missing translation.
+        disable += "MissingTranslation"
     }
 
     buildFeatures {
@@ -133,6 +156,10 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.cbor)
     implementation(libs.cose)
+
+    // FaceTec SDK (Photo ID Match). Resolved from the local flatDir repo in
+    // settings.gradle.kts, since FaceTec ships a bare .aar with no Maven repository.
+    implementation(group = "com.facetec", name = "facetec-sdk", version = "10.1.4", ext = "aar")
 
     // digital credentials api
     implementation(libs.playservices.identity.credentials)

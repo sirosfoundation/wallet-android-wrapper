@@ -27,6 +27,7 @@ class WalletJsBridge(
     private val bleClientHandler: BleClientHandler,
     private val bleServerHandler: BleServerHandler,
     private val debugMenuHandler: DebugMenuHandler?,
+    private val startPhotoIdMatch: () -> Unit,
 ) {
     companion object {
         const val JAVASCRIPT_BRIDGE_NAME = "nativeWrapper"
@@ -79,6 +80,26 @@ class WalletJsBridge(
             webView.evaluateJavascript(injectionSnippet.code) {
                 YOLOLogger.i(it.tagForLog, it)
             }
+        }
+    }
+
+    /**
+     * Entry point for the web app's "Scan Physical ID" flow. Its presence on
+     * the bridge is what makes the web app show/enable that flow at all
+     * (see `isNativeScanAvailable` in wallet-frontend).
+     *
+     * Launches the native FaceTec Photo ID Match Activity (see
+     * [org.siros.wwwallet.facetec.PhotoIdMatchActivity]). Its result is handled by
+     * `MainActivity`/`MainViewModel`, which navigate the WebView directly to the
+     * resulting credential offer when facetec-api accepts the scan.
+     */
+    @JavascriptInterface
+    @Suppress("unused")
+    fun startScanPhysicalId() {
+        YOLOLogger.i(tagForLog, "$JAVASCRIPT_BRIDGE_NAME.startScanPhysicalId() called.")
+
+        Dispatchers.Main.dispatch(EmptyCoroutineContext) {
+            startPhotoIdMatch()
         }
     }
 
