@@ -12,7 +12,8 @@ plugins {
 }
 
 // TODO: List of supported installations for debugging. Reduce to one for final production!
-val baseDomains by extra(listOf("id.siros.org", "demo.wwwallet.org", "qa.wwwallet.org"))
+// ATTENTION: If you add a domain here for debugging, you will also extend strings.xml/asset_statements!
+val baseDomains by extra(listOf("id.siros.org")) //, "demo.wwwallet.org", "qa.wwwallet.org"))
 
 tasks.register("createReleaseNotes") {
     description = "Create a release log of all recent commits."

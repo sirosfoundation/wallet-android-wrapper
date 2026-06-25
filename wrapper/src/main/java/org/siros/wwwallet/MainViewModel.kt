@@ -68,15 +68,9 @@ class MainViewModel : ViewModel() {
             try {
                 val uri = url.toUri()
                 when (uri.scheme) {
-                    "http" -> {
-                        // Only ever allow HTTPS calls.
-                        uri
-                            .buildUpon()
-                            .scheme("https")
-                            .build()
-                            .toString()
-                    }
-                    "https" -> url
+                    "http" -> sanitize(uri).toString()
+
+                    "https" -> sanitize(uri).toString()
 
                     "wwwallet" -> {
                         when (uri.host) {
@@ -139,9 +133,9 @@ class MainViewModel : ViewModel() {
 
         val sanitized =
             when {
-                value.startsWith("https://") -> value
-                value.startsWith("http://") -> value.replace("http", "https")
-                value.isNotEmpty() && value.first().isLetter() -> "https://$value" // forgot the https?
+                value.startsWith("https://") -> sanitize(value).toString()
+                value.startsWith("http://") -> sanitize(value).toString()
+                value.isNotEmpty() && value.first().isLetter() -> sanitize("https://$value").toString()
                 else -> value // for direct ip addresses
             }
 
@@ -206,4 +200,15 @@ class MainViewModel : ViewModel() {
             return null
         }
     }
+
+    private fun sanitize(url: String): Uri = sanitize(url.toUri())
+
+    /**
+     * Modify this for easier debugging with non-TLS encrypted dev environments.
+     */
+    private fun sanitize(uri: Uri): Uri =
+        uri
+            .buildUpon()
+            .scheme("https")
+            .build()
 }
