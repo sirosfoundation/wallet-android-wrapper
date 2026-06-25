@@ -46,6 +46,14 @@ class WalletWebViewClient(
     ) {
         super.onReceivedError(view, request, error)
 
+        // This is called for every failed sub-resource request (icons, fonts, analytics
+        // pings, …), not just the main document. Only a main-frame failure means the
+        // wallet itself is actually unreachable — anything else is noise that shouldn't
+        // kick the user back to the "enter base URL" dialog while the page is fine.
+        if (!request.isForMainFrame) {
+            return
+        }
+
         val description =
             if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION)) {
                 error.description.toString()

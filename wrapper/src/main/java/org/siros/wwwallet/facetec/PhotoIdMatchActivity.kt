@@ -95,7 +95,8 @@ class PhotoIdMatchActivity : ComponentActivity() {
         )
     }
 
-    @Deprecated("Required by FaceTec SDK's startActivityForResult-based session API.")
+    // Required by FaceTec SDK's startActivityForResult-based session API.
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onActivityResult(
         requestCode: Int,
         resultCode: Int,
@@ -111,6 +112,8 @@ class PhotoIdMatchActivity : ComponentActivity() {
     }
 
     private fun finishWithOfferIfAvailable() {
+        YOLOLogger.i(tagForLog, "Finishing with credentialOfferURI=$capturedCredentialOfferURI")
+
         val resultIntent =
             Intent().apply {
                 capturedCredentialOfferURI?.let { putExtra(EXTRA_CREDENTIAL_OFFER_URI, it) }
