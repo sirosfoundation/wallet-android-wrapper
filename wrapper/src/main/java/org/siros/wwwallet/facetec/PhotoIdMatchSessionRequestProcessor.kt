@@ -1,6 +1,7 @@
 package org.siros.wwwallet.facetec
 
 import com.facetec.sdk.FaceTecSessionRequestProcessor
+import org.json.JSONArray
 import org.json.JSONObject
 import org.siros.wwwallet.BuildConfig
 import org.siros.wwwallet.logging.YOLOLogger
@@ -19,11 +20,18 @@ import java.net.URL
  * or UI changes are allowed here. It is already invoked off the main thread by the SDK.
  *
  * Request/response bodies are opaque encrypted blobs to FaceTec Server and are never logged,
- * to keep this client's exposure to biometric data as small as possible.
+ * to keep this client's exposure to biometric data as small as possible. The logged response is
+ * passed through [redactLongValues], which replaces any string value long enough to plausibly be
+ * an image or encrypted blob (`responseBlob`, `scanResultBlob`, face crops, …) with its length, so
+ * short diagnostic/status fields remain visible without ever logging biometric data.
  */
 class PhotoIdMatchSessionRequestProcessor(
     private val onCredentialOfferReceived: (String) -> Unit,
 ) : FaceTecSessionRequestProcessor {
+    companion object {
+        private const val REDACT_THRESHOLD = 200
+    }
+
     override fun onSessionRequest(
         sessionRequestBlob: String,
         sessionRequestCallback: FaceTecSessionRequestProcessor.Callback,
@@ -31,7 +39,10 @@ class PhotoIdMatchSessionRequestProcessor(
         try {
             val response = postProcessRequest(sessionRequestBlob)
 
-            response.optString("credentialOfferURI").takeIf { it.isNotBlank() }?.let(onCredentialOfferReceived)
+            YOLOLogger.i(tagForLog, "process-request response: ${redactLongValues(response)}")
+
+            val credentialOfferURI = response.optString("credentialOfferURI").takeIf { it.isNotBlank() }
+            credentialOfferURI?.let(onCredentialOfferReceived)
 
             sessionRequestCallback.processResponse(response.getString("responseBlob"))
         } catch (e: Exception) {
@@ -39,6 +50,22 @@ class PhotoIdMatchSessionRequestProcessor(
             sessionRequestCallback.abortOnCatastrophicError()
         }
     }
+
+    private fun redactLongValues(value: Any?): Any? =
+        when (value) {
+            is JSONObject ->
+                JSONObject().apply {
+                    value.keys().forEach { key -> put(key, redactLongValues(value.get(key))) }
+                }
+            is JSONArray ->
+                JSONArray().apply {
+                    for (i in 0 until value.length()) {
+                        put(redactLongValues(value.get(i)))
+                    }
+                }
+            is String -> if (value.length > REDACT_THRESHOLD) "<redacted, len=${value.length}>" else value
+            else -> value
+        }
 
     private fun postProcessRequest(sessionRequestBlob: String): JSONObject {
         val connection = URL(BuildConfig.FACETEC_API_BASE_URL).openConnection() as HttpURLConnection
@@ -56,7 +83,10 @@ class PhotoIdMatchSessionRequestProcessor(
         val responseStream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
         val body = responseStream.bufferedReader().use { it.readText() }
 
+        YOLOLogger.i(tagForLog, "process-request HTTP status: $responseCode")
+
         if (responseCode !in 200..299) {
+            YOLOLogger.e(tagForLog, "process-request error body: $body")
             throw IOException("process-request failed with HTTP $responseCode.")
         }
 

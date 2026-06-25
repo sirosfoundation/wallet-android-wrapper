@@ -117,6 +117,7 @@ class MainViewModel : ViewModel() {
      */
     fun photoIdMatchCompleted(credentialOfferURI: String?) {
         if (credentialOfferURI.isNullOrBlank()) {
+            YOLOLogger.i(tagForLog, "photoIdMatchCompleted: no credentialOfferURI, not navigating.")
             return
         }
 
@@ -128,6 +129,8 @@ class MainViewModel : ViewModel() {
                     .encodedQuery(credentialOfferURI.toUri().encodedQuery)
                     .build()
                     .toString()
+
+            YOLOLogger.i(tagForLog, "photoIdMatchCompleted: navigating WebView to $target")
 
             browseToUrl(target)
         }

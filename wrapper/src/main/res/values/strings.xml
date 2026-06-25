@@ -3,8 +3,6 @@
     <string name="asset_statements" translatable="false">
         [{
   \"include\": \"https://id.siros.org/.well-known/assetlinks.json\"
-},{
-  \"include\": \"https://coordinates-spy-computational-twist.trycloudflare.com/.well-known/assetlinks.json\"
 }]
     </string>
     <string name="credential_provider_create_android_description">Stored in SIROS ID</string>

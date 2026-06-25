@@ -66,6 +66,10 @@ class MainActivity : ComponentActivity() {
     private val photoIdMatchLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val credentialOfferURI = result.data?.getStringExtra(PhotoIdMatchActivity.EXTRA_CREDENTIAL_OFFER_URI)
+            YOLOLogger.i(
+                tagForLog,
+                "PhotoIdMatchActivity returned resultCode=${result.resultCode}, credentialOfferURI=$credentialOfferURI",
+            )
             vm.photoIdMatchCompleted(credentialOfferURI)
         }
 

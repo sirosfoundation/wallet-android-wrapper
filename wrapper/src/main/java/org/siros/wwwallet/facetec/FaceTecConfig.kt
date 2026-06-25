@@ -1,7 +1,7 @@
 package org.siros.wwwallet.facetec
 
 import android.content.Context
-import android.graphics.Color
+import androidx.core.graphics.toColorInt
 import com.facetec.sdk.FaceTecCancelButtonCustomization
 import com.facetec.sdk.FaceTecCustomization
 import com.facetec.sdk.FaceTecSDK
@@ -24,15 +24,15 @@ object FaceTecConfig {
     private const val OCR_CUSTOMIZATION_ASSET = "FaceTec_OCR_Customization.json"
 
     fun customization(): FaceTecCustomization {
-        val outerBackgroundColor = Color.parseColor("#ffffff")
-        val frameColor = Color.parseColor("#ffffff")
-        val borderColor = Color.parseColor("#1c4587")
-        val ovalColor = Color.parseColor("#1c4587")
-        val textColor = Color.parseColor("#0c0e11")
-        val buttonAndFeedbackBarColor = Color.parseColor("#1c4587")
-        val buttonAndFeedbackBarTextColor = Color.parseColor("#ffffff")
-        val buttonColorHighlight = Color.parseColor("#3e6198")
-        val buttonColorDisabled = Color.parseColor("#414141")
+        val outerBackgroundColor = "#ffffff".toColorInt()
+        val frameColor = "#ffffff".toColorInt()
+        val borderColor = "#1c4587".toColorInt()
+        val ovalColor = "#1c4587".toColorInt()
+        val textColor = "#0c0e11".toColorInt()
+        val buttonAndFeedbackBarColor = "#1c4587".toColorInt()
+        val buttonAndFeedbackBarTextColor = "#ffffff".toColorInt()
+        val buttonColorHighlight = "#3e6198".toColorInt()
+        val buttonColorDisabled = "#414141".toColorInt()
 
         return FaceTecCustomization().apply {
             frameCustomization.cornerRadius = 20

@@ -99,6 +99,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
+    lint {
+        // The FaceTec SDK locale folders (values-af, values-de, …) only carry
+        // facetec-strings.xml, not a full translation of this app's own strings.xml —
+        // that's intentional, not a missing translation.
+        disable += "MissingTranslation"
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
