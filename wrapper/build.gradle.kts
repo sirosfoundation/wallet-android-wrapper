@@ -157,9 +157,7 @@ dependencies {
     implementation(libs.cbor)
     implementation(libs.cose)
 
-    // FaceTec SDK (Photo ID Match). Resolved from the local flatDir repo in
-    // settings.gradle.kts, since FaceTec ships a bare .aar with no Maven repository.
-    implementation(group = "com.facetec", name = "facetec-sdk", version = "10.1.4", ext = "aar")
+    implementation(libs.facetec.sdk)
 
     // digital credentials api
     implementation(libs.playservices.identity.credentials)

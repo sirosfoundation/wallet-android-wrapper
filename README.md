@@ -146,6 +146,20 @@ webauthn: {
 }
 ```
 
+### FaceTec SDK (GitHub Packages)
+
+The FaceTec SDK is hosted as a private Maven package in the `sirosfoundation/vendor-maven-packages` GitHub repository. To resolve it locally, add the following to `~/.gradle/gradle.properties` (create the file if it doesn't exist):
+
+```properties
+gpr.user=<your-github-username>
+gpr.key=<github-pat-with-read:packages-scope>
+```
+
+Generate a PAT at **GitHub → Settings → Developer settings → Personal access tokens** with the `read:packages` scope.
+
+In GitHub Actions CI the `GITHUB_TOKEN` and `GITHUB_ACTOR` environment variables are provided automatically — no additional secrets are needed.
+
+
 Wrapping
 --------
 
