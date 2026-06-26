@@ -21,6 +21,16 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://www.jitpack.io") }
+
+        if (!(System.getenv("GITHUB_ACTOR") ?: providers.gradleProperty("gpr.user").orNull).isNullOrBlank()) {
+            maven {
+                url = uri("https://maven.pkg.github.com/sirosfoundation/vendor-maven-packages")
+                credentials {
+                    username = System.getenv("GITHUB_ACTOR") ?: providers.gradleProperty("gpr.user").orNull
+                    password = System.getenv("GITHUB_TOKEN") ?: providers.gradleProperty("gpr.key").orNull
+                }
+            }
+        }
     }
 }
 

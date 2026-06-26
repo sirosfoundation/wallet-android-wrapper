@@ -23,6 +23,7 @@ registryDigitalcredentials = "1.0.0-alpha04"
 datastore = "1.2.1"
 cbor = "4.5.6"
 cose = "1.1.0"
+facetec = "10.1.4"
 kotlinxSerialization = "1.11.0"
 
 [libraries]
@@ -61,6 +62,7 @@ androidx-registry-provider-play-services = { group = "androidx.credentials.regis
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 cbor = { group = "com.upokecenter", name = "cbor", version.ref = "cbor" }
 cose = { group = "com.augustcellars.cose", name = "cose-java", version.ref = "cose" }
+facetec-sdk = { group = "com.facetec", name = "facetec-sdk", version.ref = "facetec" }
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 [plugins]

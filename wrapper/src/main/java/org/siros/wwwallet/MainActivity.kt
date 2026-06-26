@@ -18,6 +18,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,8 @@ import org.siros.wwwallet.bridging.DebugMenuHandler
 import org.siros.wwwallet.bridging.WalletJsBridge
 import org.siros.wwwallet.credentials.AndroidContainer
 import org.siros.wwwallet.credentials.YubicoContainer
+import org.siros.wwwallet.facetec.FaceTecManager
+import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.logging.YOLOLogger
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -60,6 +63,16 @@ class MainActivity : ComponentActivity() {
     }
 
     val vm: MainViewModel by viewModels<MainViewModel>()
+
+    private val photoIdMatchLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val credentialOfferURI = result.data?.getStringExtra(FaceTecManager.EXTRA_CREDENTIAL_OFFER_URI)
+            YOLOLogger.i(
+                tagForLog,
+                "PhotoIdMatchActivity returned resultCode=${result.resultCode}, credentialOfferURI=$credentialOfferURI",
+            )
+            vm.photoIdMatchCompleted(credentialOfferURI)
+        }
 
     private val webViewClient: WebViewClient =
         WalletWebViewClient(this) { description ->
@@ -93,6 +106,7 @@ class MainActivity : ComponentActivity() {
             } else {
                 null
             },
+            startPhotoIdMatch = { FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher) },
         )
     }
 

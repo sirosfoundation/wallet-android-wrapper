@@ -2,6 +2,7 @@ name: Android Build and Publish
 
 permissions:
   contents: write
+  packages: read
 
 on:
   push:

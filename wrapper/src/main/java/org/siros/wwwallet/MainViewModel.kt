@@ -103,6 +103,33 @@ class MainViewModel : ViewModel() {
         _url.update { "webview://back" }
     }
 
+    /**
+     * Called when [org.siros.wwwallet.facetec.PhotoIdMatchActivity] returns. If facetec-api
+     * accepted the scan, [credentialOfferURI] carries its query parameters straight to the
+     * tenant base URL so the WebView starts processing the credential offer immediately,
+     * without showing any intermediate screen first.
+     */
+    fun photoIdMatchCompleted(credentialOfferURI: String?) {
+        if (credentialOfferURI.isNullOrBlank()) {
+            YOLOLogger.i(tagForLog, "photoIdMatchCompleted: no credentialOfferURI, not navigating.")
+            return
+        }
+
+        viewModelScope.launch {
+            val target =
+                getBaseUrl()
+                    .toUri()
+                    .buildUpon()
+                    .encodedQuery(credentialOfferURI.toUri().encodedQuery)
+                    .build()
+                    .toString()
+
+            YOLOLogger.i(tagForLog, "photoIdMatchCompleted: navigating WebView to $target")
+
+            browseToUrl(target)
+        }
+    }
+
     fun parseIntent(intent: Intent) {
         viewModelScope.launch(Dispatchers.IO) {
             val uri = intent.data ?: return@launch

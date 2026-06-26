@@ -51,6 +51,7 @@ WWWALLET_ANDROID_RELEASE_KEY_ALIAS=<release-alias>
 WWWALLET_ANDROID_KEY_PASSWORD=<password>
 WWWALLET_ANDROID_STORE_PASSWORD=<password>
 WWWALLET_ANDROID_STORE_B64=<base64-encoded keystore>
+FACETEC_API_BEARER_TOKEN=<facetec-api-bearer-token>
 ```
 
 `WWWALLET_ANDROID_STORE_B64` is your keystore file encoded as Base64:
@@ -115,6 +116,25 @@ You can get the value of `your-apk-key-hash` by executing the following command
   | tr -d '='
 ```
 
+or
+
+```shell
+(TMP_STORE=$(mktemp /tmp/keystore.XXXXXX); \
+echo "$WWWALLET_ANDROID_STORE_B64" | base64 -d > "$TMP_STORE"; \
+keytool -list \
+  -keystore "$TMP_STORE" \
+  -storepass "$WWWALLET_ANDROID_STORE_PASSWORD" \
+  -alias "$WWWALLET_ANDROID_KEY_ALIAS" \
+| grep "SHA-256" \
+| awk '{print $3}' \
+| tr -d ':' \
+| xxd -r -p \
+| base64 \
+| tr '+/' '-_' \
+| tr -d '='; \
+rm "$TMP_STORE")
+```
+
 Also make sure that the webauthn origin is configured with your apk-key-hash in your go-wallet-backend config.
 
 ```
@@ -125,6 +145,20 @@ webauthn: {
   ],
 }
 ```
+
+### FaceTec SDK (GitHub Packages)
+
+The FaceTec SDK is hosted as a private Maven package in the `sirosfoundation/vendor-maven-packages` GitHub repository. To resolve it locally, add the following to `~/.gradle/gradle.properties` (create the file if it doesn't exist):
+
+```properties
+gpr.user=<your-github-username>
+gpr.key=<github-pat-with-read:packages-scope>
+```
+
+Generate a PAT at **GitHub → Settings → Developer settings → Personal access tokens** with the `read:packages` scope.
+
+In GitHub Actions CI the `GITHUB_TOKEN` and `GITHUB_ACTOR` environment variables are provided automatically — no additional secrets are needed.
+
 
 Wrapping
 --------

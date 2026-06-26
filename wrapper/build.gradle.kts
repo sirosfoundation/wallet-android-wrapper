@@ -11,6 +11,15 @@ plugins {
     alias(libs.plugins.serialization)
 }
 
+val includeFaceTec =
+    !(
+        try {
+            env("FACETEC_API_BEARER_TOKEN")
+        } catch (_: Throwable) {
+            null
+        }.isNullOrBlank()
+    )
+
 android {
     namespace = "org.siros.wwwallet"
     compileSdk = 36
@@ -25,6 +34,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+
+        // FaceTec only ships native libraries for these ABIs.
+        if (includeFaceTec) {
+            ndk {
+                abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            }
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            if (includeFaceTec) {
+                kotlin.directories.add("src/facetec/java")
+            }
         }
     }
 
@@ -61,6 +85,22 @@ android {
             buildConfigField("Boolean", "SHOW_URL_ROW", "false")
             buildConfigField("Boolean", "VISUALIZE_INJECTION", "false")
 
+            // facetec-api endpoint that proxies FaceTec SDK session requests and turns
+            // accepted photo-ID matches into a credentialOfferURI. The bearer token is a
+            // secret and must only come from the environment / local.properties, never
+            // be hardcoded here.
+            buildConfigField(
+                "String",
+                "FACETEC_API_BASE_URL",
+                "\"https://ft1-dev-api.common.siros.org/v1/process-request\"",
+            )
+
+            buildConfigField(
+                "String",
+                "FACETEC_API_BEARER_TOKEN",
+                if (includeFaceTec) "\"${env("FACETEC_API_BEARER_TOKEN")}\"" else "\"\"",
+            )
+
             signingConfig = signingConfigs.getByName("all")
         }
 
@@ -82,6 +122,13 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    lint {
+        // The FaceTec SDK locale folders (values-af, values-de, …) only carry
+        // facetec-strings.xml, not a full translation of this app's own strings.xml —
+        // that's intentional, not a missing translation.
+        disable += "MissingTranslation"
     }
 
     buildFeatures {
@@ -138,6 +185,10 @@ dependencies {
     implementation(libs.cose)
     implementation(libs.kotlinx.serialization)
 
+    if (includeFaceTec) {
+        implementation(libs.facetec.sdk)
+    }
+
     // digital credentials api
     implementation(libs.playservices.identity.credentials)
     implementation(libs.androidx.registry.provider)
@@ -177,6 +228,9 @@ abstract class GenerateManifestTask : DefaultTask() {
     @get:Input
     abstract val showShortcuts: Property<Boolean>
 
+    @get:Input
+    abstract val includeFt: Property<Boolean>
+
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
@@ -195,6 +249,20 @@ abstract class GenerateManifestTask : DefaultTask() {
                 ""
             }
 
+        val faceTecActivity =
+            if (includeFt.get()) {
+                """
+                    <activity
+                        android:name=".facetec.PhotoIdMatchActivity"
+                        android:configChanges="orientation|keyboardHidden|screenSize"
+                        android:exported="false"
+                        android:screenOrientation="userPortrait"
+                        android:theme="@style/Theme.Wwwallet" />
+            """
+            } else {
+                ""
+            }
+
         val intentFilters =
             domains.joinToString("\n") { domain ->
                 """
@@ -208,12 +276,12 @@ abstract class GenerateManifestTask : DefaultTask() {
                         </intent-filter>"""
             }
 
-        // We target the MainActivity specifically to merge these filters into it
         val xml =
             """
             <?xml version="1.0" encoding="utf-8"?>
             <manifest xmlns:android="http://schemas.android.com/apk/res/android">
                 <application>
+                    $faceTecActivity 
                     <activity 
                         android:name="org.siros.wwwallet.MainActivity"
                         android:exported="true">
@@ -240,6 +308,8 @@ androidComponents {
                 this.baseDomains.set(baseDomains)
 
                 showShortcuts.set(variant.debuggable)
+
+                includeFt.set(includeFaceTec)
 
                 outputFile.set(File("generated/manifests/${variant.name}/AndroidManifest.xml"))
             }

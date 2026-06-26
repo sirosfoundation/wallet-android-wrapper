@@ -16,6 +16,9 @@
 -dontwarn lombok.Generated
 -dontwarn lombok.NonNull
 
+-dontwarn com.facetec.sdk.**
+-keep,includecode,includedescriptorclasses class com.facetec.sdk.** { *; }
+
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
