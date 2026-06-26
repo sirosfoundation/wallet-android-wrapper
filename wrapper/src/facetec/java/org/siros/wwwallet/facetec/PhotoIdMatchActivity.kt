@@ -1,7 +1,6 @@
 package org.siros.wwwallet.facetec
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -28,10 +27,6 @@ import org.siros.wwwallet.tagForLog
  * through an [androidx.activity.result.ActivityResultLauncher].
  */
 class PhotoIdMatchActivity : ComponentActivity() {
-    companion object {
-        const val EXTRA_CREDENTIAL_OFFER_URI = "credentialOfferURI"
-    }
-
     private var sdkInstance: FaceTecSDKInstance? = null
     private var capturedCredentialOfferURI: String? = null
 
@@ -102,6 +97,7 @@ class PhotoIdMatchActivity : ComponentActivity() {
         resultCode: Int,
         data: Intent?,
     ) {
+        @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
 
         val result = FaceTecSDK.getActivitySessionResult(requestCode, resultCode, data) ?: return
@@ -116,15 +112,15 @@ class PhotoIdMatchActivity : ComponentActivity() {
 
         val resultIntent =
             Intent().apply {
-                capturedCredentialOfferURI?.let { putExtra(EXTRA_CREDENTIAL_OFFER_URI, it) }
+                capturedCredentialOfferURI?.let { putExtra(FaceTecManager.EXTRA_CREDENTIAL_OFFER_URI, it) }
             }
 
-        setResult(Activity.RESULT_OK, resultIntent)
+        setResult(RESULT_OK, resultIntent)
         finish()
     }
 
     private fun finishWithoutOffer() {
-        setResult(Activity.RESULT_CANCELED)
+        setResult(RESULT_CANCELED)
         finish()
     }
 }

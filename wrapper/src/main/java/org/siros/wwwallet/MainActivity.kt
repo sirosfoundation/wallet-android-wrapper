@@ -50,7 +50,8 @@ import org.siros.wwwallet.bridging.DebugMenuHandler
 import org.siros.wwwallet.bridging.WalletJsBridge
 import org.siros.wwwallet.credentials.AndroidContainer
 import org.siros.wwwallet.credentials.YubicoContainer
-import org.siros.wwwallet.facetec.PhotoIdMatchActivity
+import org.siros.wwwallet.facetec.FaceTecManager
+import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.logging.YOLOLogger
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
 
     private val photoIdMatchLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            val credentialOfferURI = result.data?.getStringExtra(PhotoIdMatchActivity.EXTRA_CREDENTIAL_OFFER_URI)
+            val credentialOfferURI = result.data?.getStringExtra(FaceTecManager.EXTRA_CREDENTIAL_OFFER_URI)
             YOLOLogger.i(
                 tagForLog,
                 "PhotoIdMatchActivity returned resultCode=${result.resultCode}, credentialOfferURI=$credentialOfferURI",
@@ -105,7 +106,7 @@ class MainActivity : ComponentActivity() {
             } else {
                 null
             },
-            startPhotoIdMatch = { photoIdMatchLauncher.launch(Intent(this, PhotoIdMatchActivity::class.java)) },
+            startPhotoIdMatch = { FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher) },
         )
     }
 
