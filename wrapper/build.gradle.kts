@@ -224,6 +224,9 @@ abstract class GenerateManifestTask : DefaultTask() {
     @get:Input
     abstract val showShortcuts: Property<Boolean>
 
+    @get:Input
+    abstract val includeFt: Property<Boolean>
+
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
@@ -242,6 +245,20 @@ abstract class GenerateManifestTask : DefaultTask() {
                 ""
             }
 
+        val faceTecActivity =
+            if (includeFt.get()) {
+                """
+                    <activity
+                        android:name=".facetec.PhotoIdMatchActivity"
+                        android:configChanges="orientation|keyboardHidden|screenSize"
+                        android:exported="false"
+                        android:screenOrientation="userPortrait"
+                        android:theme="@style/Theme.Wwwallet" />
+            """
+            } else {
+                ""
+            }
+
         val intentFilters =
             domains.joinToString("\n") { domain ->
                 """
@@ -255,12 +272,12 @@ abstract class GenerateManifestTask : DefaultTask() {
                         </intent-filter>"""
             }
 
-        // We target the MainActivity specifically to merge these filters into it
         val xml =
             """
             <?xml version="1.0" encoding="utf-8"?>
             <manifest xmlns:android="http://schemas.android.com/apk/res/android">
                 <application>
+                    $faceTecActivity 
                     <activity 
                         android:name="org.siros.wwwallet.MainActivity"
                         android:exported="true">
@@ -287,6 +304,8 @@ androidComponents {
                 this.baseDomains.set(baseDomains)
 
                 showShortcuts.set(variant.debuggable)
+
+                includeFt.set(includeFaceTec)
 
                 outputFile.set(File("generated/manifests/${variant.name}/AndroidManifest.xml"))
             }
