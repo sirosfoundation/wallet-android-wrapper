@@ -84,13 +84,6 @@
             android:label="@string/title_activity_credential_create"
             android:theme="@style/Theme.Wwwallet" />
 
-        <activity
-            android:name=".facetec.PhotoIdMatchActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:exported="false"
-            android:screenOrientation="userPortrait"
-            android:theme="@style/Theme.Wwwallet" />
-
         <service
             android:name=".credentials.provider.CredentialProviderService"
             android:enabled="true"
