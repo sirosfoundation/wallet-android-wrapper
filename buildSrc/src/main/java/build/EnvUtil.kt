@@ -23,6 +23,16 @@ fun Project.env(name: String): String {
     }
 }
 
+fun Project.envOrDefault(name: String, default: String): String {
+    val variable = System.getenv(name) ?: run {
+        val localProps = java.util.Properties()
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) localPropsFile.inputStream().use { localProps.load(it) }
+        localProps.getProperty(name)
+    }
+    return if (variable.isNullOrBlank()) default else variable
+}
+
 fun Project.fileFromEnv(project: Project, envName: String, fileName: String): File {
     val envVar = env(envName)
     val bytes = Base64.getDecoder().decode(envVar)

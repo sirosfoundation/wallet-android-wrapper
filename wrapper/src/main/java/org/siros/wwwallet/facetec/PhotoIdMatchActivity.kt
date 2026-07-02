@@ -82,13 +82,23 @@ class PhotoIdMatchActivity : ComponentActivity() {
                 }
 
                 override fun onError(error: FaceTecInitializationError) {
-                    YOLOLogger.e(tagForLog, "FaceTec SDK initialization failed: $error")
-                    Toast
-                        .makeText(
-                            this@PhotoIdMatchActivity,
-                            getString(R.string.photo_id_match_initialization_failed),
-                            Toast.LENGTH_LONG,
-                        ).show()
+                    // FaceTec invokes onError from a background thread (an AsyncTask
+                    // worker), not the main thread. Toast requires a Looper on the
+                    // calling thread, so showing it here directly crashes with
+                    // "Can't toast on a thread that has not called Looper.prepare()" —
+                    // runOnUiThread hops back to the main thread first.
+                    // `tagForLog` is read from the outer Activity (this@PhotoIdMatchActivity)
+                    // rather than the anonymous callback object itself, whose
+                    // javaClass.simpleName is empty and would log with a blank tag.
+                    YOLOLogger.e(this@PhotoIdMatchActivity.tagForLog, "FaceTec SDK initialization failed: $error")
+                    runOnUiThread {
+                        Toast
+                            .makeText(
+                                this@PhotoIdMatchActivity,
+                                getString(R.string.photo_id_match_initialization_failed),
+                                Toast.LENGTH_LONG,
+                            ).show()
+                    }
                     finishWithoutOffer()
                 }
             },
