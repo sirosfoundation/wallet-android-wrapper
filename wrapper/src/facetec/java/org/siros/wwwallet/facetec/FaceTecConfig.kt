@@ -61,7 +61,7 @@ object FaceTecConfig {
             feedbackCustomization.textColor = buttonAndFeedbackBarTextColor
 
             cancelButtonCustomization.customImage = R.drawable.facetec_cancel
-            cancelButtonCustomization.setLocation(FaceTecCancelButtonCustomization.ButtonLocation.TOP_LEFT)
+            cancelButtonCustomization.location = FaceTecCancelButtonCustomization.ButtonLocation.TOP_LEFT
 
             resultScreenCustomization.backgroundColors = frameColor
             resultScreenCustomization.foregroundColor = textColor

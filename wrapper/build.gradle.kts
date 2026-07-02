@@ -11,6 +11,15 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
+val includeFaceTec =
+    !(
+        try {
+            env("FACETEC_API_BEARER_TOKEN")
+        } catch (_: Throwable) {
+            null
+        }.isNullOrBlank()
+    )
+
 android {
     namespace = "org.siros.wwwallet"
     compileSdk = 36
@@ -28,8 +37,18 @@ android {
         }
 
         // FaceTec only ships native libraries for these ABIs.
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        if (includeFaceTec) {
+            ndk {
+                abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            }
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            if (includeFaceTec) {
+                kotlin.directories.add("src/facetec/java")
+            }
         }
     }
 
@@ -81,7 +100,12 @@ android {
                 "FACETEC_API_BASE_URL",
                 "\"${envOrDefault("WWWALLET_FACETEC_API_BASE_URL", "https://ft1-dev-api.common.siros.org/v1/process-request")}\"",
             )
-            buildConfigField("String", "FACETEC_API_BEARER_TOKEN", "\"${env("FACETEC_API_BEARER_TOKEN")}\"")
+
+            buildConfigField(
+                "String",
+                "FACETEC_API_BEARER_TOKEN",
+                if (includeFaceTec) "\"${env("FACETEC_API_BEARER_TOKEN")}\"" else "\"\"",
+            )
 
             signingConfig = signingConfigs.getByName("all")
         }
@@ -164,7 +188,9 @@ dependencies {
     implementation(libs.cbor)
     implementation(libs.cose)
 
-    implementation(libs.facetec.sdk)
+    if (includeFaceTec) {
+        implementation(libs.facetec.sdk)
+    }
 
     // digital credentials api
     implementation(libs.playservices.identity.credentials)
@@ -205,6 +231,9 @@ abstract class GenerateManifestTask : DefaultTask() {
     @get:Input
     abstract val showShortcuts: Property<Boolean>
 
+    @get:Input
+    abstract val includeFt: Property<Boolean>
+
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
@@ -223,6 +252,20 @@ abstract class GenerateManifestTask : DefaultTask() {
                 ""
             }
 
+        val faceTecActivity =
+            if (includeFt.get()) {
+                """
+                    <activity
+                        android:name=".facetec.PhotoIdMatchActivity"
+                        android:configChanges="orientation|keyboardHidden|screenSize"
+                        android:exported="false"
+                        android:screenOrientation="userPortrait"
+                        android:theme="@style/Theme.Wwwallet" />
+            """
+            } else {
+                ""
+            }
+
         val intentFilters =
             domains.joinToString("\n") { domain ->
                 """
@@ -236,12 +279,12 @@ abstract class GenerateManifestTask : DefaultTask() {
                         </intent-filter>"""
             }
 
-        // We target the MainActivity specifically to merge these filters into it
         val xml =
             """
             <?xml version="1.0" encoding="utf-8"?>
             <manifest xmlns:android="http://schemas.android.com/apk/res/android">
                 <application>
+                    $faceTecActivity 
                     <activity 
                         android:name="org.siros.wwwallet.MainActivity"
                         android:exported="true">
@@ -268,6 +311,8 @@ androidComponents {
                 this.baseDomains.set(baseDomains)
 
                 showShortcuts.set(variant.debuggable)
+
+                includeFt.set(includeFaceTec)
 
                 outputFile.set(File("generated/manifests/${variant.name}/AndroidManifest.xml"))
             }
