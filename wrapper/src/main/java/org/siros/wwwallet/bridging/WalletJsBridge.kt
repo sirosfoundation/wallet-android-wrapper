@@ -27,7 +27,7 @@ class WalletJsBridge(
     private val bleClientHandler: BleClientHandler,
     private val bleServerHandler: BleServerHandler,
     private val debugMenuHandler: DebugMenuHandler?,
-    private val startPhotoIdMatch: () -> Unit,
+    private val startPhotoIdMatch: (originUrl: String?) -> Unit,
 ) {
     companion object {
         const val JAVASCRIPT_BRIDGE_NAME = "nativeWrapper"
@@ -92,14 +92,26 @@ class WalletJsBridge(
      * [org.siros.wwwallet.facetec.PhotoIdMatchActivity]). Its result is handled by
      * `MainActivity`/`MainViewModel`, which navigate the WebView directly to the
      * resulting credential offer when facetec-api accepts the scan.
+     *
+     * Captures the WebView's current URL before departing to FaceTec. wallet-frontend
+     * may be deployed multi-tenant (URLs prefixed with e.g. "/id/<tenant>/") — the app
+     * has no business knowing that routing structure, but the page the user is already
+     * on is guaranteed to be correctly tenant-scoped, since they got there by using the
+     * wallet normally. Returning to that same URL (with the credential offer appended
+     * as a query param) lets wallet-frontend's own UriHandlerProvider pick it up and
+     * route it correctly, tenant and all — see MainViewModel#photoIdMatchCompleted.
      */
     @JavascriptInterface
     @Suppress("unused")
     fun startScanPhysicalId() {
         YOLOLogger.i(tagForLog, "$JAVASCRIPT_BRIDGE_NAME.startScanPhysicalId() called.")
 
+        // @JavascriptInterface methods run on the "JavaBridge" thread, not the main
+        // thread — webView.url (like all WebView methods) must only be touched on
+        // the thread the WebView was created on, so read it inside the dispatch to
+        // Dispatchers.Main below, not before it.
         Dispatchers.Main.dispatch(EmptyCoroutineContext) {
-            startPhotoIdMatch()
+            startPhotoIdMatch(webView.url)
         }
     }
 

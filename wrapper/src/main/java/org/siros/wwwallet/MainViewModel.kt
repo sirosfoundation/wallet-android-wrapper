@@ -111,21 +111,41 @@ class MainViewModel : ViewModel() {
 
     /**
      * Called when [org.siros.wwwallet.facetec.PhotoIdMatchActivity] returns. If facetec-api
-     * accepted the scan, [credentialOfferURI] carries its query parameters straight to the
-     * tenant base URL so the WebView starts processing the credential offer immediately,
-     * without showing any intermediate screen first.
+     * accepted the scan, [credentialOfferURI] carries its query parameters back to
+     * [originUrl] — the WebView's URL at the moment the scan was launched (see
+     * WalletJsBridge#startScanPhysicalId).
+     *
+     * We deliberately return to [originUrl] rather than computing a "/cb" callback URL
+     * ourselves: wallet-frontend may be deployed multi-tenant, with every route prefixed
+     * by e.g. "/id/<tenant>/". The app has no business knowing that routing structure or
+     * which tenant is active — [originUrl] already carries whichever tenant prefix applies,
+     * since it's wherever the user was already browsing. wallet-frontend's own
+     * UriHandlerProvider (hocs/UriHandlerProvider.tsx) watches for a "credential_offer" (or
+     * "_uri") query param on any already-tenant-resolved page and internally redirects to
+     * its "cb" callback route via its own tenant-aware buildPath() — so appending the query
+     * to [originUrl] is sufficient; wallet-frontend does the rest.
+     *
+     * Falls back to the configured base URL (bare, no tenant awareness) only if [originUrl]
+     * is unexpectedly missing — this should not normally happen, since starting a scan
+     * always originates from a WebView page.
      */
-    fun photoIdMatchCompleted(credentialOfferURI: String?) {
+    fun photoIdMatchCompleted(
+        credentialOfferURI: String?,
+        originUrl: String?,
+    ) {
         if (credentialOfferURI.isNullOrBlank()) {
             YOLOLogger.i(tagForLog, "photoIdMatchCompleted: no credentialOfferURI, not navigating.")
             return
         }
 
         viewModelScope.launch {
+            val returnTo = originUrl?.takeIf { it.isNotBlank() } ?: getBaseUrl()
+
             val target =
-                getBaseUrl()
+                returnTo
                     .toUri()
                     .buildUpon()
+                    .clearQuery()
                     .encodedQuery(credentialOfferURI.toUri().encodedQuery)
                     .build()
                     .toString()

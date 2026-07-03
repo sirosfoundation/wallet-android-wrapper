@@ -1,4 +1,5 @@
 import build.env
+import build.envOrDefault
 import build.fileFromEnv
 import org.gradle.api.DefaultTask
 import java.io.File
@@ -88,10 +89,16 @@ android {
             // accepted photo-ID matches into a credentialOfferURI. The bearer token is a
             // secret and must only come from the environment / local.properties, never
             // be hardcoded here.
+            //
+            // WWWALLET_FACETEC_API_BASE_URL overrides the default for local development:
+            // point it at a Cloudflare quick tunnel URL from facetec-api's `make tunnel`
+            // (e.g. "https://xyz.trycloudflare.com/process-request") to test against a
+            // facetec-api instance running on your own machine instead of the shared dev
+            // deployment. Leave unset to use the shared dev deployment as before.
             buildConfigField(
                 "String",
                 "FACETEC_API_BASE_URL",
-                "\"https://ft1-dev-api.common.siros.org/v1/process-request\"",
+                "\"${envOrDefault("WWWALLET_FACETEC_API_BASE_URL", "https://ft1-dev-api.common.siros.org/v1/process-request")}\"",
             )
 
             buildConfigField(
