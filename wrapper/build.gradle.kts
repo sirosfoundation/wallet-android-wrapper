@@ -11,14 +11,8 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-val includeFaceTec =
-    !(
-        try {
-            env("FACETEC_API_BEARER_TOKEN")
-        } catch (_: Throwable) {
-            null
-        }.isNullOrBlank()
-    )
+val faceTecToken = envOrDefault("FACETEC_API_BEARER_TOKEN", "")
+val includeFaceTec = faceTecToken.isNotBlank()
 
 android {
     namespace = "org.siros.wwwallet"
@@ -39,6 +33,7 @@ android {
         // FaceTec only ships native libraries for these ABIs.
         if (includeFaceTec) {
             ndk {
+                //noinspection ChromeOsAbiSupport
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a")
             }
         }
@@ -53,29 +48,29 @@ android {
     }
 
     signingConfigs {
-        create("all") {
-            keyAlias = env("WWWALLET_ANDROID_KEY_ALIAS")
-            keyPassword = env("WWWALLET_ANDROID_KEY_PASSWORD")
-            storePassword = env("WWWALLET_ANDROID_STORE_PASSWORD")
-            storeFile = fileFromEnv(project, "WWWALLET_ANDROID_STORE_B64", "wwwallet.keystore")
-        }
+        val allConfig =
+            create("all") {
+                keyAlias = env("WWWALLET_ANDROID_KEY_ALIAS")
+                keyPassword = env("WWWALLET_ANDROID_KEY_PASSWORD")
+                storePassword = env("WWWALLET_ANDROID_STORE_PASSWORD")
+                storeFile = fileFromEnv(project, "WWWALLET_ANDROID_STORE_B64", "wwwallet.keystore")
+            }
 
         create("release") {
+            initWith(allConfig)
             keyAlias = env("WWWALLET_ANDROID_RELEASE_KEY_ALIAS")
-            keyPassword = env("WWWALLET_ANDROID_KEY_PASSWORD")
-            storePassword = env("WWWALLET_ANDROID_STORE_PASSWORD")
-            storeFile = fileFromEnv(project, "WWWALLET_ANDROID_STORE_B64", "wwwallet.keystore")
         }
     }
 
     buildTypes {
         all {
-            val baseDomains: List<String> by rootProject.extra
+            @Suppress("UNCHECKED_CAST")
+            val baseDomains = rootProject.extra["baseDomains"] as List<String>
             var i = 0
 
             for (baseDomain in baseDomains) {
                 i += 1
-                buildConfigField("String", "BASE_DOMAIN$i", "\"${baseDomain}\"")
+                buildConfigField("String", "BASE_DOMAIN$i", "\"$baseDomain\"")
             }
 
             resValue("string", "shortcut_open_base_domain1", baseDomains[0])
@@ -104,7 +99,7 @@ android {
             buildConfigField(
                 "String",
                 "FACETEC_API_BEARER_TOKEN",
-                if (includeFaceTec) "\"${env("FACETEC_API_BEARER_TOKEN")}\"" else "\"\"",
+                "\"$faceTecToken\"",
             )
 
             signingConfig = signingConfigs.getByName("all")
@@ -127,8 +122,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     lint {
@@ -142,10 +137,6 @@ android {
         compose = true
         buildConfig = true
         resValues = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
     }
 
     packaging {
@@ -308,7 +299,8 @@ androidComponents {
                 "generate${variant.name.replaceFirstChar { it.uppercase() }}Manifest",
                 GenerateManifestTask::class.java,
             ) {
-                val baseDomains: List<String> by rootProject.extra
+                @Suppress("UNCHECKED_CAST")
+                val baseDomains = rootProject.extra["baseDomains"] as List<String>
                 this.baseDomains.set(baseDomains)
 
                 showShortcuts.set(variant.debuggable)

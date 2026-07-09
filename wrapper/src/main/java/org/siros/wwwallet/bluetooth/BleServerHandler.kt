@@ -315,7 +315,7 @@ class BleServerHandler(
                                     ServiceCharacteristic.ClientToServer.uuid -> {
                                         // registered characteristic found, report back
                                         val msg =
-                                            "Received $value (${value.toHumanReadable()}, ${
+                                            "Received ${value.contentToString()} (${value.toHumanReadable()}, ${
                                                 String(
                                                     value,
                                                 )

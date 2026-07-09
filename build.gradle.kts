@@ -12,7 +12,9 @@ plugins {
 }
 
 // TODO: List of supported installations for debugging. Reduce to one for final production!
-val baseDomains by extra(listOf("id.siros.org", "demo.wwwallet.org", "qa.wwwallet.org"))
+extra["baseDomains"] = listOf("id.siros.org", "demo.wwwallet.org", "qa.wwwallet.org")
+@Suppress("UNCHECKED_CAST")
+val baseDomains = extra["baseDomains"] as List<String>
 
 tasks.register("createReleaseNotes") {
     description = "Create a release log of all recent commits."
