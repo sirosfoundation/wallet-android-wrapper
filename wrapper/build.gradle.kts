@@ -22,12 +22,12 @@ val includeFaceTec =
 
 android {
     namespace = "org.siros.wwwallet"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = env("WWWALLET_ANDROID_APPLICATION_ID")
         minSdk = 33
-        targetSdk = 36
+        targetSdk = 37
         versionCode = (property("wallet.versionCode") as String).toInt()
         versionName = property("wallet.versionName") as String
 
@@ -112,6 +112,7 @@ android {
 
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -319,7 +320,6 @@ androidComponents {
 
         variant.sources.manifests.addGeneratedManifestFile(
             manifestTaskProvider,
-            { it.outputFile },
-        )
+        ) { it.outputFile }
     }
 }

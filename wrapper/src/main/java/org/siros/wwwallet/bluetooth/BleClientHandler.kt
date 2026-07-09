@@ -349,6 +349,13 @@ class BleClientHandler(
                 .build()
 
         val scanner = adapter.bluetoothLeScanner
+
+        if (scanner == null) {
+            YOLOLogger.e(tagForLog, "Bluetooth adapter turned off")
+            failure()
+            return
+        }
+
         state =
             State.Scanning(
                 serviceUuid,
@@ -369,7 +376,7 @@ class BleClientHandler(
             )
 
         try {
-            scanner!!.startScan(
+            scanner.startScan(
                 filterList,
                 settings,
                 scanCallback,
