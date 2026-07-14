@@ -75,14 +75,16 @@ JAVASCRIPT_BRIDGE.overrideHints = function(newHints) {
     }
 }
 
+// Store original methods safely in a scope that won't be cleared or overwritten.
+if (typeof window.__original_navigator_credentials === 'undefined') {
+    window.__original_navigator_credentials = {
+        create: navigator.credentials.create.bind(navigator.credentials),
+        get: navigator.credentials.get.bind(navigator.credentials)
+    };
+}
+
 // override functions on navigator
 function overrideNavigatorCredentialsWithBridgeCall(method) {
-
-    // Even though this *shouldn*t* be called multiple times, it *is*. So make sure
-    // to not store a reference to the overriding method accidentally, instead of the original method.
-    if (typeof JAVASCRIPT_BRIDGE[method + "Wrapped"] === "undefined") {
-        JAVASCRIPT_BRIDGE[method + "Wrapped"] = navigator.credentials[method].bind(navigator.credentials);
-    }
 
     navigator.credentials[method] = (options) => {
         console.log("Executing " + method + " with request: ", options);
@@ -95,7 +97,7 @@ function overrideNavigatorCredentialsWithBridgeCall(method) {
         ) {
             console.log("Forward to OS, because no security-key hint contained.")
 
-            return JAVASCRIPT_BRIDGE[method + "Wrapped"](options);
+            return window.__original_navigator_credentials[method](options);
         }
 
         var uuid = crypto.randomUUID()
@@ -103,22 +105,24 @@ function overrideNavigatorCredentialsWithBridgeCall(method) {
         var promise = new Promise((resolve, reject) => {
             JAVASCRIPT_BRIDGE.__promise_cache__[uuid] = {'resolve':resolve, 'reject':reject, 'method': method}
 
-            if (JAVASCRIPT_BRIDGE.__override_hints.length > 0) {
-                options.publicKey['hints'] = JAVASCRIPT_BRIDGE.__override_hints
-            }
+            if (options.publicKey) {
+                if (JAVASCRIPT_BRIDGE.__override_hints.length > 0) {
+                    options.publicKey['hints'] = JAVASCRIPT_BRIDGE.__override_hints
+                }
 
-            if (options.publicKey.hasOwnProperty('challenge')) {
-                options.publicKey.challenge = __encode(options.publicKey.challenge)
-            }
+                if (options.publicKey.hasOwnProperty('challenge')) {
+                    options.publicKey.challenge = __encode(options.publicKey.challenge)
+                }
 
-            if (options.publicKey.hasOwnProperty('user') && options.publicKey.user.hasOwnProperty('id')) {
-                options.publicKey.user.id = __encode(options.publicKey.user.id)
-            }
+                if (options.publicKey.hasOwnProperty('user') && options.publicKey.user.hasOwnProperty('id')) {
+                    options.publicKey.user.id = __encode(options.publicKey.user.id)
+                }
 
-            if (options.publicKey.hasOwnProperty('allowCredentials')) {
-                var allowed = options.publicKey.allowCredentials
-                for(var i = 0; i < allowed.length; ++i) {
-                    allowed[i].id = __encode(allowed[i].id);
+                if (options.publicKey.hasOwnProperty('allowCredentials')) {
+                    var allowed = options.publicKey.allowCredentials
+                    for(var i = 0; i < allowed.length; ++i) {
+                        allowed[i].id = __encode(allowed[i].id);
+                    }
                 }
             }
 
@@ -194,6 +198,11 @@ function overrideNavigatorCredentialsWithBridgeCall(method) {
 }
 
 function __encode(buffer) {
+    if (typeof buffer === 'string') {
+        // If it's already a string, assume it's base64url encoded and just return it
+        // (Some web apps use wrappers that already convert to string)
+        return buffer;
+    }
     return btoa(
         Array.from(
             new Uint8Array(buffer),
@@ -203,7 +212,7 @@ function __encode(buffer) {
         ).join('')
     ).replace(/\+/g, '-')
     .replace(/\//g, '_')
-    .replace(/=+${'$'}/, '')
+    .replace(/=+$/, '')
 }
 
 function __decode(value) {
@@ -330,13 +339,6 @@ JAVASCRIPT_BRIDGE.__reject__ = (uuid, result) => {
 overrideNavigatorCredentialsWithBridgeCall("create")
 overrideNavigatorCredentialsWithBridgeCall("get")
 
-window.PublicKeyCredential = (function () { });
-window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable =
-    function () {
-        return Promise.resolve(false);
-    };
-
-
 // create ble methods
 function createBluetoothMethod(method) {
     console.assert (
@@ -374,12 +376,6 @@ createBluetoothMethod('bluetoothSendToServer')
 createBluetoothMethod('bluetoothSendToClient')
 createBluetoothMethod('bluetoothReceiveFromClient')
 createBluetoothMethod('bluetoothReceiveFromServer')
-
-window.PublicKeyCredential = (function () { });
-window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable =
-    function () {
-        return Promise.resolve(false);
-    };
 
 // call out finalization
 console.log('injected!')

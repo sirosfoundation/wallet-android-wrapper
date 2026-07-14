@@ -80,7 +80,7 @@ private fun JSONObject.toGetRequestOption(): GetCredentialRequest =
         credentialOptions =
             listOf(
                 GetPublicKeyCredentialOption(
-                    requestJson = getString("publicKey").toString(),
+                    requestJson = getJSONObject("publicKey").toString(),
                 ),
             ),
     )
