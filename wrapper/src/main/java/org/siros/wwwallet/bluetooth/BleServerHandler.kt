@@ -106,7 +106,20 @@ class BleServerHandler(
             YOLOLogger.e(tagForLog, "Couldn't add service.", e)
         }
 
-        val advertiser = adapter!!.bluetoothLeAdvertiser
+        if (adapter == null) {
+            YOLOLogger.e(tagForLog, "Bluetooth adapter not available")
+            failure()
+            return
+        }
+
+        val advertiser = adapter.bluetoothLeAdvertiser
+
+        if (advertiser == null) {
+            YOLOLogger.e(tagForLog, "Bluetooth adapter turned off or LE advertising unavailable")
+            failure()
+            return
+        }
+
         val settings =
             AdvertiseSettings
                 .Builder()
@@ -302,7 +315,7 @@ class BleServerHandler(
                                     ServiceCharacteristic.ClientToServer.uuid -> {
                                         // registered characteristic found, report back
                                         val msg =
-                                            "Received $value (${value.toHumanReadable()}, ${
+                                            "Received ${value.contentToString()} (${value.toHumanReadable()}, ${
                                                 String(
                                                     value,
                                                 )
@@ -343,6 +356,11 @@ class BleServerHandler(
                             }
 
                         if (responseNeeded) {
+                            if (device == null) {
+                                YOLOLogger.e(tagForLog, "No Bluetooth device")
+                                return
+                            }
+
                             it.server.sendResponse(
                                 device,
                                 requestId,

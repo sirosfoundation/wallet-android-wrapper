@@ -1,4 +1,5 @@
 import build.env
+import build.envOrDefault
 import build.fileFromEnv
 import org.gradle.api.DefaultTask
 import java.io.File
@@ -11,23 +12,17 @@ plugins {
     alias(libs.plugins.serialization)
 }
 
-val includeFaceTec =
-    !(
-        try {
-            env("FACETEC_API_BEARER_TOKEN")
-        } catch (_: Throwable) {
-            null
-        }.isNullOrBlank()
-    )
+val faceTecToken = envOrDefault("FACETEC_API_BEARER_TOKEN", "")
+val includeFaceTec = faceTecToken.isNotBlank()
 
 android {
     namespace = "org.siros.wwwallet"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = env("WWWALLET_ANDROID_APPLICATION_ID")
         minSdk = 33
-        targetSdk = 36
+        targetSdk = 37
         versionCode = (property("wallet.versionCode") as String).toInt()
         versionName = property("wallet.versionName") as String
 
@@ -39,6 +34,7 @@ android {
         // FaceTec only ships native libraries for these ABIs.
         if (includeFaceTec) {
             ndk {
+                //noinspection ChromeOsAbiSupport
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a")
             }
         }
@@ -53,29 +49,29 @@ android {
     }
 
     signingConfigs {
-        create("all") {
-            keyAlias = env("WWWALLET_ANDROID_KEY_ALIAS")
-            keyPassword = env("WWWALLET_ANDROID_KEY_PASSWORD")
-            storePassword = env("WWWALLET_ANDROID_STORE_PASSWORD")
-            storeFile = fileFromEnv(project, "WWWALLET_ANDROID_STORE_B64", "wwwallet.keystore")
-        }
+        val allConfig =
+            create("all") {
+                keyAlias = env("WWWALLET_ANDROID_KEY_ALIAS")
+                keyPassword = env("WWWALLET_ANDROID_KEY_PASSWORD")
+                storePassword = env("WWWALLET_ANDROID_STORE_PASSWORD")
+                storeFile = fileFromEnv(project, "WWWALLET_ANDROID_STORE_B64", "wwwallet.keystore")
+            }
 
         create("release") {
+            initWith(allConfig)
             keyAlias = env("WWWALLET_ANDROID_RELEASE_KEY_ALIAS")
-            keyPassword = env("WWWALLET_ANDROID_KEY_PASSWORD")
-            storePassword = env("WWWALLET_ANDROID_STORE_PASSWORD")
-            storeFile = fileFromEnv(project, "WWWALLET_ANDROID_STORE_B64", "wwwallet.keystore")
         }
     }
 
     buildTypes {
         all {
-            val baseDomains: List<String> by rootProject.extra
+            @Suppress("UNCHECKED_CAST")
+            val baseDomains = rootProject.extra["baseDomains"] as List<String>
             var i = 0
 
             for (baseDomain in baseDomains) {
                 i += 1
-                buildConfigField("String", "BASE_DOMAIN$i", "\"${baseDomain}\"")
+                buildConfigField("String", "BASE_DOMAIN$i", "\"$baseDomain\"")
             }
 
             resValue("string", "shortcut_open_base_domain1", baseDomains[0])
@@ -89,16 +85,22 @@ android {
             // accepted photo-ID matches into a credentialOfferURI. The bearer token is a
             // secret and must only come from the environment / local.properties, never
             // be hardcoded here.
+            //
+            // WWWALLET_FACETEC_API_BASE_URL overrides the default for local development:
+            // point it at a Cloudflare quick tunnel URL from facetec-api's `make tunnel`
+            // (e.g. "https://xyz.trycloudflare.com/process-request") to test against a
+            // facetec-api instance running on your own machine instead of the shared dev
+            // deployment. Leave unset to use the shared dev deployment as before.
             buildConfigField(
                 "String",
                 "FACETEC_API_BASE_URL",
-                "\"https://ft1-dev-api.common.siros.org/v1/process-request\"",
+                "\"${envOrDefault("WWWALLET_FACETEC_API_BASE_URL", "https://ft1-dev-api.common.siros.org/v1/process-request")}\"",
             )
 
             buildConfigField(
                 "String",
                 "FACETEC_API_BEARER_TOKEN",
-                if (includeFaceTec) "\"${env("FACETEC_API_BEARER_TOKEN")}\"" else "\"\"",
+                "\"$faceTecToken\"",
             )
 
             signingConfig = signingConfigs.getByName("all")
@@ -106,6 +108,7 @@ android {
 
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -120,8 +123,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     lint {
@@ -135,10 +138,6 @@ android {
         compose = true
         buildConfig = true
         resValues = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
     }
 
     packaging {
@@ -304,7 +303,8 @@ androidComponents {
                 "generate${variant.name.replaceFirstChar { it.uppercase() }}Manifest",
                 GenerateManifestTask::class.java,
             ) {
-                val baseDomains: List<String> by rootProject.extra
+                @Suppress("UNCHECKED_CAST")
+                val baseDomains = rootProject.extra["baseDomains"] as List<String>
                 this.baseDomains.set(baseDomains)
 
                 showShortcuts.set(variant.debuggable)
@@ -316,7 +316,6 @@ androidComponents {
 
         variant.sources.manifests.addGeneratedManifestFile(
             manifestTaskProvider,
-            { it.outputFile },
-        )
+        ) { it.outputFile }
     }
 }
