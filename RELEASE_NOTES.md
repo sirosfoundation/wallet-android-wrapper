@@ -1,3 +1,8 @@
+# 0.1.11
+
+- Added support for creating digital credentials from physical IDs.
+- Updated dependencies.
+
 # 0.1.10
 
 - Improved YubiKey login even more, by simplifying the USB discovery of still plugged in keys.
