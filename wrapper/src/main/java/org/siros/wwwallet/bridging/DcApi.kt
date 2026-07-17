@@ -51,9 +51,26 @@ data class DcApiCredential(
             if (format != "mdoc") return null
 
             val docType = docType ?: return null
-            val fields = fields?.map { MdocField(it.namespace, it.element, null, emptySet()) } ?: return null
 
-            return MdocEntry(docType, fields, setOf(displayProperties), id)
+            val claims =
+                claims?.map {
+                    MdocField(
+                        it.path.substringBeforeLast("."),
+                        it.path.substringAfterLast("."),
+                        it.value.toNativeValue(),
+                        setOf(it.displayProperties),
+                    )
+                }
+
+            val fields = fields?.map { MdocField(it.namespace, it.element, null, setOf(it.displayProperties)) }
+
+            val merged = (claims ?: emptyList()) + (fields ?: emptyList())
+
+            if (merged.isEmpty()) {
+                return null
+            }
+
+            return MdocEntry(docType, merged, setOf(displayProperties), id)
         }
 
     val displayProperties: VerificationEntryDisplayProperties
@@ -70,7 +87,42 @@ data class DcApiDisplay(
 data class DcApiField(
     val namespace: String,
     val element: String,
-)
+    val value: JsonElement?,
+    val display: Map<String, String>?,
+) {
+    val displayProperties
+        get() = createDisplayProperties(display, value, element)
+
+    companion object {
+        fun createDisplayProperties(
+            display: Map<String, String>?,
+            value: JsonElement?,
+            fallback: String,
+        ): VerificationFieldDisplayProperties {
+            val name: String
+            val locale = Locale.getDefault().toLanguageTag()
+
+            name =
+                if (display?.containsKey(locale) == true) {
+                    display[locale]!!
+                } else if (display?.containsKey("en-US") == true) {
+                    display["en-US"]!!
+                } else {
+                    val key = display?.keys?.firstOrNull()
+
+                    if (key == null || display[key] == null) {
+                        fallback
+                    } else {
+                        display[key]!!
+                    }
+                }
+
+            val valueString = if (value is JsonPrimitive) value.contentOrNull else value?.toString()
+
+            return VerificationFieldDisplayProperties(name, valueString)
+        }
+    }
+}
 
 @Serializable
 data class DcApiClaim(
@@ -78,28 +130,8 @@ data class DcApiClaim(
     val value: JsonElement,
     val display: Map<String, String>,
 ) {
-    val displayProperties: VerificationFieldDisplayProperties
-        get() {
-            val name: String
-            val locale = Locale.getDefault().displayName
-
-            if (display.containsKey(locale)) {
-                name = display[locale]!!
-            } else if (display.containsKey("en-US")) {
-                name = display["en-US"]!!
-            } else {
-                val key = display.keys.firstOrNull()
-
-                if (key == null || display[key] == null) {
-                    name = path
-                } else {
-                    name = display[key]!!
-                }
-            }
-
-            val valueString = if (value is JsonPrimitive) value.contentOrNull else value.toString()
-            return VerificationFieldDisplayProperties(name, valueString)
-        }
+    val displayProperties
+        get() = DcApiField.createDisplayProperties(display, value, path.substringAfterLast("."))
 }
 
 fun JsonElement.toNativeValue(): Any? =

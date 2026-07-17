@@ -37,6 +37,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.credentials.ExperimentalDigitalCredentialApi
+import androidx.credentials.provider.PendingIntentHandler
+import androidx.credentials.registry.provider.selectedCredentialSet
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
@@ -201,6 +204,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
+        if (intent.action == "androidx.credentials.registry.provider.action.GET_CREDENTIAL") {
+            handleGetCredential(intent)
+            return
+        }
+
         when (intent.scheme) {
             // Also handle `http` links: e.g. manually entered URLs automatically
             // use the `http` scheme and didn't have a chance to upgrade, yet.
@@ -208,6 +216,29 @@ class MainActivity : ComponentActivity() {
             "http", "https", "openid4vp", "haip", "wwwallet" -> vm.parseIntent(intent)
             null -> Unit
             else -> YOLOLogger.e(tagForLog, "Cannot handle ${intent.scheme}.")
+        }
+    }
+
+    @OptIn(ExperimentalDigitalCredentialApi::class)
+    private fun handleGetCredential(intent: Intent) {
+        val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent)
+        val selectedId = request?.selectedCredentialSet?.credentials?.firstOrNull()?.credentialId
+
+        YOLOLogger.i(tagForLog, "Fulfillment requested for ID: $selectedId")
+
+        lifecycleScope.launch {
+            // TODO: Redirect web view to a page which shows further information or
+            //       fulfills the get request immediately.
+
+//            val responseJson = """{"vp_token": "dummy-token-for-$selectedId"}"""
+//            val response = GetCredentialResponse(DigitalCredential(responseJson))
+//            val resultData = Intent()
+//            PendingIntentHandler.setGetCredentialResponse(resultData, response)
+//            setResult(RESULT_OK, resultData)
+//            finish()
+
+            setResult(RESULT_CANCELED)
+            finish()
         }
     }
 }

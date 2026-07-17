@@ -176,9 +176,10 @@ class WalletJsBridge(
             val request = OpenId4VpRegistry(sdJwts + mDocs, webView.context.packageName)
 
             try {
-                rm.registerCredentials(request)
+                val response = rm.registerCredentials(request)
+                YOLOLogger.i(tagForLog, "Registration succeeded: $response")
             } catch (e: Exception) {
-                YOLOLogger.e(tagForLog, e.stackTraceToString())
+                YOLOLogger.e(tagForLog, "Registration failed", e)
             }
         }
     }

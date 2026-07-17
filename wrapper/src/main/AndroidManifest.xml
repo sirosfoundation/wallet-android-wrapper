@@ -73,7 +73,7 @@
                 <data android:scheme="haip" />
             </intent-filter>
             <intent-filter>
-                <action android:name="androidx.credentials.registry.action.GET_CREDENTIAL" />
+                <action android:name="androidx.credentials.registry.provider.action.GET_CREDENTIAL" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
