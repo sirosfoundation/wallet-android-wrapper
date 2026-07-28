@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Base64
 import android.view.ViewGroup
 import android.webkit.ServiceWorkerClient
 import android.webkit.ServiceWorkerController
@@ -37,8 +38,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.credentials.DigitalCredential
 import androidx.credentials.ExperimentalDigitalCredentialApi
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.GetDigitalCredentialOption
 import androidx.credentials.provider.PendingIntentHandler
+import androidx.credentials.provider.ProviderGetCredentialRequest
 import androidx.credentials.registry.provider.selectedCredentialSet
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebSettingsCompat
@@ -59,6 +64,7 @@ import org.siros.wwwallet.logging.YOLOLogger
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
 import ui.EnterBaseUrlDialog
+import java.security.MessageDigest
 
 class MainActivity : ComponentActivity() {
     init {
@@ -219,27 +225,64 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // https://developer.android.com/identity/digital-credentials/credential-holder/credential-holder#handle-selected-credential
     @OptIn(ExperimentalDigitalCredentialApi::class)
     private fun handleGetCredential(intent: Intent) {
         val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent)
-        val selectedId = request?.selectedCredentialSet?.credentials?.firstOrNull()?.credentialId
 
-        YOLOLogger.i(tagForLog, "Fulfillment requested for ID: $selectedId")
+        val selectedId =
+            request
+                ?.selectedCredentialSet
+                ?.credentials
+                ?.firstOrNull()
+                ?.credentialId
+
+        val option = request?.credentialOptions?.first { it is GetDigitalCredentialOption } as? GetDigitalCredentialOption
+        val origin = getOrigin(request)
+
+        YOLOLogger.i(tagForLog, "Fulfillment requested for ID: $selectedId, origin: $origin")
 
         lifecycleScope.launch {
-            // TODO: Redirect web view to a page which shows further information or
-            //       fulfills the get request immediately.
+            if (selectedId != null && option != null) {
+                val requestJson = option.requestJson
 
-//            val responseJson = """{"vp_token": "dummy-token-for-$selectedId"}"""
-//            val response = GetCredentialResponse(DigitalCredential(responseJson))
-//            val resultData = Intent()
-//            PendingIntentHandler.setGetCredentialResponse(resultData, response)
-//            setResult(RESULT_OK, resultData)
-//            finish()
+                // TODO: Redirect web view to a page which shows further information or
+                //       fulfills the get request immediately.
 
-            setResult(RESULT_CANCELED)
-            finish()
+                val responseJson = """{"vp_token": "dummy-token-for-$selectedId"}"""
+                val response = GetCredentialResponse(DigitalCredential(responseJson))
+                val resultData = Intent()
+                PendingIntentHandler.setGetCredentialResponse(resultData, response)
+                setResult(RESULT_OK, resultData)
+                finish()
+            } else {
+                setResult(RESULT_CANCELED)
+                finish()
+            }
         }
+    }
+
+    private fun getOrigin(request: ProviderGetCredentialRequest?): String {
+        val origin =
+            request?.callingAppInfo?.getOrigin(
+                assets.open("privileged-apps.json").bufferedReader().use { it.readText() },
+            )
+
+        if (!origin.isNullOrBlank()) return origin
+
+        val appSigningInfo =
+            request
+                ?.callingAppInfo
+                ?.signingInfoCompat
+                ?.signingCertificateHistory
+                ?.firstOrNull()
+                ?.toByteArray() ?: return ""
+
+        val md = MessageDigest.getInstance("SHA-256")
+
+        val certHash = Base64.encodeToString(md.digest(appSigningInfo), Base64.NO_WRAP or Base64.NO_PADDING)
+
+        return "android:apk-key-hash:$certHash"
     }
 }
 
