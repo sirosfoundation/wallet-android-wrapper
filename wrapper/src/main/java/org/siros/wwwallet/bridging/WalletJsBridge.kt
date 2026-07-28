@@ -158,19 +158,11 @@ class WalletJsBridge(
         YOLOLogger.i(tagForLog, "Received ${credentials.size} credentials.")
 
         CoroutineScope(dispatcher).launch {
-            if (credentials.isEmpty()) {
-                return@launch
-            }
-
             val bitmap = getAppIconBitmap()
 
             credentials.forEach { it.bitmap = bitmap }
             val sdJwts = credentials.mapNotNull { it.sdJwt }
             val mDocs = credentials.mapNotNull { it.mDoc }
-
-            if (sdJwts.isEmpty() && mDocs.isEmpty()) {
-                return@launch
-            }
 
             val rm = RegistryManager.create(webView.context)
             val request = OpenId4VpRegistry(sdJwts + mDocs, webView.context.packageName)
