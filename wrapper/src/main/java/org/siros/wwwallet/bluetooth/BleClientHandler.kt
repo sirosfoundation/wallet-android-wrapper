@@ -336,7 +336,6 @@ class BleClientHandler(
         success: () -> Unit,
         failure: () -> Unit,
     ) {
-        YOLOLogger.e(tagForLog, "!!! CLIENT createClient() CALLED with uuid=$serviceUuid")
         if (!checkBluetoothPermissions(activity, adapter)) {
             YOLOLogger.e(tagForLog, "Not enough permissions, please add them and try again.")
             failure()
