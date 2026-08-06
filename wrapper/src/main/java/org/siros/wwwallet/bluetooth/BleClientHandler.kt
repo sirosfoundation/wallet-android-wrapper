@@ -60,6 +60,7 @@ class BleClientHandler(
     val adapter: BluetoothAdapter? = manager.adapter
 
     var state: State = State.Disconnected
+    private val incomingBuffer = java.util.concurrent.ConcurrentLinkedQueue<ByteArray>()
 
     val gattCallback =
         object : PrintingBluetoothGattCallback() {
@@ -127,12 +128,19 @@ class BleClientHandler(
                 characteristic: BluetoothGattCharacteristic,
                 value: ByteArray,
             ) {
-                Thread.sleep(100) // 👀 slow down communication
+                Thread.sleep(100) // ? slow down communication
                 super.onCharacteristicChanged(gatt, characteristic, value)
 
                 if (characteristic.uuid == ServiceCharacteristic.ServerToClient.uuid) {
-                    if (state is State.Connected) {
-                        (state as State.Connected).readCallback?.invoke(value)
+                    val currentState = state
+                    if (currentState is State.Connected) {
+                        val callback = currentState.readCallback
+                        if (callback != null) {
+                            callback.invoke(value)
+                            state = currentState.copy(readCallback = null)
+                        } else {
+                            incomingBuffer.offer(value)
+                        }
                     }
                 }
             }
@@ -328,6 +336,7 @@ class BleClientHandler(
         success: () -> Unit,
         failure: () -> Unit,
     ) {
+        YOLOLogger.e(tagForLog, "!!! CLIENT createClient() CALLED with uuid=$serviceUuid")
         if (!checkBluetoothPermissions(activity, adapter)) {
             YOLOLogger.e(tagForLog, "Not enough permissions, please add them and try again.")
             failure()
@@ -436,19 +445,16 @@ class BleClientHandler(
         }
     }
 
-    fun receiveFromServer(
-        success: (ByteArray?) -> Unit,
-        failure: () -> Unit,
-    ) {
+    fun receiveFromServer(success: (ByteArray?) -> Unit, failure: () -> Unit) {
+        val buffered = incomingBuffer.poll()
+        if (buffered != null) {
+            success(buffered)  // deliver buffered data immediately if any exists
+            return
+        }
         state.let {
             when (it) {
-                is State.Connected -> {
-                    state = it.copy(readCallback = success)
-                }
-
-                else -> {
-                    failure()
-                }
+                is State.Connected -> state = it.copy(readCallback = success)
+                else -> failure()
             }
         }
     }
