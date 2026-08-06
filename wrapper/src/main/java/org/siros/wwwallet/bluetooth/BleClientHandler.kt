@@ -444,10 +444,13 @@ class BleClientHandler(
         }
     }
 
-    fun receiveFromServer(success: (ByteArray?) -> Unit, failure: () -> Unit) {
+    fun receiveFromServer(
+        success: (ByteArray?) -> Unit,
+        failure: () -> Unit,
+    ) {
         val buffered = incomingBuffer.poll()
         if (buffered != null) {
-            success(buffered)  // deliver buffered data immediately if any exists
+            success(buffered)
             return
         }
         state.let {
