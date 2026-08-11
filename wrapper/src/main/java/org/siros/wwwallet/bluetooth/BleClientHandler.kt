@@ -27,6 +27,7 @@ import org.siros.wwwallet.debug.PrintingScanCallback
 import org.siros.wwwallet.logging.YOLOLogger
 import org.siros.wwwallet.tagForLog
 import java.util.UUID
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class BleClientHandler(
     private val activity: Activity,
@@ -60,7 +61,7 @@ class BleClientHandler(
     val adapter: BluetoothAdapter? = manager.adapter
 
     var state: State = State.Disconnected
-    private val incomingBuffer = java.util.concurrent.ConcurrentLinkedQueue<ByteArray>()
+    private val incomingBuffer = ConcurrentLinkedQueue<ByteArray>()
 
     val gattCallback =
         object : PrintingBluetoothGattCallback() {
@@ -128,7 +129,7 @@ class BleClientHandler(
                 characteristic: BluetoothGattCharacteristic,
                 value: ByteArray,
             ) {
-                Thread.sleep(100) // ? slow down communication
+                Thread.sleep(100) // 👀 slow down communication
                 super.onCharacteristicChanged(gatt, characteristic, value)
 
                 if (characteristic.uuid == ServiceCharacteristic.ServerToClient.uuid) {
@@ -450,9 +451,10 @@ class BleClientHandler(
     ) {
         val buffered = incomingBuffer.poll()
         if (buffered != null) {
-            success(buffered)
+            success(buffered) // Deliver buffered data immediately if any exists.
             return
         }
+
         state.let {
             when (it) {
                 is State.Connected -> state = it.copy(readCallback = success)
