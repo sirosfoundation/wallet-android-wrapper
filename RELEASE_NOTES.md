@@ -1,3 +1,7 @@
+# 0.1.12
+
+- New version to add FaceTec support to Github-Action releases.
+
 # 0.1.11
 
 - Added support for creating digital credentials from physical IDs.
