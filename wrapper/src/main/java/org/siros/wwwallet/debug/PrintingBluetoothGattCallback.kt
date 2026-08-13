@@ -6,8 +6,8 @@ import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import org.siros.wwwallet.util.YOLOLogger
 
 open class PrintingBluetoothGattCallback : BluetoothGattCallback() {
     override fun onPhyUpdate(

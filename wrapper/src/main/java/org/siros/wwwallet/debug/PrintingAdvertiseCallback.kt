@@ -2,8 +2,8 @@ package org.siros.wwwallet.debug
 
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseSettings
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import org.siros.wwwallet.util.YOLOLogger
 
 open class PrintingAdvertiseCallback : AdvertiseCallback() {
     override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {

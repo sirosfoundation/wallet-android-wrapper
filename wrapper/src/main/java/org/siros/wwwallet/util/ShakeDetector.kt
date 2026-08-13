@@ -21,9 +21,8 @@ class ShakeDetector(
     context: Context,
     private val onShake: () -> Unit,
     private val sensitivity: Float = 12f,
-    private val cooldownMs: Long = 1000L
+    private val cooldownMs: Long = 1000L,
 ) : SensorEventListener {
-
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
@@ -67,7 +66,10 @@ class ShakeDetector(
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+    override fun onAccuracyChanged(
+        sensor: Sensor?,
+        accuracy: Int,
+    ) {
         // Not needed for shake detection
     }
 }

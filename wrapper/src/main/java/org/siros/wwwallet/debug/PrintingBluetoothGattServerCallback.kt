@@ -10,8 +10,8 @@ import android.bluetooth.BluetoothProfile.STATE_CONNECTING
 import android.bluetooth.BluetoothProfile.STATE_DISCONNECTED
 import android.bluetooth.BluetoothProfile.STATE_DISCONNECTING
 import org.siros.wwwallet.bluetooth.toHumanReadable
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import org.siros.wwwallet.util.YOLOLogger
 
 open class PrintingBluetoothGattServerCallback : BluetoothGattServerCallback() {
     override fun onConnectionStateChange(

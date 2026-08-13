@@ -14,8 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.storage.ProfileStorage
+import org.siros.wwwallet.util.YOLOLogger
 import java.net.URISyntaxException
 
 @SuppressLint("StaticFieldLeak")

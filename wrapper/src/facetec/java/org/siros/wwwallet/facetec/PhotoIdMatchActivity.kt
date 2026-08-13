@@ -12,8 +12,8 @@ import com.facetec.sdk.FaceTecInitializationError
 import com.facetec.sdk.FaceTecSDK
 import com.facetec.sdk.FaceTecSDKInstance
 import org.siros.wwwallet.R
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import org.siros.wwwallet.util.YOLOLogger
 
 /**
  * Headless host for the FaceTec SDK's 3D-liveness-then-3D:2D-Photo-ID-Match flow.

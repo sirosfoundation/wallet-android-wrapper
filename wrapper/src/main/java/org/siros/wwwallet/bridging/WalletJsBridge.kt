@@ -14,8 +14,8 @@ import org.siros.wwwallet.bluetooth.BleServerHandler
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic
 import org.siros.wwwallet.credentials.Container
 import org.siros.wwwallet.json.toList
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import org.siros.wwwallet.util.YOLOLogger
 import kotlin.coroutines.EmptyCoroutineContext
 
 class WalletJsBridge(

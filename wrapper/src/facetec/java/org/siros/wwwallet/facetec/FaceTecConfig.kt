@@ -8,8 +8,8 @@ import com.facetec.sdk.FaceTecSDK
 import com.facetec.sdk.FaceTecSecurityWatermarkImage
 import org.json.JSONObject
 import org.siros.wwwallet.R
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import org.siros.wwwallet.util.YOLOLogger
 
 /**
  * Static FaceTec SDK configuration for the Photo ID Match flow.

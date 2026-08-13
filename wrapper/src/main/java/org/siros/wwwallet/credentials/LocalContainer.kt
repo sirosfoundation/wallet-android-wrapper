@@ -24,8 +24,8 @@ import org.json.JSONObject
 import org.siros.wwwallet.BuildConfig
 import org.siros.wwwallet.json.getNested
 import org.siros.wwwallet.json.toMap
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import org.siros.wwwallet.util.YOLOLogger
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets

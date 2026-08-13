@@ -44,8 +44,8 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import org.siros.wwwallet.util.YOLOLogger
 import kotlin.coroutines.EmptyCoroutineContext
 
 sealed class Operation(

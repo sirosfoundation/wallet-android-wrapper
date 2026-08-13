@@ -23,8 +23,8 @@ import android.os.ParcelUuid
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic.Companion.ServerToClient
 import org.siros.wwwallet.debug.PrintingAdvertiseCallback
 import org.siros.wwwallet.debug.PrintingBluetoothGattServerCallback
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
+import org.siros.wwwallet.util.YOLOLogger
 import java.util.UUID
 
 class BleServerHandler(
