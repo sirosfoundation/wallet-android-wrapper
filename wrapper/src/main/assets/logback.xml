@@ -4,7 +4,7 @@
 
     <appender
         name="logcat"
-        class="org.siros.wwwallet.logging.Logger">
+        class="org.siros.wwwallet.util.Logger">
         <encoder>
             <pattern>%msg</pattern>
         </encoder>

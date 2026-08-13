@@ -52,7 +52,8 @@ import org.siros.wwwallet.credentials.AndroidContainer
 import org.siros.wwwallet.credentials.YubicoContainer
 import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
+import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
 import ui.EnterBaseUrlDialog
@@ -89,34 +90,39 @@ class MainActivity : ComponentActivity() {
 
     private val webChromeClient: WebChromeClient = WalletWebChromeClient(this)
 
+    private lateinit var shakeDetector: ShakeDetector
+
     private val javascriptInterfaceCreator: (WebView) -> WalletJsBridge = { webView ->
-        WalletJsBridge(
+        val bridge = WalletJsBridge(
             webView,
             Dispatchers.Main,
             YubicoContainer(activity = this),
             AndroidContainer(context = this),
             BleClientHandler(activity = this),
             BleServerHandler(activity = this),
-            if (BuildConfig.DEBUG) {
-                DebugMenuHandler(
-                    context = this,
-                    browseTo = {
-                        lifecycleScope.launch {
-                            vm.setBaseUrl(it)
-                            vm.browseToUrl(it)
-                        }
-                    },
-                    updateBaseUrl = { vm.updateBaseUrl() },
-                    copyToClipboard = { vm.copyToClipboard(it) },
-                )
-            } else {
-                null
-            },
+            DebugMenuHandler(
+                context = this,
+                browseTo = {
+                    lifecycleScope.launch {
+                        vm.setBaseUrl(it)
+                        vm.browseToUrl(it)
+                    }
+                },
+                updateBaseUrl = { vm.updateBaseUrl() },
+                copyToClipboard = { vm.copyToClipboard(it) },
+            ),
             startPhotoIdMatch = { originUrl ->
                 photoIdMatchOriginUrl = originUrl
                 FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher)
             },
         )
+
+        shakeDetector = ShakeDetector(this, {
+            bridge.openDebugMenu()
+        }, 50f)
+        shakeDetector.start()
+
+        bridge
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -198,6 +204,14 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
 
         handleIntent(intent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        if (::shakeDetector.isInitialized) {
+            shakeDetector.stop()
+        }
     }
 
     private fun handleIntent(intent: Intent) {

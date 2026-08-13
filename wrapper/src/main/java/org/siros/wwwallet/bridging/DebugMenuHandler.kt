@@ -14,7 +14,7 @@ import org.siros.wwwallet.BuildConfig
 import org.siros.wwwallet.R
 import org.siros.wwwallet.bridging.WalletJsBridge.Companion.JAVASCRIPT_BRIDGE_NAME
 import org.siros.wwwallet.json.toList
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import java.net.URLEncoder
 
 private const val CUSTOM_BASE_URL = "Custom Base URL"
