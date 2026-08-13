@@ -38,10 +38,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.credentials.DigitalCredential
 import androidx.credentials.ExperimentalDigitalCredentialApi
-import androidx.credentials.GetCredentialResponse
 import androidx.credentials.GetDigitalCredentialOption
+import androidx.credentials.exceptions.GetCredentialUnknownException
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.credentials.provider.ProviderGetCredentialRequest
 import androidx.credentials.registry.provider.selectedCredentialSet
@@ -52,8 +51,10 @@ import ch.qos.logback.classic.android.BasicLogcatConfigurator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import org.siros.wwwallet.bluetooth.BleClientHandler
 import org.siros.wwwallet.bluetooth.BleServerHandler
+import org.siros.wwwallet.bridging.DcApiRequests
 import org.siros.wwwallet.bridging.DebugMenuHandler
 import org.siros.wwwallet.bridging.WalletJsBridge
 import org.siros.wwwallet.credentials.AndroidContainer
@@ -65,6 +66,14 @@ import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
 import ui.EnterBaseUrlDialog
 import java.security.MessageDigest
+import kotlin.Any
+import kotlin.Exception
+import kotlin.OptIn
+import kotlin.String
+import kotlin.Unit
+import kotlin.apply
+import kotlin.let
+import kotlin.stackTraceToString
 
 class MainActivity : ComponentActivity() {
     init {
@@ -230,29 +239,40 @@ class MainActivity : ComponentActivity() {
                 ?.firstOrNull()
                 ?.credentialId
 
-        val option = request?.credentialOptions?.first { it is GetDigitalCredentialOption } as? GetDigitalCredentialOption
-        val origin = getOrigin(request)
-
-        YOLOLogger.i(tagForLog, "Fulfillment requested for ID: $selectedId, origin: $origin")
-
-        lifecycleScope.launch {
-            if (selectedId != null && option != null) {
-                val requestJson = option.requestJson
-
-                // TODO: Redirect web view to a page which shows further information or
-                //       fulfills the get request immediately.
-
-                val responseJson = """{"vp_token": "dummy-token-for-$selectedId"}"""
-                val response = GetCredentialResponse(DigitalCredential(responseJson))
-                val resultData = Intent()
-                PendingIntentHandler.setGetCredentialResponse(resultData, response)
-                setResult(RESULT_OK, resultData)
-                finish()
-            } else {
-                setResult(RESULT_CANCELED)
-                finish()
-            }
+        if (selectedId == null) {
+            YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: No credential ID given!")
+			finishWithException("No credential ID given.")
+			return
         }
+
+        val option = request.credentialOptions.first { it is GetDigitalCredentialOption } as? GetDigitalCredentialOption
+
+        if (option == null) {
+            YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: No credential options given!")
+			finishWithException("No credential options given.")
+			return
+        }
+
+        val json = Json { ignoreUnknownKeys = true }
+        val requests: DcApiRequests
+
+        try {
+            requests = json.decodeFromString(option.requestJson)
+        }
+        catch (e: Exception) {
+            YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: ${e.stackTraceToString()}")
+            finishWithException(e.localizedMessage)
+            return
+        }
+
+        val requestData = requests.requests.firstOrNull()?.data
+        if (requestData == null) {
+            YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: No credential request given!")
+            finishWithException("No credential request given.")
+            return
+        }
+
+        vm.enqueueDcApiRequest(selectedId, getOrigin(request), requestData)
     }
 
     private fun getOrigin(request: ProviderGetCredentialRequest?): String {
@@ -276,6 +296,14 @@ class MainActivity : ComponentActivity() {
         val certHash = Base64.encodeToString(md.digest(appSigningInfo), Base64.NO_WRAP or Base64.NO_PADDING)
 
         return "android:apk-key-hash:$certHash"
+    }
+
+    private fun finishWithException(message: String? = null) {
+        val intent = Intent()
+        PendingIntentHandler.setGetCredentialException(intent, GetCredentialUnknownException(message))
+
+        setResult(RESULT_OK, intent)
+        finish()
     }
 }
 
