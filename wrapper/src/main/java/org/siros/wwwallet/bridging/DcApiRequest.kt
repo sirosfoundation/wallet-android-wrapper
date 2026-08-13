@@ -1,51 +1,40 @@
 package org.siros.wwwallet.bridging
 
 import android.net.Uri
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import java.io.Serial
 
 @Serializable
 data class DcApiRequests(
-    val requests: List<DcApiRequest>
-) {
-}
+    val requests: List<DcApiRequest>,
+)
 
 @Serializable
 data class DcApiRequest(
     val data: DcApiRequestData,
-    val protocol: String
+    val protocol: String,
 )
 
 @Serializable
 data class DcApiRequestData(
     @SerialName("client_id")
     val clientId: String? = null,
-
     @SerialName("response_type")
     val responseType: String? = null,
-
     @SerialName("response_mode")
     val responseMode: String? = null,
-
     val nonce: String? = null,
-
     @SerialName("client_metadata")
     val clientMetadata: JsonElement? = null,
-
     val request: String? = null,
-
     @SerialName("transaction_data")
     val transactionData: JsonElement? = null,
-
     @SerialName("dcql_query")
     val dcqlQuery: JsonElement? = null,
-
     @SerialName("verifier_info")
-    val verifierInfo: JsonElement? = null
+    val verifierInfo: JsonElement? = null,
 ) {
-
     fun addAsQuery(uri: Uri.Builder) {
         if (request != null) {
             uri

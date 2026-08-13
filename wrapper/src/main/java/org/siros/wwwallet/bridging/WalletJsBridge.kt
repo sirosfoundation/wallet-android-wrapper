@@ -177,7 +177,10 @@ class WalletJsBridge(
     }
 
     @JavascriptInterface
-    fun sendDcApiResponse(response: String?, error: String?) {
+    fun sendDcApiResponse(
+        response: String?,
+        error: String?,
+    ) {
         YOLOLogger.i(tagForLog, "Received GET_CREDENTIALS response: $response, error: $error")
 
         // TODO

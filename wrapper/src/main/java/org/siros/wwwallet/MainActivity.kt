@@ -124,9 +124,7 @@ class MainActivity : ComponentActivity() {
             } else {
                 null
             },
-            startPhotoIdMatch = { ->
-                FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher)
-            },
+            startPhotoIdMatch = { FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher) },
         )
     }
 
@@ -241,16 +239,16 @@ class MainActivity : ComponentActivity() {
 
         if (selectedId == null) {
             YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: No credential ID given!")
-			finishWithException("No credential ID given.")
-			return
+            finishWithException("No credential ID given.")
+            return
         }
 
         val option = request.credentialOptions.first { it is GetDigitalCredentialOption } as? GetDigitalCredentialOption
 
         if (option == null) {
             YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: No credential options given!")
-			finishWithException("No credential options given.")
-			return
+            finishWithException("No credential options given.")
+            return
         }
 
         val json = Json { ignoreUnknownKeys = true }
@@ -258,8 +256,7 @@ class MainActivity : ComponentActivity() {
 
         try {
             requests = json.decodeFromString(option.requestJson)
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: ${e.stackTraceToString()}")
             finishWithException(e.localizedMessage)
             return

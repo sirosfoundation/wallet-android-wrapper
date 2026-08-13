@@ -113,7 +113,11 @@ class MainViewModel : ViewModel() {
         currentUrl.update { url }
     }
 
-    fun enqueueDcApiRequest(selectedId: String, origin: String, requestData: DcApiRequestData) {
+    fun enqueueDcApiRequest(
+        selectedId: String,
+        origin: String,
+        requestData: DcApiRequestData,
+    ) {
         YOLOLogger.i(tagForLog, "Enqueued requested for ID: $selectedId, origin: $origin, data: $requestData")
 
 //    Always Set
@@ -152,12 +156,13 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             val url = currentUrl.filterNotNull().first()
 
-            val uri = url
-                .buildUpon()
-                .clearQuery()
-                .appendQueryParameter("request_id", Uuid.random().toHexDashString())
-                .appendQueryParameter("request_origin", origin)
-                .appendQueryParameter("selected_credential_id", selectedId)
+            val uri =
+                url
+                    .buildUpon()
+                    .clearQuery()
+                    .appendQueryParameter("request_id", Uuid.random().toHexDashString())
+                    .appendQueryParameter("request_origin", origin)
+                    .appendQueryParameter("selected_credential_id", selectedId)
 
             requestData.addAsQuery(uri)
 
@@ -185,9 +190,7 @@ class MainViewModel : ViewModel() {
      * is unexpectedly missing — this should not normally happen, since starting a scan
      * always originates from a WebView page.
      */
-    fun photoIdMatchCompleted(
-        credentialOfferURI: String?,
-    ) {
+    fun photoIdMatchCompleted(credentialOfferURI: String?) {
         if (credentialOfferURI.isNullOrBlank()) {
             YOLOLogger.i(tagForLog, "photoIdMatchCompleted: no credentialOfferURI, not navigating.")
             return
