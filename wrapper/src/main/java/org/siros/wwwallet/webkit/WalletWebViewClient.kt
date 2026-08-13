@@ -27,7 +27,13 @@ class WalletWebViewClient(
             return true
         }
 
-        return super.shouldOverrideUrlLoading(view, request)
+        if (super.shouldOverrideUrlLoading(view, request)) {
+            return true
+        }
+
+        activity.vm.updateCurrentUrl(request.url)
+
+        return false
     }
 
     override fun onPageCommitVisible(

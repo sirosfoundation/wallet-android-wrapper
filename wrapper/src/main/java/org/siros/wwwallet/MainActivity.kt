@@ -73,12 +73,6 @@ class MainActivity : ComponentActivity() {
 
     val vm: MainViewModel by viewModels<MainViewModel>()
 
-    // Captured by WalletJsBridge#startScanPhysicalId right before launching
-    // PhotoIdMatchActivity — the WebView's URL at that moment, so we can return
-    // to the exact same (correctly tenant-scoped) page afterwards. See
-    // MainViewModel#photoIdMatchCompleted for why this matters.
-    private var photoIdMatchOriginUrl: String? = null
-
     private val photoIdMatchLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val credentialOfferURI = result.data?.getStringExtra(FaceTecManager.EXTRA_CREDENTIAL_OFFER_URI)
@@ -86,7 +80,7 @@ class MainActivity : ComponentActivity() {
                 tagForLog,
                 "PhotoIdMatchActivity returned resultCode=${result.resultCode}, credentialOfferURI=$credentialOfferURI",
             )
-            vm.photoIdMatchCompleted(credentialOfferURI, photoIdMatchOriginUrl)
+            vm.photoIdMatchCompleted(credentialOfferURI)
         }
 
     private val webViewClient: WebViewClient =
@@ -121,8 +115,7 @@ class MainActivity : ComponentActivity() {
             } else {
                 null
             },
-            startPhotoIdMatch = { originUrl ->
-                photoIdMatchOriginUrl = originUrl
+            startPhotoIdMatch = { ->
                 FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher)
             },
         )

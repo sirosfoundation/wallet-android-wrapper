@@ -35,7 +35,7 @@ class WalletJsBridge(
     private val bleClientHandler: BleClientHandler,
     private val bleServerHandler: BleServerHandler,
     private val debugMenuHandler: DebugMenuHandler?,
-    private val startPhotoIdMatch: (originUrl: String?) -> Unit,
+    private val startPhotoIdMatch: () -> Unit,
 ) {
     companion object {
         const val JAVASCRIPT_BRIDGE_NAME = "nativeWrapper"
@@ -119,7 +119,7 @@ class WalletJsBridge(
         // the thread the WebView was created on, so read it inside the dispatch to
         // Dispatchers.Main below, not before it.
         Dispatchers.Main.dispatch(EmptyCoroutineContext) {
-            startPhotoIdMatch(webView.url)
+            startPhotoIdMatch()
         }
     }
 

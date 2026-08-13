@@ -61,6 +61,8 @@ class MainViewModel : ViewModel() {
     private val _updateBaseUrl: MutableStateFlow<UpdateReason?> = MutableStateFlow(null)
     var updateBaseUrl: StateFlow<UpdateReason?> = _updateBaseUrl.asStateFlow()
 
+    private val currentUrl: MutableStateFlow<Uri?> = MutableStateFlow(null)
+
     suspend fun browseToUrl(url: String) {
         _url.update { "" }
 
@@ -103,29 +105,32 @@ class MainViewModel : ViewModel() {
         _url.update { "webview://back" }
     }
 
+    fun updateCurrentUrl(url: Uri) {
+        currentUrl.update { url }
+    }
+
     /**
      * Called when [org.siros.wwwallet.facetec.PhotoIdMatchActivity] returns. If facetec-api
      * accepted the scan, [credentialOfferURI] carries its query parameters back to
-     * [originUrl] — the WebView's URL at the moment the scan was launched (see
+     * [currentUrl] — the WebView's URL at the moment the scan was launched (see
      * WalletJsBridge#startScanPhysicalId).
      *
-     * We deliberately return to [originUrl] rather than computing a "/cb" callback URL
+     * We deliberately return to [currentUrl] rather than computing a "/cb" callback URL
      * ourselves: wallet-frontend may be deployed multi-tenant, with every route prefixed
      * by e.g. "/id/<tenant>/". The app has no business knowing that routing structure or
-     * which tenant is active — [originUrl] already carries whichever tenant prefix applies,
+     * which tenant is active — [currentUrl] already carries whichever tenant prefix applies,
      * since it's wherever the user was already browsing. wallet-frontend's own
      * UriHandlerProvider (hocs/UriHandlerProvider.tsx) watches for a "credential_offer" (or
      * "_uri") query param on any already-tenant-resolved page and internally redirects to
      * its "cb" callback route via its own tenant-aware buildPath() — so appending the query
-     * to [originUrl] is sufficient; wallet-frontend does the rest.
+     * to [currentUrl] is sufficient; wallet-frontend does the rest.
      *
-     * Falls back to the configured base URL (bare, no tenant awareness) only if [originUrl]
+     * Falls back to the configured base URL (bare, no tenant awareness) only if [currentUrl]
      * is unexpectedly missing — this should not normally happen, since starting a scan
      * always originates from a WebView page.
      */
     fun photoIdMatchCompleted(
         credentialOfferURI: String?,
-        originUrl: String?,
     ) {
         if (credentialOfferURI.isNullOrBlank()) {
             YOLOLogger.i(tagForLog, "photoIdMatchCompleted: no credentialOfferURI, not navigating.")
@@ -133,11 +138,10 @@ class MainViewModel : ViewModel() {
         }
 
         viewModelScope.launch {
-            val returnTo = originUrl?.takeIf { it.isNotBlank() } ?: getBaseUrl()
+            val returnTo = currentUrl.value ?: getBaseUrl().toUri()
 
             val target =
                 returnTo
-                    .toUri()
                     .buildUpon()
                     .clearQuery()
                     .encodedQuery(credentialOfferURI.toUri().encodedQuery)
