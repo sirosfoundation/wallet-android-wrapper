@@ -1,7 +1,6 @@
 package org.siros.wwwallet.bridging
 
 import android.annotation.SuppressLint
-import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import kotlinx.coroutines.CoroutineDispatcher
@@ -15,7 +14,7 @@ import org.siros.wwwallet.bluetooth.BleServerHandler
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic
 import org.siros.wwwallet.credentials.Container
 import org.siros.wwwallet.json.toList
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -46,7 +45,7 @@ class WalletJsBridge(
                 clientDeviceCredentialsContainer
             }
         } catch (jsonException: JSONException) {
-            Log.i(
+            YOLOLogger.i(
                 tagForLog,
                 "'hints' field in credential options not found, defaulting back to 'client-device'.",
                 jsonException,

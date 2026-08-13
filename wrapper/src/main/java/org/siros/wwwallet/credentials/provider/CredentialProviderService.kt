@@ -30,7 +30,7 @@ import org.siros.wwwallet.R
 import org.siros.wwwallet.credentials.LocalContainer
 import org.siros.wwwallet.json.getNested
 import org.siros.wwwallet.json.toList
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import java.util.concurrent.CountDownLatch
 import kotlin.uuid.ExperimentalUuidApi
 import androidx.credentials.provider.CredentialProviderService as AndroidCredentialProviderService

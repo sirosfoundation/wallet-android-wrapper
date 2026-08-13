@@ -4,7 +4,7 @@ import com.facetec.sdk.FaceTecSessionRequestProcessor
 import org.json.JSONArray
 import org.json.JSONObject
 import org.siros.wwwallet.BuildConfig
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
 import java.io.IOException
 import java.net.HttpURLConnection

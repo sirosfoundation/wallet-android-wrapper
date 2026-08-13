@@ -6,7 +6,7 @@ import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
 
 open class PrintingBluetoothGattCallback : BluetoothGattCallback() {

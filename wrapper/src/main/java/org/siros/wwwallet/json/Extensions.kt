@@ -7,7 +7,7 @@ import android.util.Base64.encodeToString
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
 
 fun ByteArray.b64(): String = encodeToString(this, NO_WRAP or NO_PADDING or URL_SAFE)

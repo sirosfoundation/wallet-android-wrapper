@@ -12,7 +12,7 @@ import com.facetec.sdk.FaceTecInitializationError
 import com.facetec.sdk.FaceTecSDK
 import com.facetec.sdk.FaceTecSDKInstance
 import org.siros.wwwallet.R
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
 
 /**

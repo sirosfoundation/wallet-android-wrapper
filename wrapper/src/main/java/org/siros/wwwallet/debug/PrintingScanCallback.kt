@@ -2,7 +2,7 @@ package org.siros.wwwallet.debug
 
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
 
 open class PrintingScanCallback : ScanCallback() {

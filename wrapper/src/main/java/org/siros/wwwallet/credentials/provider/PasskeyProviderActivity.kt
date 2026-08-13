@@ -39,7 +39,7 @@ import org.json.JSONObject
 import org.siros.wwwallet.R
 import org.siros.wwwallet.credentials.LocalContainer
 import org.siros.wwwallet.json.getNested
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
 import kotlin.uuid.ExperimentalUuidApi
 

@@ -24,7 +24,7 @@ import android.os.ParcelUuid
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic.Companion.ClientToServer
 import org.siros.wwwallet.debug.PrintingBluetoothGattCallback
 import org.siros.wwwallet.debug.PrintingScanCallback
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.tagForLog
 import java.util.UUID
 

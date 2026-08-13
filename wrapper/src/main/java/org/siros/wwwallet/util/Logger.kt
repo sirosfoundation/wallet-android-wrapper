@@ -1,4 +1,4 @@
-package org.siros.wwwallet.logging
+package org.siros.wwwallet.util
 
 import android.util.Log
 import ch.qos.logback.classic.android.LogcatAppender
