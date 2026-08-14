@@ -56,6 +56,7 @@ import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
 import timber.log.Timber
 import ui.EnterBaseUrlDialog
+import java.lang.ref.WeakReference
 
 class MainActivity : ComponentActivity() {
     val vm: MainViewModel by viewModels<MainViewModel>()
@@ -110,9 +111,12 @@ class MainActivity : ComponentActivity() {
                 },
             )
 
+        // Avoid circular reference.
+        val weakBridge = WeakReference(bridge)
+
         shakeDetector =
             ShakeDetector(this, {
-                bridge.openDebugMenu()
+                weakBridge.get()?.openDebugMenu()
             }, 50f)
         shakeDetector.start()
 
