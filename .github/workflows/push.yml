@@ -92,9 +92,6 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.ANDROID_TARGET_SDK }}
-          arch: x86_64
+          arch: arm64-v8a # Facetec support only has ARM ABIs!
           target: google_apis
-          profile: pixel_7_pro
-          force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
           script: ./gradlew connectedCheck --stacktrace
