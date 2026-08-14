@@ -24,8 +24,7 @@ import android.os.ParcelUuid
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic.Companion.ClientToServer
 import org.siros.wwwallet.debug.PrintingBluetoothGattCallback
 import org.siros.wwwallet.debug.PrintingScanCallback
-import org.siros.wwwallet.logging.YOLOLogger
-import org.siros.wwwallet.tagForLog
+import timber.log.Timber
 import java.util.UUID
 
 class BleClientHandler(
@@ -53,7 +52,7 @@ class BleClientHandler(
     init {
         val bluetoothLeAvailable =
             activity.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)
-        YOLOLogger.d(tagForLog, "BluetoothLe is ${if (bluetoothLeAvailable) "" else "not "}available.")
+        Timber.d("BluetoothLe is ${if (bluetoothLeAvailable) "" else "not "}available.")
     }
 
     val manager: BluetoothManager = activity.getSystemService(BluetoothManager::class.java)
@@ -72,17 +71,13 @@ class BleClientHandler(
 
                 if (gatt != null) {
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
-                        YOLOLogger.d(tagForLog, "Connected")
+                        Timber.d("Connected")
                         try {
                             gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
                             gatt.requestMtu(517)
                             gatt.discoverServices()
                         } catch (e: SecurityException) {
-                            YOLOLogger.e(
-                                tagForLog,
-                                "Couldn't connect to gatt",
-                                e,
-                            )
+                            Timber.e(e, "Couldn't connect to gatt")
 
                             if (state is State.Scanning) {
                                 (state as State.Scanning).failureCallback()
@@ -106,7 +101,7 @@ class BleClientHandler(
                         }
 
                         state = State.Disconnected
-                        YOLOLogger.d(tagForLog, "Disconnected")
+                        Timber.d("Disconnected")
                     }
                 }
             }
@@ -161,8 +156,8 @@ class BleClientHandler(
                                 )
                         }
 
-                        is State.Disconnected -> YOLOLogger.e(tagForLog, "Cannot read in disconnected state.")
-                        is State.Scanning -> YOLOLogger.e(tagForLog, "Trying to read while scanning.")
+                        is State.Disconnected -> Timber.e("Cannot read in disconnected state.")
+                        is State.Scanning -> Timber.e("Trying to read while scanning.")
                     }
                 }
             }
@@ -204,15 +199,12 @@ class BleClientHandler(
                                 }
 
                                 else ->
-                                    YOLOLogger.e(
-                                        tagForLog,
-                                        "Cannot write to UUID '${characteristic?.uuid}'.",
-                                    )
+                                    Timber.e("Cannot write to UUID '${characteristic?.uuid}'.")
                             }
                         }
 
-                        is State.Disconnected -> YOLOLogger.e(tagForLog, "Cannot write in disconnected state.")
-                        is State.Scanning -> YOLOLogger.e(tagForLog, "Trying to write while scanning.")
+                        is State.Disconnected -> Timber.e("Cannot write in disconnected state.")
+                        is State.Scanning -> Timber.e("Trying to write while scanning.")
                     }
                 }
             }
@@ -245,10 +237,7 @@ class BleClientHandler(
                                         service
                                             .getCharacteristic(ServiceCharacteristic.ServerToClient.uuid)
                                     if (char == null) {
-                                        YOLOLogger.e(
-                                            tagForLog,
-                                            "ServerToClient (${ServiceCharacteristic.ServerToClient.uuid}) not found.",
-                                        )
+                                        Timber.e("ServerToClient (${ServiceCharacteristic.ServerToClient.uuid}) not found.")
                                     } else {
                                         gatt.setCharacteristicNotification(char, true)
                                     }
@@ -273,15 +262,12 @@ class BleClientHandler(
 
                                     it.successCallback()
                                 } else {
-                                    YOLOLogger.e(
-                                        tagForLog,
-                                        "Service with ${it.serviceUuid} not found.",
-                                    )
+                                    Timber.e("Service with ${it.serviceUuid} not found.")
                                     it.failureCallback()
                                 }
                             }
 
-                            else -> YOLOLogger.e(tagForLog, "Discovered a service while not scanning.")
+                            else -> Timber.e("Discovered a service while not scanning.")
                         }
                     }
                 }
@@ -297,7 +283,7 @@ class BleClientHandler(
                 super.onScanResult(callbackType, result)
                 state.let {
                     if (it !is State.Scanning) {
-                        YOLOLogger.e(tagForLog, "Scanning stopped while not in scanning state.")
+                        Timber.e("Scanning stopped while not in scanning state.")
                     } else {
                         it.scanner.stopScan(scanCallback)
 
@@ -329,13 +315,13 @@ class BleClientHandler(
         failure: () -> Unit,
     ) {
         if (!checkBluetoothPermissions(activity, adapter)) {
-            YOLOLogger.e(tagForLog, "Not enough permissions, please add them and try again.")
+            Timber.e("Not enough permissions, please add them and try again.")
             failure()
             return
         }
 
         if (adapter == null) {
-            YOLOLogger.e(tagForLog, "Bluetooth adapter not available")
+            Timber.e("Bluetooth adapter not available")
             failure()
             return
         }
@@ -351,7 +337,7 @@ class BleClientHandler(
         val scanner = adapter.bluetoothLeScanner
 
         if (scanner == null) {
-            YOLOLogger.e(tagForLog, "Bluetooth adapter turned off")
+            Timber.e("Bluetooth adapter turned off")
             failure()
             return
         }
@@ -382,7 +368,7 @@ class BleClientHandler(
                 scanCallback,
             )
         } catch (e: SecurityException) {
-            YOLOLogger.e(tagForLog, "Couldn't start scanning.", e)
+            Timber.e(e, "Couldn't start scanning.")
             failure()
         }
     }
@@ -397,7 +383,7 @@ class BleClientHandler(
                 }
 
                 else -> {
-                    YOLOLogger.e(tagForLog, "Cannot disconnect in state $it.")
+                    Timber.e("Cannot disconnect in state $it.")
                 }
             }
         }
@@ -426,10 +412,7 @@ class BleClientHandler(
                 }
 
                 else -> {
-                    YOLOLogger.e(
-                        tagForLog,
-                        "Cannot send in state ${it.javaClass.simpleName} to server.",
-                    )
+                    Timber.e("Cannot send in state ${it.javaClass.simpleName} to server.")
                     failure()
                 }
             }

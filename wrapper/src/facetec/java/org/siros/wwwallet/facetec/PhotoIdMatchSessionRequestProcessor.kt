@@ -4,8 +4,7 @@ import com.facetec.sdk.FaceTecSessionRequestProcessor
 import org.json.JSONArray
 import org.json.JSONObject
 import org.siros.wwwallet.BuildConfig
-import org.siros.wwwallet.logging.YOLOLogger
-import org.siros.wwwallet.tagForLog
+import timber.log.Timber
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -39,14 +38,14 @@ class PhotoIdMatchSessionRequestProcessor(
         try {
             val response = postProcessRequest(sessionRequestBlob)
 
-            YOLOLogger.i(tagForLog, "process-request response: ${redactLongValues(response)}")
+            Timber.i("process-request response: ${redactLongValues(response)}")
 
             val credentialOfferURI = response.optString("credentialOfferURI").takeIf { it.isNotBlank() }
             credentialOfferURI?.let(onCredentialOfferReceived)
 
             sessionRequestCallback.processResponse(response.getString("responseBlob"))
         } catch (e: Exception) {
-            YOLOLogger.e(tagForLog, "facetec-api process-request call failed.", e)
+            Timber.e(e, "facetec-api process-request call failed.")
             sessionRequestCallback.abortOnCatastrophicError()
         }
     }
@@ -83,10 +82,10 @@ class PhotoIdMatchSessionRequestProcessor(
         val responseStream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
         val body = responseStream.bufferedReader().use { it.readText() }
 
-        YOLOLogger.i(tagForLog, "process-request HTTP status: $responseCode")
+        Timber.i("process-request HTTP status: $responseCode")
 
         if (responseCode !in 200..299) {
-            YOLOLogger.e(tagForLog, "process-request error body: $body")
+            Timber.e("process-request error body: $body")
             throw IOException("process-request failed with HTTP $responseCode.")
         }
 

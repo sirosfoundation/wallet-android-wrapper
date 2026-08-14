@@ -7,8 +7,7 @@ import android.util.Base64.encodeToString
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import org.siros.wwwallet.logging.YOLOLogger
-import org.siros.wwwallet.tagForLog
+import timber.log.Timber
 
 fun ByteArray.b64(): String = encodeToString(this, NO_WRAP or NO_PADDING or URL_SAFE)
 
@@ -18,14 +17,11 @@ inline fun <reified T> JSONObject.getOrNull(name: String): T? =
         if (value is T) {
             value
         } else {
-            YOLOLogger.w(
-                tagForLog,
-                "Name $name of $this is not of type ${T::class.java.simpleName} but of ${value.javaClass.simpleName}.",
-            )
+            Timber.w("Name $name of $this is not of type ${T::class.java.simpleName} but of ${value.javaClass.simpleName}.")
             null
         }
     } catch (e: JSONException) {
-        YOLOLogger.e(tagForLog, "Name $name not found in $this.", e)
+        Timber.e(e, "Name $name not found in $this.")
         null
     }
 
@@ -52,10 +48,7 @@ fun JSONObject.toMap(): Map<String, Any?> {
                                 if (maybeByte is Int) {
                                     maybeByte.toByte()
                                 } else {
-                                    YOLOLogger.w(
-                                        tagForLog,
-                                        "Index $index of name $key is not a byte but $maybeByte instead.",
-                                    )
+                                    Timber.w("Index $index of name $key is not a byte but $maybeByte instead.")
                                     0
                                 }
                             }.b64()

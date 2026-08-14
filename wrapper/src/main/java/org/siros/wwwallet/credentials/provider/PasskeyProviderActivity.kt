@@ -39,8 +39,7 @@ import org.json.JSONObject
 import org.siros.wwwallet.R
 import org.siros.wwwallet.credentials.LocalContainer
 import org.siros.wwwallet.json.getNested
-import org.siros.wwwallet.logging.YOLOLogger
-import org.siros.wwwallet.tagForLog
+import timber.log.Timber
 import kotlin.uuid.ExperimentalUuidApi
 
 class PasskeyProviderActivity : ComponentActivity() {
@@ -51,7 +50,7 @@ class PasskeyProviderActivity : ComponentActivity() {
 
         localContainer =
             LocalContainer(context = this).apply {
-                YOLOLogger.i("KEY_STORE", "isStrongBoxed: $isStrongBoxed.")
+                Timber.i("isStrongBoxed: $isStrongBoxed.")
             }
 
         setContent {
@@ -108,7 +107,7 @@ class PasskeyProviderActivity : ComponentActivity() {
                         Toast.LENGTH_SHORT,
                     ).show()
 
-                YOLOLogger.e(tagForLog, "Could not identify request. Ignored.")
+                Timber.e("Could not identify request. Ignored.")
                 finish()
             }
         }
@@ -118,7 +117,7 @@ class PasskeyProviderActivity : ComponentActivity() {
         val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent) ?: return
         val credentialId = intent.getStringExtra(EXTRA_KEY_CREDENTIAL_ID)
 
-        YOLOLogger.d(tagForLog, "Get credential request found.")
+        Timber.d("Get credential request found.")
 
         val publicKeyRequest =
             request.credentialOptions.firstOrNull() as? GetPublicKeyCredentialOption ?: return

@@ -47,7 +47,6 @@ import androidx.credentials.registry.provider.selectedCredentialSet
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
-import ch.qos.logback.classic.android.BasicLogcatConfigurator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -61,10 +60,12 @@ import org.siros.wwwallet.credentials.AndroidContainer
 import org.siros.wwwallet.credentials.YubicoContainer
 import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
-import org.siros.wwwallet.logging.YOLOLogger
+import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
+import timber.log.Timber
 import ui.EnterBaseUrlDialog
+import java.lang.ref.WeakReference
 import java.security.MessageDigest
 import kotlin.Any
 import kotlin.Exception
@@ -76,19 +77,12 @@ import kotlin.let
 import kotlin.stackTraceToString
 
 class MainActivity : ComponentActivity() {
-    init {
-        BasicLogcatConfigurator.configureDefaultContext()
-    }
-
     val vm: MainViewModel by viewModels<MainViewModel>()
 
     private val photoIdMatchLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val credentialOfferURI = result.data?.getStringExtra(FaceTecManager.EXTRA_CREDENTIAL_OFFER_URI)
-            YOLOLogger.i(
-                tagForLog,
-                "PhotoIdMatchActivity returned resultCode=${result.resultCode}, credentialOfferURI=$credentialOfferURI",
-            )
+            Timber.i("PhotoIdMatchActivity returned resultCode=${result.resultCode}, credentialOfferURI=$credentialOfferURI")
             vm.photoIdMatchCompleted(credentialOfferURI)
         }
 
@@ -101,15 +95,17 @@ class MainActivity : ComponentActivity() {
 
     private val webChromeClient: WebChromeClient = WalletWebChromeClient(this)
 
+    private lateinit var shakeDetector: ShakeDetector
+
     private val javascriptInterfaceCreator: (WebView) -> WalletJsBridge = { webView ->
-        WalletJsBridge(
-            webView,
-            Dispatchers.Main,
-            YubicoContainer(activity = this),
-            AndroidContainer(context = this),
-            BleClientHandler(activity = this),
-            BleServerHandler(activity = this),
-            if (BuildConfig.DEBUG) {
+        val bridge =
+            WalletJsBridge(
+                webView,
+                Dispatchers.Main,
+                YubicoContainer(activity = this),
+                AndroidContainer(context = this),
+                BleClientHandler(activity = this),
+                BleServerHandler(activity = this),
                 DebugMenuHandler(
                     context = this,
                     browseTo = {
@@ -120,12 +116,20 @@ class MainActivity : ComponentActivity() {
                     },
                     updateBaseUrl = { vm.updateBaseUrl() },
                     copyToClipboard = { vm.copyToClipboard(it) },
-                )
-            } else {
-                null
-            },
-            startPhotoIdMatch = { FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher) },
-        )
+                ),
+                startPhotoIdMatch = { FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher) },
+            )
+
+        // Avoid circular reference.
+        val weakBridge = WeakReference(bridge)
+
+        shakeDetector =
+            ShakeDetector(this, {
+                weakBridge.get()?.openDebugMenu()
+            }, 50f)
+        shakeDetector.start()
+
+        bridge
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -209,6 +213,14 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+
+        if (::shakeDetector.isInitialized) {
+            shakeDetector.stop()
+        }
+    }
+
     private fun handleIntent(intent: Intent) {
         if (intent.action == "androidx.credentials.registry.provider.action.GET_CREDENTIAL") {
             handleGetCredential(intent)
@@ -221,7 +233,7 @@ class MainActivity : ComponentActivity() {
             // Upgrade will happen in MainViewModel#browseToUrl()
             "http", "https", "openid4vp", "haip", "wwwallet" -> vm.parseIntent(intent)
             null -> Unit
-            else -> YOLOLogger.e(tagForLog, "Cannot handle ${intent.scheme}.")
+            else -> Timber.e("Cannot handle ${intent.scheme}.")
         }
     }
 
@@ -238,7 +250,7 @@ class MainActivity : ComponentActivity() {
                 ?.credentialId
 
         if (selectedId == null) {
-            YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: No credential ID given!")
+            Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential ID given!")
             finishWithException("No credential ID given.")
             return
         }
@@ -246,7 +258,7 @@ class MainActivity : ComponentActivity() {
         val option = request.credentialOptions.first { it is GetDigitalCredentialOption } as? GetDigitalCredentialOption
 
         if (option == null) {
-            YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: No credential options given!")
+            Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential options given!")
             finishWithException("No credential options given.")
             return
         }
@@ -257,14 +269,14 @@ class MainActivity : ComponentActivity() {
         try {
             requests = json.decodeFromString(option.requestJson)
         } catch (e: Exception) {
-            YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: ${e.stackTraceToString()}")
+            Timber.e("Could not handle DC-API GET_CREDENTIAL: ${e.stackTraceToString()}")
             finishWithException(e.localizedMessage)
             return
         }
 
         val requestData = requests.requests.firstOrNull()?.data
         if (requestData == null) {
-            YOLOLogger.e(tagForLog, "Could not handle DC-API GET_CREDENTIAL: No credential request given!")
+            Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential request given!")
             finishWithException("No credential request given.")
             return
         }
@@ -374,14 +386,13 @@ private fun createWebViewFactory(
             WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP,
         )
 
-        YOLOLogger.i(
-            webView.tagForLog,
+        Timber.i(
             "Web authentication support enabled: ${
                 WebSettingsCompat.getWebAuthenticationSupport(webView.settings)
             }",
         )
     } else {
-        YOLOLogger.e(webView.tagForLog, "WebView does not support passkeys.")
+        Timber.e("WebView does not support passkeys.")
     }
 
     webView.webViewClient = webViewClient
@@ -427,7 +438,7 @@ private fun updateWebView(
                         it
                     }
 
-                YOLOLogger.i(webView.tagForLog, "Reached $newUrl after back.")
+                Timber.i("Reached $newUrl after back.")
                 newUrlCallback("")
             }
         } else {

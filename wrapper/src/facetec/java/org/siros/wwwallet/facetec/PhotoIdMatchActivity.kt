@@ -12,8 +12,7 @@ import com.facetec.sdk.FaceTecInitializationError
 import com.facetec.sdk.FaceTecSDK
 import com.facetec.sdk.FaceTecSDKInstance
 import org.siros.wwwallet.R
-import org.siros.wwwallet.logging.YOLOLogger
-import org.siros.wwwallet.tagForLog
+import timber.log.Timber
 
 /**
  * Headless host for the FaceTec SDK's 3D-liveness-then-3D:2D-Photo-ID-Match flow.
@@ -85,7 +84,7 @@ class PhotoIdMatchActivity : ComponentActivity() {
                     // `tagForLog` is read from the outer Activity (this@PhotoIdMatchActivity)
                     // rather than the anonymous callback object itself, whose
                     // javaClass.simpleName is empty and would log with a blank tag.
-                    YOLOLogger.e(this@PhotoIdMatchActivity.tagForLog, "FaceTec SDK initialization failed: $error")
+                    Timber.e("FaceTec SDK initialization failed: $error")
                     runOnUiThread {
                         Toast
                             .makeText(
@@ -112,13 +111,13 @@ class PhotoIdMatchActivity : ComponentActivity() {
 
         val result = FaceTecSDK.getActivitySessionResult(requestCode, resultCode, data) ?: return
 
-        YOLOLogger.i(tagForLog, "FaceTec session finished with status ${result.status}.")
+        Timber.i("FaceTec session finished with status ${result.status}.")
 
         finishWithOfferIfAvailable()
     }
 
     private fun finishWithOfferIfAvailable() {
-        YOLOLogger.i(tagForLog, "Finishing with credentialOfferURI=$capturedCredentialOfferURI")
+        Timber.i("Finishing with credentialOfferURI=$capturedCredentialOfferURI")
 
         val resultIntent =
             Intent().apply {

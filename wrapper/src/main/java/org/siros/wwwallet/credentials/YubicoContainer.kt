@@ -44,8 +44,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
-import org.siros.wwwallet.logging.YOLOLogger
-import org.siros.wwwallet.tagForLog
+import timber.log.Timber
 import kotlin.coroutines.EmptyCoroutineContext
 
 sealed class Operation(
@@ -93,13 +92,13 @@ class YubicoContainer(
             pinResetJob?.cancel()
 
             if (value != null) {
-                YOLOLogger.i(tagForLog, "Start PIN timeout.")
+                Timber.i("Start PIN timeout.")
 
                 pinResetJob =
                     (activity as? LifecycleOwner)?.lifecycleScope?.launch {
                         delay(PIN_CACHE_TIMEOUT_MS)
                         pin = null
-                        YOLOLogger.i(tagForLog, "PIN cleared after timeout.")
+                        Timber.i("PIN cleared after timeout.")
                     }
             }
         }
@@ -117,7 +116,7 @@ class YubicoContainer(
                 nfcListener,
             )
         } catch (e: NfcNotAvailable) {
-            YOLOLogger.i(tagForLog, "No NFC, ignoring.", e)
+            Timber.i(e, "No NFC, ignoring.")
         }
     }
 
@@ -128,7 +127,7 @@ class YubicoContainer(
         successCallback: (JSONObject) -> Unit,
         failureCallback: (Throwable) -> Unit,
     ) {
-        YOLOLogger.i(tagForLog, "yubico create implementation called.")
+        Timber.i("yubico create implementation called.")
 
         lastOperation =
             Operation.CreateOperation(
@@ -145,7 +144,7 @@ class YubicoContainer(
         successCallback: (JSONObject) -> Unit,
         failureCallback: (Throwable) -> Unit,
     ) {
-        YOLOLogger.i(tagForLog, "yubico get implementation called.")
+        Timber.i("yubico get implementation called.")
 
         lastOperation =
             Operation.GetOperation(
@@ -204,7 +203,7 @@ class YubicoContainer(
                     )
             }
         } catch (e: Throwable) {
-            YOLOLogger.e(tagForLog, "An unknown error appeared. Hide now.", e)
+            Timber.e(e, "An unknown error appeared. Hide now.")
         }
     }
 
@@ -251,18 +250,17 @@ class YubicoContainer(
                     state,
                 )
 
-            YOLOLogger.i(tagForLog, "Done, created $result.")
+            Timber.i("Done, created $result.")
             operation.success(JSONObject(result.toMap()))
         } catch (ctap: CtapException) {
-            YOLOLogger.e(
-                tagForLog,
-                "Protocol exception: '${ctap.ctapError.toHumanReadable()}'.",
+            Timber.e(
                 ctap,
+                "Protocol exception: '${ctap.ctapError.toHumanReadable()}'.",
             )
             operation.failure(ctap)
         } catch (th: Throwable) {
             this.pin = null // Reset. This error might be due to an invalid PIN.
-            YOLOLogger.e(tagForLog, "Unexpected error: '${th.message}'.", th)
+            Timber.e(th, "Unexpected error: '${th.message}'.")
             operation.failure(th)
         } finally {
             lastOperation = null
@@ -322,21 +320,20 @@ class YubicoContainer(
                     enterprise,
                 )
 
-            YOLOLogger.i(tagForLog, "Done, got $result.")
+            Timber.i("Done, got $result.")
             operation.success(JSONObject(result.toMap()))
         } catch (ctap: CtapException) {
-            YOLOLogger.e(
-                tagForLog,
-                "Protocol exception: '${ctap.ctapError.toHumanReadable()}'.",
+            Timber.e(
                 ctap,
+                "Protocol exception: '${ctap.ctapError.toHumanReadable()}'.",
             )
             operation.failure(ctap)
         } catch (multiple: MultipleAssertionsAvailable) {
-            YOLOLogger.i(tagForLog, "Found several assertions. User selection needed.")
+            Timber.i("Found several assertions. User selection needed.")
             requestSelection(multiple, kitOptions, operation)
         } catch (th: Throwable) {
             this.pin = null // Reset. This error might be due to an invalid PIN.
-            YOLOLogger.e(tagForLog, "Unexpected error: '${th.message}'.", th)
+            Timber.e(th, "Unexpected error: '${th.message}'.")
             operation.failure(th)
         } finally {
             lastOperation = null
@@ -388,7 +385,7 @@ class YubicoContainer(
             val listener =
                 DialogInterface.OnClickListener { dialog, which ->
                     val credential = available.select(which)
-                    YOLOLogger.i(tagForLog, "credential selected: $credential")
+                    Timber.i("credential selected: $credential")
                     dialog?.dismiss()
 
                     success(credential)
@@ -399,7 +396,7 @@ class YubicoContainer(
                 .setTitle("Select one")
                 .setItems(items, listener)
                 .setNegativeButton(android.R.string.cancel) { dialog, _ ->
-                    YOLOLogger.i(tagForLog, "No user selected.")
+                    Timber.i("No user selected.")
                     dialog.dismiss()
 
                     failure()
@@ -436,11 +433,11 @@ class YubicoContainer(
                     .setTitle("Pin Required")
                     .setView(container)
                     .setPositiveButton(android.R.string.ok) { dialog, _ ->
-                        YOLOLogger.i(tagForLog, "PIN entered.")
+                        Timber.i("PIN entered.")
                         dialog.dismiss()
                         callback(pinEdit.text.toString())
                     }.setNegativeButton(android.R.string.cancel) { dialog, _ ->
-                        YOLOLogger.i(tagForLog, "PIN entry cancelled.")
+                        Timber.i("PIN entry cancelled.")
                         dialog.dismiss()
                         callback(null)
                     }.show()

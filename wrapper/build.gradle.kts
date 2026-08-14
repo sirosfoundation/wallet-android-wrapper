@@ -178,7 +178,7 @@ dependencies {
     implementation(libs.ausweis)
     implementation(libs.yubikit.android)
     implementation(libs.yubikit.fido)
-    implementation(libs.logback)
+    implementation(libs.timber)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.cbor)
     implementation(libs.cose)

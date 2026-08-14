@@ -9,8 +9,7 @@ import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import org.siros.wwwallet.logging.YOLOLogger
-import org.siros.wwwallet.tagForLog
+import timber.log.Timber
 
 private const val WEBKIT_VIDEO_PERMISSION = "android.webkit.resource.VIDEO_CAPTURE"
 
@@ -23,7 +22,7 @@ class WalletWebChromeClient(
         message: String?,
         result: JsResult?,
     ): Boolean {
-        YOLOLogger.e("WEBVIEW", message ?: "<>")
+        Timber.e(message ?: "<>")
 
         return super.onJsAlert(view, url, message, result)
     }
@@ -33,7 +32,7 @@ class WalletWebChromeClient(
             if (resource == WEBKIT_VIDEO_PERMISSION) {
                 grantPermission(activity, request, resource)
             } else {
-                YOLOLogger.e(tagForLog, "Permission request denied: $resource")
+                Timber.e("Permission request denied: $resource")
             }
         }
     }
