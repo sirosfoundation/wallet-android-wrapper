@@ -1,3 +1,7 @@
+# 0.1.13
+
+- Added rage-shake debug menu to extract logs also in released apps. 
+
 # 0.1.12
 
 - New version to add FaceTec support to Github-Action releases.
