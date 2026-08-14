@@ -31,12 +31,11 @@ jobs:
       WWWALLET_ANDROID_KEY_PASSWORD: ${{ secrets.WWWALLET_ANDROID_KEY_PASSWORD }}
       WWWALLET_ANDROID_STORE_PASSWORD: ${{ secrets.WWWALLET_ANDROID_STORE_PASSWORD }}
       WWWALLET_ANDROID_STORE_B64: ${{ secrets.WWWALLET_ANDROID_STORE_B64 }}
-      FACETEC_API_BEARER_TOKEN: ${{ secrets.FACETEC_API_BEARER_TOKEN }}
       ANDROID_TARGET_SDK: ${{ vars.ANDROID_TARGET_SDK }}
       ANDROID_BUILD_TOOLS: ${{ vars.ANDROID_BUILD_TOOLS }}
       ANDROID_CMDLINE_TOOLS: ${{ vars.ANDROID_CMDLINE_TOOLS }}
-      GITHUB_ACTOR: sirospackages
-      GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      # ATTENTION: DON'T build with Facetec support here, otherwise the emulator test cannot work,
+      # as Facetec provides ARM ABIs only, but Ubuntu runners can only run x86 emulators!
 
     steps:
       - name: Update ubuntu
@@ -92,6 +91,5 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.ANDROID_TARGET_SDK }}
-          arch: arm64-v8a # Facetec support only has ARM ABIs!
-          target: google_apis
+          arch: x86_64
           script: ./gradlew connectedCheck --stacktrace
