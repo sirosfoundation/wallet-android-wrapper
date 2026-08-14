@@ -8,8 +8,7 @@ import com.facetec.sdk.FaceTecSDK
 import com.facetec.sdk.FaceTecSecurityWatermarkImage
 import org.json.JSONObject
 import org.siros.wwwallet.R
-import org.siros.wwwallet.tagForLog
-import org.siros.wwwallet.util.YOLOLogger
+import timber.log.Timber
 
 /**
  * Static FaceTec SDK configuration for the Photo ID Match flow.
@@ -103,7 +102,7 @@ object FaceTecConfig {
 
             FaceTecSDK.configureOCRLocalization(json)
         } catch (e: Exception) {
-            YOLOLogger.e(tagForLog, "Failed to load FaceTec OCR localization asset.", e)
+            Timber.e(e, "Failed to load FaceTec OCR localization asset.")
         }
     }
 }

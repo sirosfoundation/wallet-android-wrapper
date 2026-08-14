@@ -14,8 +14,9 @@ import org.siros.wwwallet.BuildConfig
 import org.siros.wwwallet.R
 import org.siros.wwwallet.bridging.WalletJsBridge.Companion.JAVASCRIPT_BRIDGE_NAME
 import org.siros.wwwallet.json.toList
-import org.siros.wwwallet.util.YOLOLogger
+import org.siros.wwwallet.util.FileLoggingTree
 import java.net.URLEncoder
+import kotlin.collections.plusAssign
 
 private const val CUSTOM_BASE_URL = "Custom Base URL"
 
@@ -177,12 +178,22 @@ class DebugMenuHandler(
     }
 
     private fun collectLogs(logsJson: String): List<String> {
-        val combinedLogs =
-            JSONArray(logsJson)
-                .toList()
-                .map { "$it" } + YOLOLogger.messages()
+        val combinedLogs = mutableListOf("--- WEBVIEW CONSOLE ---")
 
-        return combinedLogs.sorted()
+        combinedLogs += JSONArray(logsJson).toList().map { "$it" }
+
+        combinedLogs += "--- APPLICATION LOG ---"
+        combinedLogs += FileLoggingTree.readLog(context)
+
+        combinedLogs += "--- LOGCAT ---"
+        Runtime
+            .getRuntime()
+            .exec("logcat -d")
+            .inputStream
+            .bufferedReader()
+            .useLines { combinedLogs += it }
+
+        return combinedLogs
     }
 }
 

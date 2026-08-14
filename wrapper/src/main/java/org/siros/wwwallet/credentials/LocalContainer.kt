@@ -24,8 +24,7 @@ import org.json.JSONObject
 import org.siros.wwwallet.BuildConfig
 import org.siros.wwwallet.json.getNested
 import org.siros.wwwallet.json.toMap
-import org.siros.wwwallet.tagForLog
-import org.siros.wwwallet.util.YOLOLogger
+import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
@@ -81,7 +80,7 @@ class LocalContainer(
         val credential = createCredential(options, clientDataJsonHash)
         successCallback(credential)
     } catch (th: Throwable) {
-        YOLOLogger.e(tagForLog, "Cannot create credential.", th)
+        Timber.e(th, "Cannot create credential.")
         failureCallback(th)
     }
 
@@ -127,7 +126,7 @@ class LocalContainer(
                 keyPair.public.encoded,
             )
 
-        YOLOLogger.i(tagForLog, "Created credential: $credential")
+        Timber.i("Created credential: $credential")
 
         keyPair.writeMetaDataStorage(credentialId, options)
 
@@ -394,7 +393,7 @@ class LocalContainer(
         successCallback: (JSONArray) -> Unit,
         failureCallback: (Throwable) -> Unit,
     ) = try {
-        YOLOLogger.i("found credentials", "get options: ${options.toString(2)}")
+        Timber.i("found credentials, get options: ${options.toString(2)}")
 
         @Suppress("UNCHECKED_CAST")
         val allowedCredentials =
@@ -416,7 +415,7 @@ class LocalContainer(
                     .mapNotNull { allowed ->
                         val type = allowed.getOrDefault("type", null) as? String ?: ""
                         if (type != "public-key") {
-                            YOLOLogger.e(tagForLog, "Found non 'public-key' credential id in allow list.")
+                            Timber.e("Found non 'public-key' credential id in allow list.")
                         }
 
                         val allowedIdB64 = allowed.getOrDefault("id", null) as? String ?: ""
@@ -455,12 +454,12 @@ class LocalContainer(
 
         val credentialsJson = JSONArray(credentials)
         val msg = credentialsJson.toString(2)
-        YOLOLogger.i("Found credentials", "get response: $msg")
+        Timber.i("Found credentials, get response: $msg")
         successCallback(
             credentialsJson,
         )
     } catch (th: Throwable) {
-        YOLOLogger.e(tagForLog, "Couldn't return all credentials.", th)
+        Timber.e(th, "Couldn't return all credentials.")
         failureCallback(th)
     }
 
@@ -489,7 +488,7 @@ class LocalContainer(
             failureCallback = failureCallback,
         )
     } catch (th: Throwable) {
-        YOLOLogger.e(tagForLog, "Couldn't return credential.", th)
+        Timber.e(th, "Couldn't return credential.")
         failureCallback(th)
     }
 
@@ -597,7 +596,7 @@ class LocalContainer(
             it.write(output)
         }
     } catch (th: Throwable) {
-        YOLOLogger.e(tagForLog, "Cant encrypt meta information.", th)
+        Timber.e(th, "Cant encrypt meta information.")
     }
 
     private fun PrivateKey.readMetaDataStorage(credentialId: ByteArray): JSONObject =
@@ -622,7 +621,7 @@ class LocalContainer(
                 json
             }
         } catch (th: Throwable) {
-            YOLOLogger.e(tagForLog, "Cant encrypt meta information.", th)
+            Timber.e(th, "Cant encrypt meta information.")
 
             JSONObject()
         }
@@ -662,7 +661,7 @@ private fun KeyPair.toCoseBytes(algorithm: Int): ByteArray =
             EncodeToBytes()
         }
     } catch (th: Throwable) {
-        YOLOLogger.e("COSE", "Error while building the cose bytes.", th)
+        Timber.e(th, "Error while building the cose bytes.")
         byteArrayOf()
     }
 

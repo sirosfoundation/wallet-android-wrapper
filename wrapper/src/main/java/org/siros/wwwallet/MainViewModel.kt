@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.siros.wwwallet.storage.ProfileStorage
-import org.siros.wwwallet.util.YOLOLogger
+import timber.log.Timber
 import java.net.URISyntaxException
 
 @SuppressLint("StaticFieldLeak")
@@ -99,7 +99,7 @@ class MainViewModel : ViewModel() {
                     else -> url
                 }
             } catch (uriException: URISyntaxException) {
-                YOLOLogger.e(tagForLog, "URL ERROR, routing back to base url.", uriException)
+                Timber.e(uriException, "URL ERROR, routing back to base url.")
                 getBaseUrl()
             }
         }
@@ -134,7 +134,7 @@ class MainViewModel : ViewModel() {
         originUrl: String?,
     ) {
         if (credentialOfferURI.isNullOrBlank()) {
-            YOLOLogger.i(tagForLog, "photoIdMatchCompleted: no credentialOfferURI, not navigating.")
+            Timber.i("photoIdMatchCompleted: no credentialOfferURI, not navigating.")
             return
         }
 
@@ -150,7 +150,7 @@ class MainViewModel : ViewModel() {
                     .build()
                     .toString()
 
-            YOLOLogger.i(tagForLog, "photoIdMatchCompleted: navigating WebView to $target")
+            Timber.i("photoIdMatchCompleted: navigating WebView to $target")
 
             browseToUrl(target)
         }
@@ -168,7 +168,7 @@ class MainViewModel : ViewModel() {
         val activity = activity
 
         if (activity == null) {
-            YOLOLogger.e(tagForLog, "NULL activity, closing.")
+            Timber.e("NULL activity, closing.")
             return
         }
 
@@ -216,7 +216,7 @@ class MainViewModel : ViewModel() {
                 browseToUrl(setBaseUrl("https://$domain/"))
             }
         } else {
-            YOLOLogger.e(tagForLog, "'$shortcut' is not a valid shortcut identifier!")
+            Timber.e("'$shortcut' is not a valid shortcut identifier!")
         }
     }
 

@@ -8,7 +8,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothAdapter.ACTION_REQUEST_ENABLE
 import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_DENIED
-import org.siros.wwwallet.util.YOLOLogger
+import timber.log.Timber
 
 fun ByteArray?.toHumanReadable(): String =
     if (this == null) {
@@ -24,7 +24,7 @@ fun checkBluetoothPermissions(
     adapter: BluetoothAdapter?,
 ): Boolean {
     if (adapter == null) {
-        YOLOLogger.e("BLEPERM", "No bluetooth device.")
+        Timber.e("No bluetooth device.")
         return false
     }
 

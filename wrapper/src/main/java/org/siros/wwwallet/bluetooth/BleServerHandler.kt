@@ -23,8 +23,7 @@ import android.os.ParcelUuid
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic.Companion.ServerToClient
 import org.siros.wwwallet.debug.PrintingAdvertiseCallback
 import org.siros.wwwallet.debug.PrintingBluetoothGattServerCallback
-import org.siros.wwwallet.tagForLog
-import org.siros.wwwallet.util.YOLOLogger
+import timber.log.Timber
 import java.util.UUID
 
 class BleServerHandler(
@@ -51,7 +50,7 @@ class BleServerHandler(
     init {
         val bluetoothLeAvailable =
             activity.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)
-        YOLOLogger.d(tagForLog, "BluetoothLe is ${if (bluetoothLeAvailable) "" else "not "}available.")
+        Timber.d("BluetoothLe is ${if (bluetoothLeAvailable) "" else "not "}available.")
     }
 
     val manager: BluetoothManager = activity.getSystemService(BluetoothManager::class.java)
@@ -65,7 +64,7 @@ class BleServerHandler(
         failure: () -> Unit,
     ) {
         if (!checkBluetoothPermissions(activity, adapter)) {
-            YOLOLogger.e(tagForLog, "Not enough permissions, please add them and try again.")
+            Timber.e("Not enough permissions, please add them and try again.")
             failure()
         } else {
             listen(
@@ -85,7 +84,7 @@ class BleServerHandler(
         val gattServer = manager.openGattServer(activity, callback)
 
         if (gattServer == null) {
-            YOLOLogger.e(tagForLog, "Could not create gatt server.")
+            Timber.e("Could not create gatt server.")
             failure()
             return
         }
@@ -103,11 +102,11 @@ class BleServerHandler(
         try {
             gattServer.addService(service)
         } catch (e: SecurityException) {
-            YOLOLogger.e(tagForLog, "Couldn't add service.", e)
+            Timber.e(e, "Couldn't add service.")
         }
 
         if (adapter == null) {
-            YOLOLogger.e(tagForLog, "Bluetooth adapter not available")
+            Timber.e("Bluetooth adapter not available")
             failure()
             return
         }
@@ -115,7 +114,7 @@ class BleServerHandler(
         val advertiser = adapter.bluetoothLeAdvertiser
 
         if (advertiser == null) {
-            YOLOLogger.e(tagForLog, "Bluetooth adapter turned off or LE advertising unavailable")
+            Timber.e("Bluetooth adapter turned off or LE advertising unavailable")
             failure()
             return
         }
@@ -136,10 +135,7 @@ class BleServerHandler(
                 .addServiceUuid(ParcelUuid(serviceUuid))
                 .build()
 
-        YOLOLogger.d(
-            tagForLog,
-            "Started advertising UUID $serviceUuid as advertiser $advertiser on gattserver $gattServer.",
-        )
+        Timber.d("Started advertising UUID $serviceUuid as advertiser $advertiser on gattserver $gattServer.")
 
         try {
             advertiser.startAdvertising(
@@ -150,7 +146,7 @@ class BleServerHandler(
 
             state = State.Advertising(gattServer, service, advertiser)
         } catch (e: SecurityException) {
-            YOLOLogger.e(tagForLog, "Error while advertising", e)
+            Timber.e(e, "Error while advertising")
             failure()
         }
 
@@ -208,7 +204,7 @@ class BleServerHandler(
                 }
 
                 else -> {
-                    YOLOLogger.e(tagForLog, "Cannot send in state ${it.javaClass.simpleName} to client.")
+                    Timber.e("Cannot send in state ${it.javaClass.simpleName} to client.")
                     failure()
                 }
             }
@@ -320,7 +316,7 @@ class BleServerHandler(
                                                     value,
                                                 )
                                             }) from ${characteristic.uuid}"
-                                        YOLOLogger.d(tagForLog, msg)
+                                        Timber.d(msg)
 
                                         it.server.notifyCharacteristicChanged(
                                             device!!,
@@ -343,21 +339,18 @@ class BleServerHandler(
                                     }
 
                                     else -> {
-                                        YOLOLogger.e(
-                                            tagForLog,
-                                            "Unexpected characteristic ($characteristic) write received.",
-                                        )
+                                        Timber.e("Unexpected characteristic ($characteristic) write received.")
                                         GATT_FAILURE
                                     }
                                 }
                             } else {
-                                YOLOLogger.e(tagForLog, "Received empty write request payload.")
+                                Timber.e("Received empty write request payload.")
                                 GATT_FAILURE
                             }
 
                         if (responseNeeded) {
                             if (device == null) {
-                                YOLOLogger.e(tagForLog, "No Bluetooth device")
+                                Timber.e("No Bluetooth device")
                                 return
                             }
 
@@ -370,7 +363,7 @@ class BleServerHandler(
                             )
                         }
                     } else {
-                        YOLOLogger.e(tagForLog, "Cannot write in $state.")
+                        Timber.e("Cannot write in $state.")
                     }
                 }
             }

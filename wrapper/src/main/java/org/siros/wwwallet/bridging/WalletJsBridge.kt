@@ -14,8 +14,7 @@ import org.siros.wwwallet.bluetooth.BleServerHandler
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic
 import org.siros.wwwallet.credentials.Container
 import org.siros.wwwallet.json.toList
-import org.siros.wwwallet.tagForLog
-import org.siros.wwwallet.util.YOLOLogger
+import timber.log.Timber
 import kotlin.coroutines.EmptyCoroutineContext
 
 class WalletJsBridge(
@@ -45,10 +44,9 @@ class WalletJsBridge(
                 clientDeviceCredentialsContainer
             }
         } catch (jsonException: JSONException) {
-            YOLOLogger.i(
-                tagForLog,
-                "'hints' field in credential options not found, defaulting back to 'client-device'.",
+            Timber.i(
                 jsonException,
+                "'hints' field in credential options not found, defaulting back to 'client-device'.",
             )
             clientDeviceCredentialsContainer
         }
@@ -59,10 +57,7 @@ class WalletJsBridge(
     @JavascriptInterface
     @Suppress("unused")
     fun inject() {
-        YOLOLogger.i(
-            tagForLog,
-            "Adding `${javaClass.simpleName}` as `$JAVASCRIPT_BRIDGE_NAME` to JS.",
-        )
+        Timber.i("Adding `${javaClass.simpleName}` as `$JAVASCRIPT_BRIDGE_NAME` to JS.")
 
         dispatcher.dispatch(EmptyCoroutineContext) {
             val injectionSnippet =
@@ -77,7 +72,7 @@ class WalletJsBridge(
                 )
 
             webView.evaluateJavascript(injectionSnippet.code) {
-                YOLOLogger.i(it.tagForLog, it)
+                Timber.i(it)
             }
         }
     }
@@ -103,7 +98,7 @@ class WalletJsBridge(
     @JavascriptInterface
     @Suppress("unused")
     fun startScanPhysicalId() {
-        YOLOLogger.i(tagForLog, "$JAVASCRIPT_BRIDGE_NAME.startScanPhysicalId() called.")
+        Timber.i("$JAVASCRIPT_BRIDGE_NAME.startScanPhysicalId() called.")
 
         // @JavascriptInterface methods run on the "JavaBridge" thread, not the main
         // thread — webView.url (like all WebView methods) must only be touched on
@@ -137,7 +132,7 @@ class WalletJsBridge(
 
         // TODO: Convert into credential information and pass through to digital credentials api.
 
-        YOLOLogger.i(tagForLog, message)
+        Timber.i(message)
     }
 
     @JavascriptInterface
@@ -147,15 +142,12 @@ class WalletJsBridge(
         options: String,
     ) {
         val mappedOptions = JSONObject(options)
-        YOLOLogger.i(
-            tagForLog,
-            "$JAVASCRIPT_BRIDGE_NAME.create($promiseUuid, ${mappedOptions.toString(2)}) called.",
-        )
+        Timber.i("$JAVASCRIPT_BRIDGE_NAME.create($promiseUuid, ${mappedOptions.toString(2)}) called.")
 
         credentialsContainerByOption(mappedOptions).create(
             options = mappedOptions,
             failureCallback = { th ->
-                YOLOLogger.e(tagForLog, "Creation failed.", th)
+                Timber.e(th, "Creation failed.")
 
                 dispatcher.dispatch(EmptyCoroutineContext) {
                     webView.evaluateJavascript(
@@ -168,7 +160,7 @@ class WalletJsBridge(
                 }
             },
             successCallback = { response ->
-                YOLOLogger.i(tagForLog, "Creation succeeded with $response.")
+                Timber.i("Creation succeeded with $response.")
 
                 dispatcher.dispatch(EmptyCoroutineContext) {
                     webView.evaluateJavascript(
@@ -189,14 +181,14 @@ class WalletJsBridge(
         promiseUuid: String,
         options: String,
     ) {
-        YOLOLogger.i(tagForLog, "$JAVASCRIPT_BRIDGE_NAME.get($promiseUuid, $options) called.")
+        Timber.i("$JAVASCRIPT_BRIDGE_NAME.get($promiseUuid, $options) called.")
 
         val mappedOptions = JSONObject(options)
         val container = credentialsContainerByOption(mappedOptions)
         container.get(
             options = mappedOptions,
             failureCallback = { th ->
-                YOLOLogger.e(tagForLog, "Get failed.", th)
+                Timber.e(th, "Get failed.")
 
                 dispatcher.dispatch(EmptyCoroutineContext) {
                     webView.evaluateJavascript(
@@ -209,7 +201,7 @@ class WalletJsBridge(
                 }
             },
             successCallback = { response ->
-                YOLOLogger.i(tagForLog, "Get succeeded with $response.")
+                Timber.i("Get succeeded with $response.")
 
                 dispatcher.dispatch(EmptyCoroutineContext) {
                     webView.evaluateJavascript(

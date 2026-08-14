@@ -30,7 +30,7 @@ import org.siros.wwwallet.R
 import org.siros.wwwallet.credentials.LocalContainer
 import org.siros.wwwallet.json.getNested
 import org.siros.wwwallet.json.toList
-import org.siros.wwwallet.util.YOLOLogger
+import timber.log.Timber
 import java.util.concurrent.CountDownLatch
 import kotlin.uuid.ExperimentalUuidApi
 import androidx.credentials.provider.CredentialProviderService as AndroidCredentialProviderService
@@ -224,6 +224,6 @@ open class CredentialProviderService : AndroidCredentialProviderService() {
         cancellationSignal: CancellationSignal,
         callback: OutcomeReceiver<Void?, ClearCredentialException>,
     ) {
-        YOLOLogger.i("TODO", "Not yet implemented")
+        Timber.i("Not yet implemented")
     }
 }

@@ -40,7 +40,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
-import ch.qos.logback.classic.android.BasicLogcatConfigurator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -53,16 +52,12 @@ import org.siros.wwwallet.credentials.YubicoContainer
 import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.util.ShakeDetector
-import org.siros.wwwallet.util.YOLOLogger
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
+import timber.log.Timber
 import ui.EnterBaseUrlDialog
 
 class MainActivity : ComponentActivity() {
-    init {
-        BasicLogcatConfigurator.configureDefaultContext()
-    }
-
     val vm: MainViewModel by viewModels<MainViewModel>()
 
     // Captured by WalletJsBridge#startScanPhysicalId right before launching
@@ -74,10 +69,7 @@ class MainActivity : ComponentActivity() {
     private val photoIdMatchLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val credentialOfferURI = result.data?.getStringExtra(FaceTecManager.EXTRA_CREDENTIAL_OFFER_URI)
-            YOLOLogger.i(
-                tagForLog,
-                "PhotoIdMatchActivity returned resultCode=${result.resultCode}, credentialOfferURI=$credentialOfferURI",
-            )
+            Timber.i("PhotoIdMatchActivity returned resultCode=${result.resultCode}, credentialOfferURI=$credentialOfferURI")
             vm.photoIdMatchCompleted(credentialOfferURI, photoIdMatchOriginUrl)
         }
 
@@ -223,7 +215,7 @@ class MainActivity : ComponentActivity() {
             // Upgrade will happen in MainViewModel#browseToUrl()
             "http", "https", "openid4vp", "haip", "wwwallet" -> vm.parseIntent(intent)
             null -> Unit
-            else -> YOLOLogger.e(tagForLog, "Cannot handle ${intent.scheme}.")
+            else -> Timber.e("Cannot handle ${intent.scheme}.")
         }
     }
 }
@@ -298,14 +290,13 @@ private fun createWebViewFactory(
             WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP,
         )
 
-        YOLOLogger.i(
-            webView.tagForLog,
+        Timber.i(
             "Web authentication support enabled: ${
                 WebSettingsCompat.getWebAuthenticationSupport(webView.settings)
             }",
         )
     } else {
-        YOLOLogger.e(webView.tagForLog, "WebView does not support passkeys.")
+        Timber.e("WebView does not support passkeys.")
     }
 
     webView.webViewClient = webViewClient
@@ -351,7 +342,7 @@ private fun updateWebView(
                         it
                     }
 
-                YOLOLogger.i(webView.tagForLog, "Reached $newUrl after back.")
+                Timber.i("Reached $newUrl after back.")
                 newUrlCallback("")
             }
         } else {
