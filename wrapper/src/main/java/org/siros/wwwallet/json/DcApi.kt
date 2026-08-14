@@ -1,4 +1,4 @@
-package org.siros.wwwallet.bridging
+package org.siros.wwwallet.json
 
 import android.graphics.Bitmap
 import androidx.core.graphics.createBitmap

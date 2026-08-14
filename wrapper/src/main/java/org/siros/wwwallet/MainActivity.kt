@@ -38,7 +38,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.credentials.DigitalCredential
 import androidx.credentials.ExperimentalDigitalCredentialApi
+import androidx.credentials.GetCredentialResponse
 import androidx.credentials.GetDigitalCredentialOption
 import androidx.credentials.exceptions.GetCredentialUnknownException
 import androidx.credentials.provider.PendingIntentHandler
@@ -53,13 +55,13 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.siros.wwwallet.bluetooth.BleClientHandler
 import org.siros.wwwallet.bluetooth.BleServerHandler
-import org.siros.wwwallet.bridging.DcApiRequests
 import org.siros.wwwallet.bridging.DebugMenuHandler
 import org.siros.wwwallet.bridging.WalletJsBridge
 import org.siros.wwwallet.credentials.AndroidContainer
 import org.siros.wwwallet.credentials.YubicoContainer
 import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
+import org.siros.wwwallet.json.DcApiRequests
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -97,6 +99,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var shakeDetector: ShakeDetector
 
+    @OptIn(ExperimentalDigitalCredentialApi::class)
     private val javascriptInterfaceCreator: (WebView) -> WalletJsBridge = { webView ->
         val bridge =
             WalletJsBridge(
@@ -107,17 +110,33 @@ class MainActivity : ComponentActivity() {
                 BleClientHandler(activity = this),
                 BleServerHandler(activity = this),
                 DebugMenuHandler(
-                    context = this,
-                    browseTo = {
+                    this,
+                    {
                         lifecycleScope.launch {
                             vm.setBaseUrl(it)
                             vm.browseToUrl(it)
                         }
                     },
-                    updateBaseUrl = { vm.updateBaseUrl() },
-                    copyToClipboard = { vm.copyToClipboard(it) },
+                    { vm.updateBaseUrl() },
+                    { vm.copyToClipboard(it) },
                 ),
-                startPhotoIdMatch = { FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher) },
+                {
+                    FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher)
+                },
+                { response, error ->
+                    if (response == null) {
+                        finishWithException(error ?: "Unknown error")
+                        return@WalletJsBridge
+                    }
+
+                    val responseJson = response.response.toString()
+                    val response = GetCredentialResponse(DigitalCredential(responseJson))
+                    val resultData = Intent()
+                    PendingIntentHandler.setGetCredentialResponse(resultData, response)
+                    setResult(RESULT_OK, resultData)
+
+                    finish()
+                },
             )
 
         // Avoid circular reference.

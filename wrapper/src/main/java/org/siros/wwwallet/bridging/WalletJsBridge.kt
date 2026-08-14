@@ -21,6 +21,8 @@ import org.siros.wwwallet.bluetooth.BleClientHandler
 import org.siros.wwwallet.bluetooth.BleServerHandler
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic
 import org.siros.wwwallet.credentials.Container
+import org.siros.wwwallet.json.DcApiCredential
+import org.siros.wwwallet.json.DcApiResponse
 import org.siros.wwwallet.json.toList
 import timber.log.Timber
 import kotlin.coroutines.EmptyCoroutineContext
@@ -34,6 +36,7 @@ class WalletJsBridge(
     private val bleServerHandler: BleServerHandler,
     private val debugMenuHandler: DebugMenuHandler?,
     private val startPhotoIdMatch: () -> Unit,
+    private val finishDcApiRequest: (response: DcApiResponse?, error: String?) -> Unit,
 ) {
     companion object {
         const val JAVASCRIPT_BRIDGE_NAME = "nativeWrapper"
@@ -175,9 +178,29 @@ class WalletJsBridge(
         response: String?,
         error: String?,
     ) {
-        Timber.i("Received GET_CREDENTIALS response: $response, error: $error")
+        if (response.isNullOrBlank()) {
+            Timber.e("Error instead of GET_CREDENTIALS response: %s", error ?: "Unknown error")
 
-        // TODO
+            finishDcApiRequest(null, error)
+
+            return
+        }
+
+        Timber.i("Received GET_CREDENTIALS response: $response")
+
+        val res: DcApiResponse
+
+        try {
+            res = json.decodeFromString(response)
+        } catch (tr: Throwable) {
+            Timber.e(tr, "Error while decoding GET_CREDENTIALS response")
+
+            finishDcApiRequest(null, tr.localizedMessage)
+
+            return
+        }
+
+        finishDcApiRequest(res, null)
     }
 
     @JavascriptInterface
