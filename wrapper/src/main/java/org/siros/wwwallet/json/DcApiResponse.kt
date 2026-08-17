@@ -5,5 +5,6 @@ import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class DcApiResponse(
-    val response: JsonElement,
+    val protocol: String,
+    val data: JsonElement,
 )

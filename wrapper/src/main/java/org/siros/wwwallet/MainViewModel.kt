@@ -116,9 +116,10 @@ class MainViewModel : ViewModel() {
     fun enqueueDcApiRequest(
         selectedId: String,
         origin: String,
+        protocol: String,
         requestData: DcApiRequestData,
     ) {
-        Timber.i("Enqueued requested for ID: $selectedId, origin: $origin, data: $requestData")
+        Timber.i("Enqueued requested for ID: $selectedId, origin: $origin, protocol: $protocol, data: $requestData")
 
         viewModelScope.launch {
             val url = currentUrl.filterNotNull().first()
@@ -129,6 +130,7 @@ class MainViewModel : ViewModel() {
                     .clearQuery()
                     .appendQueryParameter("request_id", Uuid.random().toHexDashString())
                     .appendQueryParameter("request_origin", origin)
+                    .appendQueryParameter("request_protocol", protocol)
                     .appendQueryParameter("selected_credential_id", selectedId)
 
             requestData.addAsQuery(uri)
