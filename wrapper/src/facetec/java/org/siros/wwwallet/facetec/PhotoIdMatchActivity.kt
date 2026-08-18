@@ -24,6 +24,9 @@ import timber.log.Timber
  * The FaceTec session itself runs in an Activity the SDK launches via the legacy
  * startActivityForResult API, so its result is collected in [onActivityResult] rather than
  * through an [androidx.activity.result.ActivityResultLauncher].
+ *
+ * Every call into the SDK goes through [FaceTecDiagnostics.step], which logs the step and
+ * catches [Throwable] rather than [Exception] — see that class for why (issue #20).
  */
 class PhotoIdMatchActivity : ComponentActivity() {
     private var sdkInstance: FaceTecSDKInstance? = null
@@ -36,6 +39,8 @@ class PhotoIdMatchActivity : ComponentActivity() {
 
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            Timber.i("Camera permission request answered: granted=$granted.")
+
             if (granted) {
                 startSession()
             } else {
@@ -47,11 +52,26 @@ class PhotoIdMatchActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        FaceTecSDK.preload(this)
-        FaceTecConfig.configureOCRLocalization(this)
-        FaceTecSDK.setCustomization(FaceTecConfig.customization())
+        Timber.i("PhotoIdMatchActivity.onCreate(recreated=${savedInstanceState != null}).")
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        FaceTecDiagnostics.logEnvironment(this)
+
+        // The preparation calls are listed one per step so the log names whichever of them
+        // fails; `preload` in particular is where the SDK first loads its own classes.
+        val prepared =
+            FaceTecDiagnostics.step("preload") { FaceTecSDK.preload(this) } != null &&
+                FaceTecDiagnostics.step("configureOCRLocalization") { FaceTecConfig.configureOCRLocalization(this) } != null &&
+                FaceTecDiagnostics.step("setCustomization") { FaceTecSDK.setCustomization(FaceTecConfig.customization()) } != null
+
+        if (!prepared) {
+            failWithInitializationError()
+            return
+        }
+
+        val hasCameraPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        Timber.i("Camera permission already granted: $hasCameraPermission.")
+
+        if (hasCameraPermission) {
             startSession()
         } else {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -61,42 +81,62 @@ class PhotoIdMatchActivity : ComponentActivity() {
     private fun startSession() {
         val instance = sdkInstance
         if (instance != null) {
-            instance.start3DLivenessThen3D2DPhotoIDMatch(this, processor)
+            Timber.i("Reusing the FaceTecSDKInstance from a previous initialization.")
+            startPhotoIdMatch(instance)
             return
         }
 
-        FaceTecSDK.initializeWithSessionRequest(
-            this,
-            FaceTecConfig.DEVICE_KEY_IDENTIFIER,
-            processor,
-            object : FaceTecSDK.InitializeCallback {
-                override fun onSuccess(newSdkInstance: FaceTecSDKInstance) {
-                    sdkInstance = newSdkInstance
-                    newSdkInstance.start3DLivenessThen3D2DPhotoIDMatch(this@PhotoIdMatchActivity, processor)
-                }
+        Timber.i("Initializing the FaceTec SDK (device key identifier: ${FaceTecConfig.DEVICE_KEY_IDENTIFIER}).")
 
-                override fun onError(error: FaceTecInitializationError) {
-                    // FaceTec invokes onError from a background thread (an AsyncTask
-                    // worker), not the main thread. Toast requires a Looper on the
-                    // calling thread, so showing it here directly crashes with
-                    // "Can't toast on a thread that has not called Looper.prepare()" --
-                    // runOnUiThread hops back to the main thread first.
-                    // `tagForLog` is read from the outer Activity (this@PhotoIdMatchActivity)
-                    // rather than the anonymous callback object itself, whose
-                    // javaClass.simpleName is empty and would log with a blank tag.
-                    Timber.e("FaceTec SDK initialization failed: $error")
-                    runOnUiThread {
-                        Toast
-                            .makeText(
-                                this@PhotoIdMatchActivity,
-                                getString(R.string.photo_id_match_initialization_failed),
-                                Toast.LENGTH_LONG,
-                            ).show()
-                    }
-                    finishWithoutOffer()
-                }
-            },
-        )
+        // NB: this `step` only covers the synchronous part of the call. The SDK does the
+        // actual initialization on an AsyncTask worker of its own, and the VerifyError of
+        // issue #20 is thrown *there* — no `try`/`catch` on this thread can catch it. What
+        // the surrounding logging does buy us is a log file whose last line says
+        // "initializeWithSessionRequest: starting", pinning the crash to this step.
+        val launched =
+            FaceTecDiagnostics.step("initializeWithSessionRequest") {
+                FaceTecSDK.initializeWithSessionRequest(
+                    this,
+                    FaceTecConfig.DEVICE_KEY_IDENTIFIER,
+                    processor,
+                    object : FaceTecSDK.InitializeCallback {
+                        override fun onSuccess(newSdkInstance: FaceTecSDKInstance) {
+                            Timber.i("FaceTec SDK initialization succeeded on thread '${Thread.currentThread().name}'.")
+
+                            sdkInstance = newSdkInstance
+                            startPhotoIdMatch(newSdkInstance)
+                        }
+
+                        override fun onError(error: FaceTecInitializationError) {
+                            // FaceTec invokes onError from a background thread (an AsyncTask
+                            // worker), not the main thread. Toast requires a Looper on the
+                            // calling thread, so showing it here directly crashes with
+                            // "Can't toast on a thread that has not called Looper.prepare()" --
+                            // runOnUiThread hops back to the main thread first.
+                            // `tagForLog` is read from the outer Activity (this@PhotoIdMatchActivity)
+                            // rather than the anonymous callback object itself, whose
+                            // javaClass.simpleName is empty and would log with a blank tag.
+                            Timber.e("FaceTec SDK initialization failed on thread '${Thread.currentThread().name}': $error")
+                            failWithInitializationError()
+                        }
+                    },
+                )
+            }
+
+        if (launched == null) {
+            failWithInitializationError()
+        }
+    }
+
+    private fun startPhotoIdMatch(instance: FaceTecSDKInstance) {
+        val started =
+            FaceTecDiagnostics.step("start3DLivenessThen3D2DPhotoIDMatch") {
+                instance.start3DLivenessThen3D2DPhotoIDMatch(this, processor)
+            }
+
+        if (started == null) {
+            failWithInitializationError()
+        }
     }
 
     // Required by FaceTec SDK's startActivityForResult-based session API.
@@ -109,11 +149,40 @@ class PhotoIdMatchActivity : ComponentActivity() {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
 
-        val result = FaceTecSDK.getActivitySessionResult(requestCode, resultCode, data) ?: return
+        Timber.i("PhotoIdMatchActivity.onActivityResult(requestCode=$requestCode, resultCode=$resultCode, hasData=${data != null}).")
+
+        val result = FaceTecDiagnostics.step("getActivitySessionResult") { FaceTecSDK.getActivitySessionResult(requestCode, resultCode, data) }
+
+        if (result == null) {
+            // Either the SDK did not recognize this result as one of its own (some other
+            // Activity we started came back), or the call itself threw -- the step above
+            // logged which. Staying alive is only correct in the former case, so say so.
+            Timber.w("No FaceTec session result for requestCode=$requestCode -- staying open.")
+            return
+        }
 
         Timber.i("FaceTec session finished with status ${result.status}.")
 
         finishWithOfferIfAvailable()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        Timber.i("PhotoIdMatchActivity.onDestroy(isFinishing=$isFinishing).")
+    }
+
+    private fun failWithInitializationError() {
+        runOnUiThread {
+            Toast
+                .makeText(
+                    this,
+                    getString(R.string.photo_id_match_initialization_failed),
+                    Toast.LENGTH_LONG,
+                ).show()
+        }
+
+        finishWithoutOffer()
     }
 
     private fun finishWithOfferIfAvailable() {
@@ -129,6 +198,8 @@ class PhotoIdMatchActivity : ComponentActivity() {
     }
 
     private fun finishWithoutOffer() {
+        Timber.i("Finishing without a credentialOfferURI.")
+
         setResult(RESULT_CANCELED)
         finish()
     }
