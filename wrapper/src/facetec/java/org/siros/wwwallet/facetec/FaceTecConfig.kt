@@ -101,8 +101,13 @@ object FaceTecConfig {
                 }
 
             FaceTecSDK.configureOCRLocalization(json)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to load FaceTec OCR localization asset.")
+
+            Timber.i("Applied FaceTec OCR localization from '$OCR_CUSTOMIZATION_ASSET'.")
+        } catch (t: Throwable) {
+            // Swallowed on purpose: OCR screen labels are cosmetic, so a failure here must
+            // not abort the scan. Throwable rather than Exception because reaching
+            // FaceTecSDK at all can fail with a VerifyError -- see [FaceTecDiagnostics].
+            Timber.e(t, "Failed to apply FaceTec OCR localization from '$OCR_CUSTOMIZATION_ASSET' -- continuing without it.")
         }
     }
 }

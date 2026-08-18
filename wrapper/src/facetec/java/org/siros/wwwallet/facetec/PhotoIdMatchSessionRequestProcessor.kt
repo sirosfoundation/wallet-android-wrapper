@@ -35,6 +35,8 @@ class PhotoIdMatchSessionRequestProcessor(
         sessionRequestBlob: String,
         sessionRequestCallback: FaceTecSessionRequestProcessor.Callback,
     ) {
+        Timber.i("onSessionRequest() on thread '${Thread.currentThread().name}', blob length ${sessionRequestBlob.length}.")
+
         try {
             val response = postProcessRequest(sessionRequestBlob)
 
@@ -44,8 +46,10 @@ class PhotoIdMatchSessionRequestProcessor(
             credentialOfferURI?.let(onCredentialOfferReceived)
 
             sessionRequestCallback.processResponse(response.getString("responseBlob"))
-        } catch (e: Exception) {
-            Timber.e(e, "facetec-api process-request call failed.")
+        } catch (t: Throwable) {
+            // Throwable rather than Exception: whatever goes wrong here, the SDK is waiting
+            // on this callback and has to be told, or the session hangs.
+            Timber.e(t, "facetec-api process-request call failed with ${t.javaClass.name}.")
             sessionRequestCallback.abortOnCatastrophicError()
         }
     }
