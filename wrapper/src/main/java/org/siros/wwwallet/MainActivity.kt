@@ -69,14 +69,6 @@ import timber.log.Timber
 import ui.EnterBaseUrlDialog
 import java.lang.ref.WeakReference
 import java.security.MessageDigest
-import kotlin.Any
-import kotlin.Exception
-import kotlin.OptIn
-import kotlin.String
-import kotlin.Unit
-import kotlin.apply
-import kotlin.let
-import kotlin.stackTraceToString
 
 class MainActivity : ComponentActivity() {
     val vm: MainViewModel by viewModels<MainViewModel>()
@@ -98,6 +90,8 @@ class MainActivity : ComponentActivity() {
     private val webChromeClient: WebChromeClient = WalletWebChromeClient(this)
 
     private lateinit var shakeDetector: ShakeDetector
+
+    private var lastCredentialRequest: ProviderGetCredentialRequest? = null
 
     @OptIn(ExperimentalDigitalCredentialApi::class)
     private val javascriptInterfaceCreator: (WebView) -> WalletJsBridge = { webView ->
@@ -123,16 +117,17 @@ class MainActivity : ComponentActivity() {
                 {
                     FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher)
                 },
-                { response, error ->
-                    if (response == null) {
+                { responseJson, error ->
+                    val request = lastCredentialRequest
+
+                    if (responseJson == null || request == null) {
                         finishWithException(error ?: "Unknown error")
                         return@WalletJsBridge
                     }
 
-                    val responseJson = Json.encodeToString(response)
                     val response = GetCredentialResponse(DigitalCredential(responseJson))
                     val resultData = Intent()
-                    PendingIntentHandler.setGetCredentialResponse(resultData, response)
+                    PendingIntentHandler.setGetCredentialResponse(resultData, response, request)
                     setResult(RESULT_OK, resultData)
 
                     finish()
@@ -299,6 +294,9 @@ class MainActivity : ComponentActivity() {
             finishWithException("No credential request given.")
             return
         }
+
+        // Store for later response.
+        lastCredentialRequest = request
 
         vm.enqueueDcApiRequest(selectedId, getOrigin(request), firstRequest.protocol, firstRequest.data)
     }
