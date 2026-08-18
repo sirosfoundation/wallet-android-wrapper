@@ -119,6 +119,7 @@ class MainActivity : ComponentActivity() {
                 },
                 { responseJson, error ->
                     val request = lastCredentialRequest
+                    lastCredentialRequest = null
 
                     if (responseJson == null || request == null) {
                         finishWithException(error ?: "Unknown error")
