@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
                         return@WalletJsBridge
                     }
 
-                    val responseJson = response.response.toString()
+                    val responseJson = Json.encodeToString(response)
                     val response = GetCredentialResponse(DigitalCredential(responseJson))
                     val resultData = Intent()
                     PendingIntentHandler.setGetCredentialResponse(resultData, response)
@@ -293,14 +293,14 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        val requestData = requests.requests.firstOrNull()?.data
-        if (requestData == null) {
+        val firstRequest = requests.requests.firstOrNull()
+        if (firstRequest == null) {
             Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential request given!")
             finishWithException("No credential request given.")
             return
         }
 
-        vm.enqueueDcApiRequest(selectedId, getOrigin(request), requestData)
+        vm.enqueueDcApiRequest(selectedId, getOrigin(request), firstRequest.protocol, firstRequest.data)
     }
 
     private fun getOrigin(request: ProviderGetCredentialRequest?): String {
