@@ -1,3 +1,7 @@
+# 0.1.14
+
+- Improved FaceTec support. Don't let app die, when FaceTec lib doesn't work.
+
 # 0.1.13
 
 - Added rage-shake debug menu to extract logs also in released apps. 
