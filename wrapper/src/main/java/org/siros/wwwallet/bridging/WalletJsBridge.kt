@@ -1,10 +1,18 @@
 package org.siros.wwwallet.bridging
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.core.graphics.createBitmap
+import androidx.credentials.registry.digitalcredentials.openid4vp.OpenId4VpRegistry
+import androidx.credentials.registry.provider.RegistryManager
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -13,6 +21,7 @@ import org.siros.wwwallet.bluetooth.BleClientHandler
 import org.siros.wwwallet.bluetooth.BleServerHandler
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic
 import org.siros.wwwallet.credentials.Container
+import org.siros.wwwallet.json.DcApiCredential
 import org.siros.wwwallet.json.toList
 import timber.log.Timber
 import kotlin.coroutines.EmptyCoroutineContext
@@ -25,7 +34,8 @@ class WalletJsBridge(
     private val bleClientHandler: BleClientHandler,
     private val bleServerHandler: BleServerHandler,
     private val debugMenuHandler: DebugMenuHandler?,
-    private val startPhotoIdMatch: (originUrl: String?) -> Unit,
+    private val startPhotoIdMatch: () -> Unit,
+    private val finishDcApiRequest: (response: String?, error: String?) -> Unit,
 ) {
     companion object {
         const val JAVASCRIPT_BRIDGE_NAME = "nativeWrapper"
@@ -105,7 +115,7 @@ class WalletJsBridge(
         // the thread the WebView was created on, so read it inside the dispatch to
         // Dispatchers.Main below, not before it.
         Dispatchers.Main.dispatch(EmptyCoroutineContext) {
-            startPhotoIdMatch(webView.url)
+            startPhotoIdMatch()
         }
     }
 
@@ -124,15 +134,60 @@ class WalletJsBridge(
         }
     }
 
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+        }
+
     @JavascriptInterface
     @Suppress("unused")
     fun updateAllCredentials(list: String) {
-        val credentials = JSONArray(list)
-        val message = "Received ${credentials.length()} credentials."
+        val credentials: List<DcApiCredential>
 
-        // TODO: Convert into credential information and pass through to digital credentials api.
+        try {
+            credentials = json.decodeFromString(list)
+        } catch (e: Exception) {
+            Timber.e(e.stackTraceToString())
+            return
+        }
 
-        Timber.i(message)
+        Timber.i("Received ${credentials.size} credentials.")
+
+        CoroutineScope(dispatcher).launch {
+            val bitmap = getAppIconBitmap()
+
+            credentials.forEach { it.bitmap = bitmap }
+            val sdJwts = credentials.mapNotNull { it.sdJwt }
+            val mDocs = credentials.mapNotNull { it.mDoc }
+
+            val rm = RegistryManager.create(webView.context)
+            val request = OpenId4VpRegistry(sdJwts + mDocs, webView.context.packageName)
+
+            try {
+                val response = rm.registerCredentials(request)
+                Timber.i("Registration succeeded: $response")
+            } catch (e: Exception) {
+                Timber.e(e, "Registration failed")
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun sendDcApiResponse(
+        response: String?,
+        error: String?,
+    ) {
+        if (response.isNullOrBlank()) {
+            Timber.e("Error instead of GET_CREDENTIALS response: %s", error ?: "Unknown error")
+
+            finishDcApiRequest(null, error)
+
+            return
+        }
+
+        Timber.i("Received GET_CREDENTIALS response: $response")
+
+        finishDcApiRequest(response, null)
     }
 
     @JavascriptInterface
@@ -358,6 +413,17 @@ class WalletJsBridge(
                 "${JAVASCRIPT_BRIDGE_NAME}.__reject__('$promiseUuid', '$wrapped')",
             ) {}
         }
+    }
+
+    private fun getAppIconBitmap(): Bitmap {
+        val drawable = webView.context.packageManager.getApplicationIcon(webView.context.packageName)
+        val bitmap = createBitmap(32, 32)
+        val canvas = Canvas(bitmap)
+
+        drawable.setBounds(0, 0, 32, 32)
+        drawable.draw(canvas)
+
+        return bitmap
     }
 }
 

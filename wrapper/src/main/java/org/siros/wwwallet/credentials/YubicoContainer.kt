@@ -111,7 +111,7 @@ class YubicoContainer(
 
         try {
             manager.startNfcDiscovery(
-                NfcConfiguration().timeout(10_000),
+                NfcConfiguration().timeout(10_000), // .disableNfcDiscoverySound(true),
                 activity,
                 nfcListener,
             )

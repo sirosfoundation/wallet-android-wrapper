@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Base64
 import android.view.ViewGroup
 import android.webkit.ServiceWorkerClient
 import android.webkit.ServiceWorkerController
@@ -37,12 +38,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.credentials.DigitalCredential
+import androidx.credentials.ExperimentalDigitalCredentialApi
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.GetDigitalCredentialOption
+import androidx.credentials.exceptions.GetCredentialUnknownException
+import androidx.credentials.provider.PendingIntentHandler
+import androidx.credentials.provider.ProviderGetCredentialRequest
+import androidx.credentials.registry.provider.selectedCredentialSet
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import org.siros.wwwallet.bluetooth.BleClientHandler
 import org.siros.wwwallet.bluetooth.BleServerHandler
 import org.siros.wwwallet.bridging.DebugMenuHandler
@@ -51,27 +61,23 @@ import org.siros.wwwallet.credentials.AndroidContainer
 import org.siros.wwwallet.credentials.YubicoContainer
 import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
+import org.siros.wwwallet.json.DcApiRequests
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
 import timber.log.Timber
 import ui.EnterBaseUrlDialog
 import java.lang.ref.WeakReference
+import java.security.MessageDigest
 
 class MainActivity : ComponentActivity() {
     val vm: MainViewModel by viewModels<MainViewModel>()
-
-    // Captured by WalletJsBridge#startScanPhysicalId right before launching
-    // PhotoIdMatchActivity — the WebView's URL at that moment, so we can return
-    // to the exact same (correctly tenant-scoped) page afterwards. See
-    // MainViewModel#photoIdMatchCompleted for why this matters.
-    private var photoIdMatchOriginUrl: String? = null
 
     private val photoIdMatchLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val credentialOfferURI = result.data?.getStringExtra(FaceTecManager.EXTRA_CREDENTIAL_OFFER_URI)
             Timber.i("PhotoIdMatchActivity returned resultCode=${result.resultCode}, credentialOfferURI=$credentialOfferURI")
-            vm.photoIdMatchCompleted(credentialOfferURI, photoIdMatchOriginUrl)
+            vm.photoIdMatchCompleted(credentialOfferURI)
         }
 
     private val webViewClient: WebViewClient =
@@ -85,6 +91,9 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var shakeDetector: ShakeDetector
 
+    private var lastCredentialRequest: ProviderGetCredentialRequest? = null
+
+    @OptIn(ExperimentalDigitalCredentialApi::class)
     private val javascriptInterfaceCreator: (WebView) -> WalletJsBridge = { webView ->
         val bridge =
             WalletJsBridge(
@@ -95,19 +104,34 @@ class MainActivity : ComponentActivity() {
                 BleClientHandler(activity = this),
                 BleServerHandler(activity = this),
                 DebugMenuHandler(
-                    context = this,
-                    browseTo = {
+                    this,
+                    {
                         lifecycleScope.launch {
                             vm.setBaseUrl(it)
                             vm.browseToUrl(it)
                         }
                     },
-                    updateBaseUrl = { vm.updateBaseUrl() },
-                    copyToClipboard = { vm.copyToClipboard(it) },
+                    { vm.updateBaseUrl() },
+                    { vm.copyToClipboard(it) },
                 ),
-                startPhotoIdMatch = { originUrl ->
-                    photoIdMatchOriginUrl = originUrl
+                {
                     FaceTecProvider.getManager().startPhotoIdMatch(this, photoIdMatchLauncher)
+                },
+                { responseJson, error ->
+                    val request = lastCredentialRequest
+                    lastCredentialRequest = null
+
+                    if (responseJson == null || request == null) {
+                        finishWithException(error ?: "Unknown error")
+                        return@WalletJsBridge
+                    }
+
+                    val response = GetCredentialResponse(DigitalCredential(responseJson))
+                    val resultData = Intent()
+                    PendingIntentHandler.setGetCredentialResponse(resultData, response, request)
+                    setResult(RESULT_OK, resultData)
+
+                    finish()
                 },
             )
 
@@ -213,6 +237,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
+        if (intent.action == "androidx.credentials.registry.provider.action.GET_CREDENTIAL") {
+            handleGetCredential(intent)
+            return
+        }
+
         when (intent.scheme) {
             // Also handle `http` links: e.g. manually entered URLs automatically
             // use the `http` scheme and didn't have a chance to upgrade, yet.
@@ -221,6 +250,87 @@ class MainActivity : ComponentActivity() {
             null -> Unit
             else -> Timber.e("Cannot handle ${intent.scheme}.")
         }
+    }
+
+    // https://developer.android.com/identity/digital-credentials/credential-holder/credential-holder#handle-selected-credential
+    @OptIn(ExperimentalDigitalCredentialApi::class)
+    private fun handleGetCredential(intent: Intent) {
+        val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent)
+
+        val selectedId =
+            request
+                ?.selectedCredentialSet
+                ?.credentials
+                ?.firstOrNull()
+                ?.credentialId
+
+        if (selectedId == null) {
+            Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential ID given!")
+            finishWithException("No credential ID given.")
+            return
+        }
+
+        val option = request.credentialOptions.first { it is GetDigitalCredentialOption } as? GetDigitalCredentialOption
+
+        if (option == null) {
+            Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential options given!")
+            finishWithException("No credential options given.")
+            return
+        }
+
+        val json = Json { ignoreUnknownKeys = true }
+        val requests: DcApiRequests
+
+        try {
+            requests = json.decodeFromString(option.requestJson)
+        } catch (e: Exception) {
+            Timber.e("Could not handle DC-API GET_CREDENTIAL: ${e.stackTraceToString()}")
+            finishWithException(e.localizedMessage)
+            return
+        }
+
+        val firstRequest = requests.requests.firstOrNull()
+        if (firstRequest == null) {
+            Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential request given!")
+            finishWithException("No credential request given.")
+            return
+        }
+
+        // Store for later response.
+        lastCredentialRequest = request
+
+        vm.enqueueDcApiRequest(selectedId, getOrigin(request), firstRequest.protocol, firstRequest.data)
+    }
+
+    private fun getOrigin(request: ProviderGetCredentialRequest?): String {
+        val origin =
+            request?.callingAppInfo?.getOrigin(
+                assets.open("privileged-apps.json").bufferedReader().use { it.readText() },
+            )
+
+        if (!origin.isNullOrBlank()) return origin
+
+        val appSigningInfo =
+            request
+                ?.callingAppInfo
+                ?.signingInfoCompat
+                ?.signingCertificateHistory
+                ?.firstOrNull()
+                ?.toByteArray() ?: return ""
+
+        val md = MessageDigest.getInstance("SHA-256")
+
+        val certHash = Base64.encodeToString(md.digest(appSigningInfo), Base64.NO_WRAP or Base64.NO_PADDING)
+
+        return "android:apk-key-hash:$certHash"
+    }
+
+    private fun finishWithException(message: String? = null) {
+        val intent = Intent()
+        PendingIntentHandler.setGetCredentialException(intent, GetCredentialUnknownException(message))
+
+        setResult(RESULT_OK, intent)
+        finish()
     }
 }
 
