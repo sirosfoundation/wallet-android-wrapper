@@ -26,6 +26,7 @@ import org.siros.wwwallet.debug.PrintingBluetoothGattCallback
 import org.siros.wwwallet.debug.PrintingScanCallback
 import timber.log.Timber
 import java.util.UUID
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class BleClientHandler(
     private val activity: Activity,
@@ -59,6 +60,7 @@ class BleClientHandler(
     val adapter: BluetoothAdapter? = manager.adapter
 
     var state: State = State.Disconnected
+    private val incomingBuffer = ConcurrentLinkedQueue<ByteArray>()
 
     val gattCallback =
         object : PrintingBluetoothGattCallback() {
@@ -126,8 +128,15 @@ class BleClientHandler(
                 super.onCharacteristicChanged(gatt, characteristic, value)
 
                 if (characteristic.uuid == ServiceCharacteristic.ServerToClient.uuid) {
-                    if (state is State.Connected) {
-                        (state as State.Connected).readCallback?.invoke(value)
+                    val currentState = state
+                    if (currentState is State.Connected) {
+                        val callback = currentState.readCallback
+                        if (callback != null) {
+                            callback.invoke(value)
+                            state = currentState.copy(readCallback = null)
+                        } else {
+                            incomingBuffer.offer(value)
+                        }
                     }
                 }
             }
@@ -423,15 +432,16 @@ class BleClientHandler(
         success: (ByteArray?) -> Unit,
         failure: () -> Unit,
     ) {
+        val buffered = incomingBuffer.poll()
+        if (buffered != null) {
+            success(buffered) // Deliver buffered data immediately if any exists.
+            return
+        }
+
         state.let {
             when (it) {
-                is State.Connected -> {
-                    state = it.copy(readCallback = success)
-                }
-
-                else -> {
-                    failure()
-                }
+                is State.Connected -> state = it.copy(readCallback = success)
+                else -> failure()
             }
         }
     }
