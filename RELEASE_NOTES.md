@@ -1,3 +1,7 @@
+# 0.1.15
+
+- Added DC-API support.
+
 # 0.1.14
 
 - Improved FaceTec support. Don't let app die, when FaceTec lib doesn't work.
