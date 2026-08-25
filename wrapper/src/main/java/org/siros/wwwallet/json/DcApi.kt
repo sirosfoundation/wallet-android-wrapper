@@ -52,6 +52,17 @@ data class DcApiCredential(
 
             val docType = docType ?: return null
 
+            val fields =
+                fields?.map {
+                    MdocField(
+                        it.namespace,
+                        it.identifier,
+                        it.value?.toNativeValue(),
+                        setOf(it.displayProperties),
+                    )
+                }
+
+            // Deprecated: Remove once all clients send `fields`.
             val claims =
                 claims?.map {
                     MdocField(
@@ -62,9 +73,7 @@ data class DcApiCredential(
                     )
                 }
 
-            val fields = fields?.map { MdocField(it.namespace, it.element, null, setOf(it.displayProperties)) }
-
-            val merged = (claims ?: emptyList()) + (fields ?: emptyList())
+            val merged = (fields ?: emptyList()) + (claims ?: emptyList())
 
             if (merged.isEmpty()) {
                 return null
@@ -86,12 +95,12 @@ data class DcApiDisplay(
 @Serializable
 data class DcApiField(
     val namespace: String,
-    val element: String,
+    val identifier: String,
     val value: JsonElement?,
     val display: Map<String, String>?,
 ) {
     val displayProperties
-        get() = createDisplayProperties(display, value, element)
+        get() = createDisplayProperties(display, value, identifier)
 
     companion object {
         fun createDisplayProperties(
