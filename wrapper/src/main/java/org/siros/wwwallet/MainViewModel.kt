@@ -17,22 +17,22 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.siros.wwwallet.json.DcApiRequestData
-import org.siros.wwwallet.storage.ProfileStorage
+import org.siros.wwwallet.storage.Settings
 import timber.log.Timber
 import java.net.URISyntaxException
 import kotlin.uuid.Uuid
 
 @SuppressLint("StaticFieldLeak")
 class MainViewModel : ViewModel() {
-    lateinit var profileStorage: ProfileStorage
+    lateinit var settings: Settings
 
     var activity: MainActivity? = null
         set(value) {
             if (value != null) {
-                profileStorage = ProfileStorage(value)
+                settings = Settings(value)
 
                 viewModelScope.launch {
-                    val baseurl = profileStorage.restore().baseUrl
+                    val baseurl = settings.getBaseUrl()
 
                     // Only update, if this is not set, yet, as otherwise a race condition might
                     // occur, and this call would override an already acquired URL with which
@@ -210,7 +210,7 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    suspend fun getBaseUrl(): String = profileStorage.restore().baseUrl
+    suspend fun getBaseUrl(): String = settings.getBaseUrl()
 
     suspend fun setBaseUrl(value: String): String {
         updateBaseUrlCanceled()
@@ -223,7 +223,7 @@ class MainViewModel : ViewModel() {
                 else -> value // for direct ip addresses
             }
 
-        profileStorage.store(profileStorage.restore().copy(baseUrl = sanitized))
+        settings.setBaseUrl(sanitized)
 
         return sanitized
     }
