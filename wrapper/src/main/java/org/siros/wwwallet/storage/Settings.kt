@@ -35,9 +35,17 @@ data class Profile(
  * https://developer.android.com/topic/libraries/architecture/datastore
  * https://developer.android.com/jetpack/androidx/releases/datastore#1.3.0-alpha07
  */
-class ProfileStorage(
+class Settings(
     private val context: Context,
 ) {
+    suspend fun getBaseUrl() = getStore().data.first().baseUrl
+
+    suspend fun setBaseUrl(baseUrl: String) {
+        getStore().updateData { profile ->
+            profile.copy(baseUrl = baseUrl)
+        }
+    }
+
     companion object {
         private const val LEGACY_FILE_NAME = "profile"
         private const val ENCRYPTED_FILE_NAME = "profile_encrypted"
@@ -147,21 +155,11 @@ class ProfileStorage(
 
     private lateinit var dataStore: DataStore<Profile>
 
-    suspend fun store(profile: Profile) {
+    private suspend fun getStore(): DataStore<Profile> {
         if (!this::dataStore.isInitialized) {
             dataStore = createDataStore(context.applicationContext)
         }
 
-        dataStore.updateData {
-            profile
-        }
-    }
-
-    suspend fun restore(): Profile {
-        if (!this::dataStore.isInitialized) {
-            dataStore = createDataStore(context.applicationContext)
-        }
-
-        return dataStore.data.first()
+        return dataStore
     }
 }
