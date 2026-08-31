@@ -180,6 +180,7 @@ dependencies {
     implementation(libs.yubikit.fido)
     implementation(libs.timber)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore.tink)
     implementation(libs.cbor)
     implementation(libs.cose)
     implementation(libs.kotlinx.serialization)
