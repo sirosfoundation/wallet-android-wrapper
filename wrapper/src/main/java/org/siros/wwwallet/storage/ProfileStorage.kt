@@ -1,15 +1,11 @@
 package org.siros.wwwallet.storage
 
 import android.content.Context
+import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Serializer
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.PreferencesSerializer
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.tink.AeadSerializer
 import com.google.crypto.tink.Aead
@@ -18,24 +14,27 @@ import com.google.crypto.tink.RegistryConfiguration
 import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.aead.PredefinedAeadParameters
 import com.google.crypto.tink.integration.android.AndroidKeysetManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import okio.buffer
-import okio.sink
-import okio.source
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.siros.wwwallet.BuildConfig
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.map
-import kotlin.collections.toTypedArray
 
+@Serializable
 data class Profile(
+    @SerialName("baseurl")
     val baseUrl: String,
 )
 
+/**
+ * https://developer.android.com/topic/libraries/architecture/datastore
+ * https://developer.android.com/jetpack/androidx/releases/datastore#1.3.0-alpha07
+ */
 class ProfileStorage(
     private val context: Context,
 ) {
@@ -47,24 +46,31 @@ class ProfileStorage(
         private const val PREFERENCE_FILE = "profile_key_prefs"
         private const val MASTER_KEY_URI = "android-keystore://_androidx_security_master_key_"
 
-        private val BASE_URL_KEY = stringPreferencesKey("baseurl")
+        private object ProfileSerializer : Serializer<Profile> {
+            override val defaultValue: Profile = Profile("https://${BuildConfig.BASE_DOMAIN1}/")
 
-        private object PreferencesDataStoreSerializer : Serializer<Preferences> {
-            override val defaultValue: Preferences = emptyPreferences()
+            private val json = Json { ignoreUnknownKeys = true }
 
-            override suspend fun readFrom(input: InputStream): Preferences = PreferencesSerializer.readFrom(input.source().buffer())
+            override suspend fun readFrom(input: InputStream): Profile =
+                withContext(Dispatchers.IO) {
+                    try {
+                        json.decodeFromString<Profile>(input.readBytes().decodeToString())
+                    } catch (t: Throwable) {
+                        throw CorruptionException("Unable to read Profile", t)
+                    }
+                }
 
             override suspend fun writeTo(
-                t: Preferences,
+                t: Profile,
                 output: OutputStream,
-            ) {
-                PreferencesSerializer.writeTo(t, output.sink().buffer())
+            ) = withContext(Dispatchers.IO) {
+                output.write(json.encodeToString(t).encodeToByteArray())
             }
         }
 
-        private suspend fun createDataStore(context: Context): DataStore<Preferences> {
+        private suspend fun createDataStore(context: Context): DataStore<Profile> {
             val unencryptedFile = context.preferencesDataStoreFile(LEGACY_FILE_NAME)
-            var dataStore: DataStore<Preferences>
+            var dataStore: DataStore<Profile>
 
             try {
                 AeadConfig.register()
@@ -83,7 +89,7 @@ class ProfileStorage(
                 val serializer =
                     AeadSerializer(
                         aead,
-                        PreferencesDataStoreSerializer,
+                        ProfileSerializer,
                         ENCRYPTED_FILE_NAME.encodeToByteArray(),
                     )
 
@@ -94,7 +100,7 @@ class ProfileStorage(
                 dataStore =
                     DataStoreFactory.create(
                         serializer,
-                        ReplaceFileCorruptionHandler({ emptyPreferences() }),
+                        ReplaceFileCorruptionHandler({ ProfileSerializer.defaultValue }),
                         produceFile = { encryptedFile },
                     )
 
@@ -105,8 +111,8 @@ class ProfileStorage(
 
                 dataStore =
                     DataStoreFactory.create(
-                        PreferencesDataStoreSerializer,
-                        ReplaceFileCorruptionHandler({ emptyPreferences() }),
+                        ProfileSerializer,
+                        ReplaceFileCorruptionHandler({ ProfileSerializer.defaultValue }),
                         produceFile = { unencryptedFile },
                     )
             }
@@ -116,24 +122,20 @@ class ProfileStorage(
 
         private suspend fun migrate(
             unencryptedFile: File,
-            dataStore: DataStore<Preferences>,
+            dataStore: DataStore<Profile>,
         ) {
             if (!unencryptedFile.exists()) return
 
             try {
-                val unencryptedPrefs =
+                val unencryptedProfile =
                     unencryptedFile
                         .inputStream()
                         .use {
-                            PreferencesDataStoreSerializer.readFrom(it)
-                        }.asMap()
-                        .map { (key, value) ->
-                            @Suppress("UNCHECKED_CAST")
-                            (key as Preferences.Key<Any>) to value
-                        }.toTypedArray()
+                            ProfileSerializer.readFrom(it)
+                        }
 
-                dataStore.edit { preferences ->
-                    preferences.putAll(*unencryptedPrefs)
+                dataStore.updateData {
+                    unencryptedProfile
                 }
 
                 unencryptedFile.delete()
@@ -143,15 +145,15 @@ class ProfileStorage(
         }
     }
 
-    private lateinit var dataStore: DataStore<Preferences>
+    private lateinit var dataStore: DataStore<Profile>
 
     suspend fun store(profile: Profile) {
         if (!this::dataStore.isInitialized) {
             dataStore = createDataStore(context.applicationContext)
         }
 
-        dataStore.edit { store ->
-            store[BASE_URL_KEY] = profile.baseUrl
+        dataStore.updateData {
+            profile
         }
     }
 
@@ -160,14 +162,6 @@ class ProfileStorage(
             dataStore = createDataStore(context.applicationContext)
         }
 
-        val profile =
-            dataStore.data
-                .map { preferences ->
-                    Profile(
-                        baseUrl = preferences[BASE_URL_KEY] ?: "https://${BuildConfig.BASE_DOMAIN1}/",
-                    )
-                }.first()
-
-        return profile
+        return dataStore.data.first()
     }
 }
