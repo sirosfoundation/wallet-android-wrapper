@@ -119,7 +119,25 @@ class MainViewModel : ViewModel() {
         Timber.i("Enqueued requested for ID: $selectedId, origin: $origin, protocol: $protocol, data: $requestData")
 
         viewModelScope.launch {
-            val url = currentUrl.filterNotNull().first()
+            val allCredentials = Settings.getDcApiCredentials()
+            var callbackUrl: String? = null
+
+            for (credentials in allCredentials) {
+                val credential = credentials.value.firstOrNull { it.id == selectedId }
+
+                if (credential != null) {
+                    callbackUrl = credentials.key
+                    break
+                }
+            }
+
+            val url: Uri
+
+            if (callbackUrl != null && callbackUrl != DCAPI_CREDENTIALS_FALLBACK_URL) {
+                url = callbackUrl.toUri()
+            } else {
+                url = currentUrl.filterNotNull().first()
+            }
 
             val uri =
                 url
@@ -287,4 +305,8 @@ class MainViewModel : ViewModel() {
             .buildUpon()
             .scheme("https")
             .build()
+
+    companion object {
+        const val DCAPI_CREDENTIALS_FALLBACK_URL = "**fallback**"
+    }
 }
