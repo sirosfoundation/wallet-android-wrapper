@@ -21,6 +21,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.siros.wwwallet.BuildConfig
+import org.siros.wwwallet.json.DcApiCredential
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -29,6 +30,7 @@ import java.io.OutputStream
 data class Profile(
     @SerialName("baseurl")
     val baseUrl: String = "https://${BuildConfig.BASE_DOMAIN1}/",
+    val dcApiCredentials: Map<String, List<DcApiCredential>> = emptyMap(),
 )
 
 /**
@@ -97,6 +99,12 @@ object Settings {
 
     suspend fun setBaseUrl(baseUrl: String) {
         dataStore.updateData { it.copy(baseUrl = baseUrl) }
+    }
+
+    suspend fun getDcApiCredentials() = dataStore.data.first().dcApiCredentials
+
+    suspend fun setDcApiCredentials(dcApiCredentials: Map<String, List<DcApiCredential>>) {
+        dataStore.updateData { it.copy(dcApiCredentials = dcApiCredentials) }
     }
 
     private suspend fun migrate(

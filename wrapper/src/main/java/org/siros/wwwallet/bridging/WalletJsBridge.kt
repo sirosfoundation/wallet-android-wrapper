@@ -6,7 +6,9 @@ import android.graphics.Canvas
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.core.graphics.createBitmap
+import androidx.credentials.registry.digitalcredentials.mdoc.MdocEntry
 import androidx.credentials.registry.digitalcredentials.openid4vp.OpenId4VpRegistry
+import androidx.credentials.registry.digitalcredentials.sdjwt.SdJwtEntry
 import androidx.credentials.registry.provider.RegistryManager
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -17,12 +19,14 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import org.siros.wwwallet.BuildConfig
+import org.siros.wwwallet.MainViewModel
 import org.siros.wwwallet.bluetooth.BleClientHandler
 import org.siros.wwwallet.bluetooth.BleServerHandler
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic
 import org.siros.wwwallet.credentials.Container
 import org.siros.wwwallet.json.DcApiCredential
 import org.siros.wwwallet.json.toList
+import org.siros.wwwallet.storage.Settings
 import timber.log.Timber
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -46,7 +50,7 @@ class WalletJsBridge(
             val publicKey = mappedOptions.getJSONObject("publicKey")
             // throws JSONException if not present
             val jsonHints = publicKey.getJSONArray("hints")
-            val hints = jsonHints.toList().mapNotNull { it as? String }
+            val hints = jsonHints.toList().filterIsInstance<String>()
 
             if (hints.contains("security-key")) {
                 securityKeyCredentialsContainer
@@ -142,23 +146,41 @@ class WalletJsBridge(
     @JavascriptInterface
     @Suppress("unused")
     fun updateAllCredentials(list: String) {
+        updateAllCredentials(list, null)
+    }
+
+    @JavascriptInterface
+    @Suppress("unused")
+    fun updateAllCredentials(
+        list: String,
+        callbackUrl: String?,
+    ) {
         val credentials: List<DcApiCredential>
 
         try {
             credentials = json.decodeFromString(list)
-        } catch (e: Exception) {
-            Timber.e(e.stackTraceToString())
+        } catch (t: Throwable) {
+            Timber.e(t)
             return
         }
 
         Timber.i("Received ${credentials.size} credentials.")
 
         CoroutineScope(dispatcher).launch {
+            val allCredentials = Settings.getDcApiCredentials().toMutableMap()
+            allCredentials[callbackUrl ?: MainViewModel.DCAPI_CREDENTIALS_FALLBACK_URL] = credentials
+            Settings.setDcApiCredentials(allCredentials)
+
             val bitmap = getAppIconBitmap()
 
-            credentials.forEach { it.bitmap = bitmap }
-            val sdJwts = credentials.mapNotNull { it.sdJwt }
-            val mDocs = credentials.mapNotNull { it.mDoc }
+            val sdJwts = mutableListOf<SdJwtEntry>()
+            val mDocs = mutableListOf<MdocEntry>()
+
+            allCredentials.forEach { (_, credentials) ->
+                credentials.forEach { it.bitmap = bitmap }
+                sdJwts.addAll(credentials.mapNotNull { it.sdJwt })
+                mDocs.addAll(credentials.mapNotNull { it.mDoc })
+            }
 
             val rm = RegistryManager.create(webView.context)
             val request = OpenId4VpRegistry(sdJwts + mDocs, webView.context.packageName)

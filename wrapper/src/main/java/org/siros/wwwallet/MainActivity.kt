@@ -283,9 +283,9 @@ class MainActivity : ComponentActivity() {
 
         try {
             requests = json.decodeFromString(option.requestJson)
-        } catch (e: Exception) {
-            Timber.e("Could not handle DC-API GET_CREDENTIAL: ${e.stackTraceToString()}")
-            finishWithException(e.localizedMessage)
+        } catch (t: Throwable) {
+            Timber.e(t, "Could not handle DC-API GET_CREDENTIAL.")
+            finishWithException(t.localizedMessage)
             return
         }
 
