@@ -201,8 +201,13 @@ class MainViewModel : ViewModel() {
         val manager =
             activity.applicationContext.getSystemService(ClipboardManager::class.java)
 
-        val clip = ClipData.newPlainText("wwWallet log", text)
-        manager.setPrimaryClip(clip)
+        try {
+            val clip = ClipData.newPlainText("wwWallet log", text)
+            manager.setPrimaryClip(clip)
+        } catch (t: Throwable) {
+            // Samsung devices can crash here, when the text is too big as Google Play reports.
+            Timber.e(t, "Error while trying to copy text to the clipboard.")
+        }
     }
 
     suspend fun getBaseUrl(): String = profileStorage.restore().baseUrl

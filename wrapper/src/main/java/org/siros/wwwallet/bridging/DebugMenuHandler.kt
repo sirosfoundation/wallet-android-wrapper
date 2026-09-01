@@ -15,6 +15,7 @@ import org.siros.wwwallet.R
 import org.siros.wwwallet.bridging.WalletJsBridge.Companion.JAVASCRIPT_BRIDGE_NAME
 import org.siros.wwwallet.json.toList
 import org.siros.wwwallet.util.FileLoggingTree
+import timber.log.Timber
 import java.net.URLEncoder
 import kotlin.collections.plusAssign
 
@@ -183,15 +184,27 @@ class DebugMenuHandler(
         combinedLogs += JSONArray(logsJson).toList().map { "$it" }
 
         combinedLogs += "--- APPLICATION LOG ---"
-        combinedLogs += FileLoggingTree.readLog(context)
+
+        try {
+            combinedLogs += FileLoggingTree.readLog(context)
+        } catch (t: Throwable) {
+            Timber.e(t, "Error while reading log file.")
+        }
 
         combinedLogs += "--- LOGCAT ---"
-        Runtime
-            .getRuntime()
-            .exec("logcat -d")
-            .inputStream
-            .bufferedReader()
-            .useLines { combinedLogs += it }
+
+        try {
+            Runtime
+                .getRuntime()
+                .exec("logcat -d")
+                .inputStream
+                .bufferedReader()
+                .useLines { combinedLogs += it }
+        } catch (t: Throwable) {
+            Timber.e(t, "Error while reading logcat.")
+
+            combinedLogs += "**unavailable**"
+        }
 
         return combinedLogs
     }
