@@ -24,15 +24,12 @@ import kotlin.uuid.Uuid
 
 @SuppressLint("StaticFieldLeak")
 class MainViewModel : ViewModel() {
-    lateinit var settings: Settings
-
     var activity: MainActivity? = null
         set(value) {
             if (value != null) {
-                settings = Settings(value)
 
                 viewModelScope.launch {
-                    val baseurl = settings.getBaseUrl()
+                    val baseurl = Settings.getBaseUrl()
 
                     // Only update, if this is not set, yet, as otherwise a race condition might
                     // occur, and this call would override an already acquired URL with which
@@ -210,7 +207,7 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    suspend fun getBaseUrl(): String = settings.getBaseUrl()
+    suspend fun getBaseUrl(): String = Settings.getBaseUrl()
 
     suspend fun setBaseUrl(value: String): String {
         updateBaseUrlCanceled()
@@ -223,7 +220,7 @@ class MainViewModel : ViewModel() {
                 else -> value // for direct ip addresses
             }
 
-        settings.setBaseUrl(sanitized)
+        Settings.setBaseUrl(sanitized)
 
         return sanitized
     }
