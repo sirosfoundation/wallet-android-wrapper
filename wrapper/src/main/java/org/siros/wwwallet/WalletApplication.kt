@@ -3,6 +3,8 @@ package org.siros.wwwallet
 import android.annotation.SuppressLint
 import android.app.Application
 import android.util.Log
+import kotlinx.coroutines.runBlocking
+import org.siros.wwwallet.storage.Settings
 import org.siros.wwwallet.util.FileLoggingTree
 import timber.log.Timber
 
@@ -11,6 +13,10 @@ class WalletApplication : Application() {
         super.onCreate()
 
         Timber.plant(FileLoggingTree(this))
+
+        runBlocking {
+            Settings.init(this@WalletApplication)
+        }
 
         setupCrashHandler()
     }
