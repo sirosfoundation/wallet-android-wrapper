@@ -1,3 +1,10 @@
+# 0.1.16
+
+- Fix handling of oversized incoming BLE notifications.
+- Encrypt user settings for in-depth defence.
+- Improved DC-API support with multiple tenants used.
+- Fixed crashes during collection of debug logs.
+
 # 0.1.15
 
 - Added DC-API support.
