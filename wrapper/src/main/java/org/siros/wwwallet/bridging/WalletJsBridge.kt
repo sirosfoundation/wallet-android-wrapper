@@ -164,11 +164,34 @@ class WalletJsBridge(
             return
         }
 
-        Timber.i("Received ${credentials.size} credentials.")
+        Timber.i("Received ${credentials.size} credentials for $callbackUrl.")
 
         CoroutineScope(dispatcher).launch {
             val allCredentials = Settings.getDcApiCredentials().toMutableMap()
-            allCredentials[callbackUrl ?: MainViewModel.DCAPI_CREDENTIALS_FALLBACK_URL] = credentials
+
+            val fbCredentials = allCredentials[MainViewModel.DCAPI_CREDENTIALS_FALLBACK_URL]?.toMutableList() ?: mutableListOf()
+
+            // Graceful frontend upgrade: When a frontend starts to support tenancy-aware credentials
+            // we need to remove these credentials from the fallback list.
+            // When it doesn't support it, yet, we need to remove old versions so we can add the updated
+            // ones later.
+            fbCredentials.removeAll { fbc -> credentials.firstOrNull { it.id == fbc.id } != null }
+
+            if (!callbackUrl.isNullOrBlank()) {
+                allCredentials[callbackUrl] = credentials
+            } else {
+                // Fallback to support frontends, which aren't aware of the second argument, yet.
+                // We mix all of them together here, in the hopes, that a user will only select a
+                // credential later, which belongs to the currently set tenant.
+                fbCredentials.addAll(credentials)
+            }
+
+            if (fbCredentials.isEmpty()) {
+                allCredentials.remove(MainViewModel.DCAPI_CREDENTIALS_FALLBACK_URL)
+            } else {
+                allCredentials[MainViewModel.DCAPI_CREDENTIALS_FALLBACK_URL] = fbCredentials
+            }
+
             Settings.setDcApiCredentials(allCredentials)
 
             val bitmap = getAppIconBitmap()
@@ -186,6 +209,8 @@ class WalletJsBridge(
             val request = OpenId4VpRegistry(sdJwts + mDocs, webView.context.packageName)
 
             try {
+                // As per experiments, this call will automatically drop all credentials which were
+                // registered before, but aren't in the list anymore.
                 val response = rm.registerCredentials(request)
                 Timber.i("Registration succeeded: $response")
             } catch (e: Exception) {
