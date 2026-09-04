@@ -8,6 +8,7 @@ import timber.log.Timber
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 
 /**
  * Forwards FaceTec SDK Session Request/Response Blobs to facetec-api's `/v1/process-request`,
@@ -17,6 +18,10 @@ import java.net.URL
  * Per FaceTec's integration contract, [onSessionRequest] performs only the network call and
  * the minimum bookkeeping needed to relay its result back into the SDK — no other app logic
  * or UI changes are allowed here. It is already invoked off the main thread by the SDK.
+ *
+ * Every request also carries an [externalDatabaseRefID]: the key FaceTec Server files the
+ * Enrollment Record under during the liveness step of a session and looks it up again during
+ * the ID match step. See that property for why the app has to be the one to mint it.
  *
  * Request/response bodies are opaque encrypted blobs to FaceTec Server and are never logged,
  * to keep this client's exposure to biometric data as small as possible. The logged response is
@@ -29,13 +34,39 @@ class PhotoIdMatchSessionRequestProcessor(
 ) : FaceTecSessionRequestProcessor {
     companion object {
         private const val REDACT_THRESHOLD = 200
+
+        // Prefixes the per-session identifier below, so a record in FaceTec Server can be
+        // traced back to the client that created it.
+        private const val EXTERNAL_DB_REF_PREFIX = "wwwallet-android-"
     }
+
+    /**
+     * Identifies this scan's Enrollment Record inside FaceTec Server. It must stay stable
+     * across the several `/process-request` calls one FaceTec session makes — the server
+     * files the record under this key during the liveness step and retrieves it again during
+     * the ID match step — and it must differ between sessions, since a record can only be
+     * enrolled once per key.
+     *
+     * One value per processor instance is exactly that: [PhotoIdMatchActivity] constructs one
+     * processor per session.
+     *
+     * The app has to be the one to generate this. facetec-api sees each `/process-request`
+     * call in isolation — the calls of one session carry no correlation identifier, only the
+     * tenant-wide bearer token — so it cannot tell which of them belong together and cannot
+     * synthesize a stable key on our behalf. Sending none (issue #27) left every session
+     * sharing one empty key, and the ID match step then failed with "A Record could not be
+     * found for the Enrollment".
+     */
+    private val externalDatabaseRefID = EXTERNAL_DB_REF_PREFIX + UUID.randomUUID()
 
     override fun onSessionRequest(
         sessionRequestBlob: String,
         sessionRequestCallback: FaceTecSessionRequestProcessor.Callback,
     ) {
-        Timber.i("onSessionRequest() on thread '${Thread.currentThread().name}', blob length ${sessionRequestBlob.length}.")
+        Timber.i(
+            "onSessionRequest() on thread '${Thread.currentThread().name}', blob length ${sessionRequestBlob.length}, " +
+                "externalDatabaseRefID=$externalDatabaseRefID.",
+        )
 
         try {
             val response = postProcessRequest(sessionRequestBlob)
@@ -78,7 +109,10 @@ class PhotoIdMatchSessionRequestProcessor(
         connection.setRequestProperty("Content-Type", "application/json")
         connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.FACETEC_API_BEARER_TOKEN}")
 
-        val payload = JSONObject().put("requestBlob", sessionRequestBlob)
+        val payload =
+            JSONObject()
+                .put("requestBlob", sessionRequestBlob)
+                .put("externalDatabaseRefID", externalDatabaseRefID)
 
         connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
 
