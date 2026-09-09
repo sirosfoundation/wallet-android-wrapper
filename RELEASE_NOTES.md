@@ -1,3 +1,7 @@
+# 0.1.17
+
+- Fixed Siros ID credential issuance failing after a completed FaceTec scan.
+
 # 0.1.16
 
 - Fix handling of oversized incoming BLE notifications.
