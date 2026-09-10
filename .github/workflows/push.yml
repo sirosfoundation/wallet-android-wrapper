@@ -33,7 +33,7 @@ jobs:
       WWWALLET_ANDROID_STORE_B64: ${{ secrets.WWWALLET_ANDROID_STORE_B64 }}
       ANDROID_TARGET_SDK: ${{ vars.ANDROID_TARGET_SDK }}
       ANDROID_BUILD_TOOLS: ${{ vars.ANDROID_BUILD_TOOLS }}
-      # TEMPORARY, remove at SDK 0.15.0 along with the SirosSdk repository
+      # TEMPORARY, remove at SDK 0.14.0 along with the SirosSdk repository
       # block in settings.gradle.kts.
       #
       # The SDK is on GitHub Packages, which is per-repository and

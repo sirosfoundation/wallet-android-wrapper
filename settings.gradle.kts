@@ -22,7 +22,7 @@ dependencyResolutionManagement {
         mavenCentral()
         maven { url = uri("https://www.jitpack.io") }
 
-        // TEMPORARY, remove at SDK 0.15.0.
+        // TEMPORARY, remove at SDK 0.14.0.
         //
         // The SIROS SDK is on GitHub Packages, which is per-repository and
         // authenticated. Unlike the vendor packages below this is NOT optional -
@@ -30,10 +30,10 @@ dependencyResolutionManagement {
         // credentials fails loudly here rather than silently skipping the
         // repository and failing later with an unresolved dependency.
         //
-        // The SDK is moving to Maven Central for 0.15.0. When it lands, delete
+        // The SDK is moving to Maven Central for 0.14.0. When it lands, delete
         // this whole block: mavenCentral() above already covers it, and the
         // GITHUB_ACTOR/PACKAGES_TOKEN pair in .github/workflows/push.yml goes
-        // with it. Grep for 0.15.0 to find both places.
+        // with it. Grep for 0.14.0 to find both places.
         maven {
             name = "SirosSdk"
             url = uri("https://maven.pkg.github.com/sirosfoundation/siros-sdk-kotlin")
