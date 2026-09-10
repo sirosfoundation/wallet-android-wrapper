@@ -146,18 +146,29 @@ webauthn: {
 }
 ```
 
-### FaceTec SDK (GitHub Packages)
+### GitHub Packages credentials (required)
 
-The FaceTec SDK is hosted as a private Maven package in the `sirosfoundation/vendor-maven-packages` GitHub repository. To resolve it locally, add the following to `~/.gradle/gradle.properties` (create the file if it doesn't exist):
+**Every build needs these**, not just the optional FaceTec flavour. Add them to `~/.gradle/gradle.properties` (create the file if it doesn't exist):
 
 ```properties
 gpr.user=<your-github-username>
-gpr.key=<github-pat-with-read:packages-scope>
+gpr.key=<a-PAT-with-read:packages>
 ```
 
-Generate a PAT at **GitHub → Settings → Developer settings → Personal access tokens** with the `read:packages` scope.
+Generate one at **GitHub → Settings → Developer settings → Personal access tokens**.
 
-In GitHub Actions CI the `GITHUB_TOKEN` and `GITHUB_ACTOR` environment variables are provided automatically — no additional secrets are needed.
+Two things are resolved from GitHub Packages:
+
+| What | Where | Optional? |
+|---|---|---|
+| The SIROS SDK's native dependencies — `siros-wscd-manager`, `zk-cred-longfellow`, `zk-cred-vega`, `zk-cred-bbs`, `siros-dc-matcher` | one repository each, under `sirosfoundation` | **No.** The proximity capability needs the SDK, and the SDK needs these. |
+| The FaceTec SDK | `sirosfoundation/vendor-maven-packages` | Yes — only compiled in when `FACETEC_API_BEARER_TOKEN` is set. |
+
+The SDK itself comes from Maven Central as of 0.14.0 and needs no credentials. Its native dependencies have not moved there yet; when they do, the `SirosNativeCrates` repository block in `settings.gradle.kts` and the token pair in `.github/workflows/push.yml` both come out.
+
+**Which kind of PAT.** A *classic* token with the `read:packages` scope sees every package in the organisation regardless of which repository URL Gradle asks, so one is enough. A *fine-grained* token scopes by the repository that **owns** the package, so it needs all five crate repositories selected individually — plus `vendor-maven-packages` if you build the FaceTec flavour. Selecting only `siros-sdk-kotlin` is the intuitive choice and it does not work.
+
+**In CI the default token is not enough.** `GITHUB_TOKEN` cannot read another repository's packages, so the workflows set `GITHUB_ACTOR: sirospackages` with `secrets.PACKAGES_TOKEN`. A build that reports `SIROS native crates: gpr.key (or GITHUB_TOKEN) is not set` is missing that pair.
 
 
 Wrapping

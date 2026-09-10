@@ -312,7 +312,9 @@ JAVASCRIPT_BRIDGE.__resolve__ = (uuid, result) => {
         var promise = JAVASCRIPT_BRIDGE.__promise_cache__[uuid]
         console.log("Promise resolved:", promise.method, uuid)
 
-        if (!promise.method.startsWith('bluetooth')) {
+        if (promise.method.startsWith('proximity')) {
+            result = __b64ToJson(result)
+        } else {
             result = __decode__credentials(result)
         }
 
@@ -327,6 +329,9 @@ JAVASCRIPT_BRIDGE.__resolve__ = (uuid, result) => {
 JAVASCRIPT_BRIDGE.__reject__ = (uuid, result) => {
     if (uuid in JAVASCRIPT_BRIDGE.__promise_cache__) {
         var promise = JAVASCRIPT_BRIDGE.__promise_cache__ [uuid]
+        if (promise.method.startsWith('proximity')) {
+            try { result = __b64ToJson(result) } catch (e) { /* leave it as the raw string */ }
+        }
         console.log("Rejected promise", JSON.stringify(promise), "with uuid", uuid, "and result", result)
 
         JAVASCRIPT_BRIDGE.__promise_cache__[uuid].reject(result)
@@ -339,8 +344,9 @@ JAVASCRIPT_BRIDGE.__reject__ = (uuid, result) => {
 overrideNavigatorCredentialsWithBridgeCall("create")
 overrideNavigatorCredentialsWithBridgeCall("get")
 
-// create ble methods
-function createBluetoothMethod(method) {
+// Wrap a native *Wrapped(promiseUuid, parameter) method as a promise-returning
+// method whose result is decoded from base64 JSON.
+function createWrappedMethod(method) {
     console.assert (
         typeof JAVASCRIPT_BRIDGE[method+"Wrapped"] !== 'undefined',
         "Associated wrapper function 'JAVASCRIPT_BRIDGE." + method +"Wrapped(promiseUuid,parameter)' not found."
@@ -367,15 +373,98 @@ function createBluetoothMethod(method) {
     }
 }
 
-createBluetoothMethod('bluetoothStatus')
-createBluetoothMethod('bluetoothTerminate')
+// ISO 18013-5 proximity is now a session hosted by the SDK, not eight GATT
+// methods. The page starts one and gets an engagement URI for its QR code;
+// the session then runs natively and asks the page for the three things the
+// page still owns.
+createWrappedMethod('proximityStart')
+createWrappedMethod('proximityStop')
 
-createBluetoothMethod('bluetoothCreateServer')
-createBluetoothMethod('bluetoothCreateClient')
-createBluetoothMethod('bluetoothSendToServer')
-createBluetoothMethod('bluetoothSendToClient')
-createBluetoothMethod('bluetoothReceiveFromClient')
-createBluetoothMethod('bluetoothReceiveFromServer')
+// ---------------------------------------------------------------------------
+// Calls FROM native INTO the page.
+//
+// The page registers handlers; native invokes them by name and waits. Payloads
+// are UTF-8 JSON in base64 in both directions, so quoting, newlines and
+// U+2028/U+2029 stop being hazards and a binary payload needs no separate
+// encoding. (The older __resolve__ path interpolates into a single-quoted
+// string with no escaping - WebAuthn is its last user; do not build on it.)
+// ---------------------------------------------------------------------------
+
+JAVASCRIPT_BRIDGE.__handlers__ = {}
+JAVASCRIPT_BRIDGE.__cancelled__ = {}
+
+/** Register a handler native can invoke. Returns an unregister function. */
+JAVASCRIPT_BRIDGE.onRequest = function (name, handler) {
+    JAVASCRIPT_BRIDGE.__handlers__[name] = handler
+    return function () { delete JAVASCRIPT_BRIDGE.__handlers__[name] }
+}
+
+function __b64ToJson(b64) {
+    if (!b64) return null
+    var binary = atob(b64)
+    var bytes = new Uint8Array(binary.length)
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    return JSON.parse(new TextDecoder().decode(bytes))
+}
+
+function __jsonToB64(value) {
+    var bytes = new TextEncoder().encode(JSON.stringify(value === undefined ? null : value))
+    var binary = ''
+    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    return btoa(binary)
+}
+
+JAVASCRIPT_BRIDGE.__invoke__ = function (callId, name, payloadB64) {
+    var handler = JAVASCRIPT_BRIDGE.__handlers__[name]
+    if (typeof handler !== 'function') {
+        JAVASCRIPT_BRIDGE.__replyError__(callId, 'no_handler', 'no handler registered for ' + name)
+        return
+    }
+
+    var payload
+    try {
+        payload = __b64ToJson(payloadB64)
+    } catch (e) {
+        JAVASCRIPT_BRIDGE.__replyError__(callId, 'bad_payload', String(e))
+        return
+    }
+
+    Promise.resolve()
+        .then(function () { return handler(payload) })
+        .then(function (result) {
+            if (JAVASCRIPT_BRIDGE.__cancelled__[callId]) {
+                delete JAVASCRIPT_BRIDGE.__cancelled__[callId]
+                return
+            }
+            JAVASCRIPT_BRIDGE.__reply__(callId, __jsonToB64(result))
+        })
+        .catch(function (e) {
+            if (JAVASCRIPT_BRIDGE.__cancelled__[callId]) {
+                delete JAVASCRIPT_BRIDGE.__cancelled__[callId]
+                return
+            }
+            JAVASCRIPT_BRIDGE.__replyError__(callId, 'handler_failed', (e && e.message) ? e.message : String(e))
+        })
+}
+
+/**
+ * Native gave up on a call. The handler may still be running - we cannot stop
+ * it - so mark the id and drop its answer when it arrives.
+ */
+JAVASCRIPT_BRIDGE.__cancel__ = function (callId) {
+    JAVASCRIPT_BRIDGE.__cancelled__[callId] = true
+}
+
+/** One-way: progress and terminal events. Errors in a listener are swallowed. */
+JAVASCRIPT_BRIDGE.__notify__ = function (name, payloadB64) {
+    var handler = JAVASCRIPT_BRIDGE.__handlers__[name]
+    if (typeof handler !== 'function') return
+    try {
+        handler(__b64ToJson(payloadB64))
+    } catch (e) {
+        console.log('notify handler for ' + name + ' threw: ' + e)
+    }
+}
 
 // call out finalization
 console.log('injected!')

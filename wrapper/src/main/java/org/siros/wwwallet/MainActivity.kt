@@ -53,8 +53,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import org.siros.wwwallet.bluetooth.BleClientHandler
-import org.siros.wwwallet.bluetooth.BleServerHandler
 import org.siros.wwwallet.bridging.DebugMenuHandler
 import org.siros.wwwallet.bridging.WalletJsBridge
 import org.siros.wwwallet.credentials.AndroidContainer
@@ -101,8 +99,6 @@ class MainActivity : ComponentActivity() {
                 Dispatchers.Main,
                 YubicoContainer(activity = this),
                 AndroidContainer(context = this),
-                BleClientHandler(activity = this),
-                BleServerHandler(activity = this),
                 DebugMenuHandler(
                     this,
                     {

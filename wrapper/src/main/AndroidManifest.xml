@@ -101,6 +101,13 @@
                 android:name="android.credentials.provider"
                 android:resource="@xml/credential_provider" />
         </service>
+
+        <!--
+            No NFC handover service is declared here on purpose. The SDK's own
+            library manifest contributes MdocHostApduService, its intent filter
+            and its AID group, so the merger brings all of it in. Declaring it
+            again here only produces a resource conflict.
+        -->
     </application>
 
 </manifest>
