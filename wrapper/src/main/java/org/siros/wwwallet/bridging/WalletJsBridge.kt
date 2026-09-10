@@ -15,19 +15,20 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import org.json.JSONArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import org.json.JSONException
 import org.json.JSONObject
 import org.siros.wwwallet.BuildConfig
 import org.siros.wwwallet.MainViewModel
-import org.siros.wwwallet.bluetooth.BleClientHandler
-import org.siros.wwwallet.bluetooth.BleServerHandler
-import org.siros.wwwallet.bluetooth.ServiceCharacteristic
 import org.siros.wwwallet.credentials.Container
 import org.siros.wwwallet.json.DcApiCredential
 import org.siros.wwwallet.json.toList
+import org.siros.wwwallet.proximity.ProximityBridge
 import org.siros.wwwallet.storage.Settings
 import timber.log.Timber
+import java.util.Base64
 import kotlin.coroutines.EmptyCoroutineContext
 
 class WalletJsBridge(
@@ -35,8 +36,6 @@ class WalletJsBridge(
     private val dispatcher: CoroutineDispatcher,
     private val securityKeyCredentialsContainer: Container,
     private val clientDeviceCredentialsContainer: Container,
-    private val bleClientHandler: BleClientHandler,
-    private val bleServerHandler: BleServerHandler,
     private val debugMenuHandler: DebugMenuHandler?,
     private val startPhotoIdMatch: () -> Unit,
     private val finishDcApiRequest: (response: String?, error: String?) -> Unit,
@@ -44,6 +43,21 @@ class WalletJsBridge(
     companion object {
         const val JAVASCRIPT_BRIDGE_NAME = "nativeWrapper"
     }
+
+    /**
+     * Calls into the page. Constructed here rather than injected because it is
+     * bound to this WebView's lifetime and has no configuration.
+     */
+    private val scope = CoroutineScope(dispatcher)
+
+    private val calls = JsCallHost(webView, scope)
+
+    /**
+     * ISO 18013-5 proximity, hosted by the SDK. Replaces the eight
+     * `bluetooth*` methods this class used to expose, which handed raw GATT
+     * to the page and left it to run the protocol.
+     */
+    private val proximity = ProximityBridge(webView.context, calls, scope)
 
     private fun credentialsContainerByOption(mappedOptions: JSONObject): Container =
         try {
@@ -72,6 +86,10 @@ class WalletJsBridge(
     @Suppress("unused")
     fun inject() {
         Timber.i("Adding `${javaClass.simpleName}` as `$JAVASCRIPT_BRIDGE_NAME` to JS.")
+
+        // A page commit replaced the page and its handler registry, so anything
+        // we were waiting on can never be answered.
+        calls.invalidateAll("the page was replaced")
 
         dispatcher.dispatch(EmptyCoroutineContext) {
             val injectionSnippet =
@@ -318,125 +336,70 @@ class WalletJsBridge(
         )
     }
 
+    // ── proximity ───────────────────────────────────────────────────────────
+
+    /**
+     * Starts an ISO 18013-5 proximity session and resolves with
+     * `{ mdocUri, mode }` so the page can render its QR code. The session then
+     * runs natively and reports through `proximity.step` / `proximity.complete`.
+     */
     @JavascriptInterface
     @Suppress("unused")
-    fun bluetoothStatusWrapped(
+    fun proximityStartWrapped(
         promiseUuid: String,
-        unusedParameter: String,
+        params: String,
     ) {
-        resolvePromise(
-            promiseUuid,
-            // @formatter:off
-            "Mode:   ${ServiceCharacteristic.mode.name}\\n\\n" +
-                "Server: ${bleServerHandler.status()}\\n\\n" +
-                "Client: ${bleClientHandler.status()}",
-            // @formatter:on
-        )
-    }
-
-    @JavascriptInterface
-    @Suppress("unused")
-    fun bluetoothTerminateWrapped(
-        promiseUuid: String,
-        unusedParameter: String,
-    ) {
-        bleServerHandler.disconnect()
-        bleClientHandler.disconnect()
-
-        resolvePromise(promiseUuid, "true")
-    }
-
-    @JavascriptInterface
-    @Suppress("unused")
-    fun bluetoothCreateServerWrapped(
-        promiseUuid: String,
-        serviceUuid: String,
-    ) {
-        bleServerHandler.createServer(
-            serviceUuid = serviceUuid,
-            success = { resolvePromise(promiseUuid, "true") },
-            failure = { rejectPromise(promiseUuid, "false") },
-        )
-    }
-
-    @JavascriptInterface
-    @Suppress("unused")
-    fun bluetoothCreateClientWrapped(
-        promiseUuid: String,
-        serviceUuid: String,
-    ) {
-        bleClientHandler.createClient(
-            serviceUuid = serviceUuid,
-            success = { resolvePromise(promiseUuid, "true") },
-            failure = { rejectPromise(promiseUuid, "false") },
-        )
-    }
-
-    @JavascriptInterface
-    @Suppress("unused")
-    fun bluetoothSendToServerWrapped(
-        promiseUuid: String,
-        rawParameter: String,
-    ) {
-        val parameter = JSONArray(rawParameter).toByteArray()
-
-        bleClientHandler.sendToServer(
-            parameter,
-            success = { resolvePromise(promiseUuid, "true") },
-            failure = { rejectPromise(promiseUuid, "false") },
-        )
-    }
-
-    @JavascriptInterface
-    @Suppress("unused")
-    fun bluetoothSendToClientWrapped(
-        promiseUuid: String,
-        rawParameter: String,
-    ) {
-        val parameter = JSONArray(rawParameter).toByteArray()
-
-        bleServerHandler.sendToClient(
-            parameter,
-            success = { resolvePromise(promiseUuid, "true") },
-            failure = { rejectPromise(promiseUuid, "false") },
-        )
-    }
-
-    @JavascriptInterface
-    @Suppress("unused")
-    fun bluetoothReceiveFromClientWrapped(
-        promiseUuid: String,
-        unusedParameter: String,
-    ) {
-        bleServerHandler.receiveFromClient(
-            success = { resolvePromise(promiseUuid, JSONArray(it).toString()) },
-            failure = { rejectPromise(promiseUuid, "null") },
-        )
-    }
-
-    @JavascriptInterface
-    @Suppress("unused")
-    fun bluetoothReceiveFromServerWrapped(
-        promiseUuid: String,
-        unusedParameter: String,
-    ) {
-        bleClientHandler.receiveFromServer(
-            success = { resolvePromise(promiseUuid, JSONArray(it).toString()) },
-            failure = { rejectPromise(promiseUuid, "false") },
-        )
-    }
-
-    @JavascriptInterface
-    @Suppress("unused")
-    fun bluetoothSetMode(mode: String) {
-        if (mode in ServiceCharacteristic.Mode.entries.map { it.name }) {
-            ServiceCharacteristic.mode = ServiceCharacteristic.Mode.valueOf(mode)
+        scope.launch {
+            try {
+                val engagement = proximity.start(params)
+                resolvePromise(promiseUuid, base64Json(engagement))
+            } catch (e: Exception) {
+                Timber.e(e, "Could not start a proximity session.")
+                rejectPromise(promiseUuid, base64Json(errorPayload(e)))
+            }
         }
     }
 
+    /** Tears the session down. Idempotent. */
     @JavascriptInterface
     @Suppress("unused")
-    fun bluetoothGetMode(): String = ServiceCharacteristic.mode.name
+    fun proximityStopWrapped(
+        promiseUuid: String,
+        unusedParameter: String,
+    ) {
+        proximity.stop()
+        resolvePromise(promiseUuid, base64Json(JsonPrimitive(true)))
+    }
+
+    // ── replies to calls we made into the page ──────────────────────────────
+
+    /** The page's answer to a `__invoke__`. See [JsCallHost]. */
+    @JavascriptInterface
+    @Suppress("unused", "ktlint:standard:function-naming")
+    fun __reply__(
+        callId: String,
+        payloadB64: String,
+    ) = calls.reply(callId, payloadB64)
+
+    /** The page's refusal of a `__invoke__`. See [JsCallHost]. */
+    @JavascriptInterface
+    @Suppress("unused", "ktlint:standard:function-naming")
+    fun __replyError__(
+        callId: String,
+        code: String,
+        message: String,
+    ) = calls.replyError(callId, code, message)
+
+    private fun base64Json(payload: JsonElement): String =
+        Base64.getEncoder().encodeToString(
+            Json.encodeToString(JsonElement.serializer(), payload).toByteArray(Charsets.UTF_8),
+        )
+
+    private fun errorPayload(e: Exception): JsonElement =
+        buildJsonObject {
+            put("code", JsonPrimitive(e::class.simpleName ?: "error"))
+            put("message", JsonPrimitive(e.message ?: "no message"))
+        }
 
     private fun resolvePromise(
         promiseUuid: String,
@@ -473,14 +436,3 @@ class WalletJsBridge(
         return bitmap
     }
 }
-
-private fun JSONArray.toByteArray(): ByteArray =
-    (0 until length())
-        .mapNotNull { index ->
-            val value = get(index)
-            if (value is Int) {
-                value.toByte()
-            } else {
-                null
-            }
-        }.toByteArray()

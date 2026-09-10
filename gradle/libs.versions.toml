@@ -13,6 +13,7 @@ webkit = "1.17.0"
 ausweis = "2.5.5"
 credentials = "1.7.0-alpha03"
 yubikit = "3.2.0"
+sirosSdk = "0.13.0"
 timber = "5.0.1"
 test-json = "20260814"
 coroutines = "1.11.0"
@@ -47,6 +48,9 @@ androidx-credentials-playservices = { group = "androidx.credentials", name = "cr
 coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 ausweis = { group = "com.governikus.ausweisapp", name = "sdkwrapper", version.ref = "ausweis" }
+siros-sdk-bom = { group = "org.siros", name = "siros-sdk-bom", version.ref = "sirosSdk" }
+siros-sdk-keystore = { group = "org.siros", name = "siros-sdk-keystore" }
+siros-sdk-credentials = { group = "org.siros", name = "siros-sdk-credentials" }
 yubikit-android = { group = "com.yubico.yubikit", name = "android", version.ref = "yubikit" }
 yubikit-fido = { group = "com.yubico.yubikit", name = "fido", version.ref = "yubikit" }
 timber = { group ="com.jakewharton.timber", name = "timber", version.ref = "timber" }
