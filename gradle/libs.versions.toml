@@ -13,6 +13,8 @@ webkit = "1.17.0"
 ausweis = "2.5.5"
 credentials = "1.7.0-alpha03"
 yubikit = "3.2.0"
+# 0.15.0 moves to Maven Central; bumping to it also deletes the SirosSdk
+# repository block in settings.gradle.kts and the token pair in push.yml.
 sirosSdk = "0.13.0"
 timber = "5.0.1"
 test-json = "20260814"
