@@ -2,6 +2,7 @@ package org.siros.wwwallet.proximity
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -61,6 +62,14 @@ class ProximityBridge(
     private var central: BleCentralClient? = null
 
     /**
+     * Bumped by every [start]. A transport torn down by the next [start] can
+     * still have work in flight, and its callbacks would otherwise report the
+     * old session's outcome to the page and tear down the new transport.
+     * Only touched from [scope], which is the main dispatcher.
+     */
+    private var generation = 0
+
+    /**
      * Starts a session and returns the engagement for the page to render.
      *
      * Returns as soon as the transport is up: the session itself continues in
@@ -71,16 +80,29 @@ class ProximityBridge(
         stop()
 
         val mode = parseMode(paramsJson)
+        val session = ++generation
+
+        // Advertise ONLY the role actually started. Offering both and serving
+        // one means a reader that picks the other UUID out of the QR
+        // engagement connects to nothing.
+        //
+        // Over NFC it was worse than that. `NfcHandoverSelect.build` derives
+        // its LE Role from what the engagement offers, so an engagement
+        // claiming both produced BOTH_CENTRAL_PREFERRED and the *central*
+        // UUID - telling the reader to play central while this side was
+        // starting the peripheral server. That is precisely the
+        // "advertise under the peripheral UUID while we scan for the central
+        // one" deadlock the SDK's own doc comment records as confirmed live.
         val engagement =
             DeviceEngagement.create(
-                supportsCentralClientMode = true,
-                supportsPeripheralServerMode = true,
+                supportsCentralClientMode = mode == Mode.CENTRAL,
+                supportsPeripheralServerMode = mode == Mode.PERIPHERAL,
             )
 
         // The SDK's HostApduService is OS-instantiated, so it reads the active
         // engagement from this singleton rather than taking it by constructor.
         ActiveEngagement.handoverSelectBytes = NfcHandoverSelect.build(engagement)
-        ActiveEngagement.onHandoverServed = { calls.notify(STEP, stepPayload("nfc_handover_served")) }
+        ActiveEngagement.onHandoverServed = { onStep("nfc_handover_served", session) }
 
         when (mode) {
             Mode.PERIPHERAL ->
@@ -94,8 +116,8 @@ class ProximityBridge(
                         requestConsent = ::requestConsent,
                         filterEligible = ::filterEligible,
                         evaluateReaderTrust = ::evaluateReaderTrust,
-                        onStep = ::onStep,
-                        onComplete = ::onComplete,
+                        onStep = { step -> onStep(step, session) },
+                        onComplete = { success -> onComplete(success, session) },
                     ).also { it.start() }
 
             Mode.CENTRAL ->
@@ -109,8 +131,8 @@ class ProximityBridge(
                         requestConsent = ::requestConsent,
                         filterEligible = ::filterEligible,
                         evaluateReaderTrust = ::evaluateReaderTrust,
-                        onStep = ::onStep,
-                        onComplete = ::onComplete,
+                        onStep = { step -> onStep(step, session) },
+                        onComplete = { success -> onComplete(success, session) },
                     ).also { it.start() }
         }
 
@@ -174,7 +196,12 @@ class ProximityBridge(
         val encoded =
             result.jsonObject["deviceResponse"]?.jsonPrimitive?.content
                 ?: throw JsCallHost.JsCallException("bad_reply", "$SIGN returned no deviceResponse")
-        return unb64(encoded)
+        // Base64 decoding "" succeeds with zero bytes, so emptiness has to be
+        // rejected explicitly or the reader gets an empty response rather than
+        // an error.
+        return unb64(encoded).also {
+            if (it.isEmpty()) throw JsCallHost.JsCallException("bad_reply", "$SIGN returned an empty deviceResponse")
+        }
     }
 
     /**
@@ -223,28 +250,40 @@ class ProximityBridge(
         val approved = result["approved"]?.jsonPrimitive?.content?.toBoolean() ?: false
         if (!approved) return ProximityConsentResult.Denied
 
+        // No falling back to the first family: the page chose from a list this
+        // session handed it, so an absent or unrecognised id means the answer
+        // is stale or malformed, and presenting *something* would present a
+        // credential the user did not pick.
         val chosenId = result["credentialId"]?.jsonPrimitive?.content?.toLongOrNull()
         val family =
             matchingFamilies.firstOrNull { it.representative.id == chosenId }
-                ?: matchingFamilies.firstOrNull()
-                ?: return ProximityConsentResult.Denied
+                ?: run {
+                    Timber.e("Consent was approved without naming a credential this session offered; denying.")
+                    return ProximityConsentResult.Denied
+                }
         return ProximityConsentResult.Approved(family)
     }
 
     /**
-     * REVIEW POINT. Reader trust belongs on this side of the bridge, not the
-     * page's: both clients ask go-trust for the same decision, but only a
-     * native client has a fallback when go-trust is unreachable, and a
-     * checkpoint is exactly where it is unreachable.
+     * Reader trust, deferred to the page for now.
      *
-     * It is a callback here because the SDK's own reader-trust evaluation -
-     * AuthZEN against go-trust with local certificate-path validation as the
-     * fallback, including the distinction between a reader the backend
-     * refused and a backend that could not be reached - is only reachable
-     * through the wallet facade, which a web-view host deliberately does not
-     * construct. Until that evaluation is reachable without it, this defers
-     * to the page, which means an offline session cannot make a trust
-     * decision at all.
+     * It belongs on this side: both clients ask go-trust for the same
+     * decision, but only a native client can still answer when go-trust is
+     * unreachable, and a checkpoint is where it usually is.
+     *
+     * The SDK does have that offline answer - RICAL roots for readers, VICAL
+     * for issuers, with the fail-closed-versus-fall-back distinction between
+     * a reader the backend refused and a backend that could not be reached.
+     * What is not reachable from a flow-free composition is that local path:
+     * `evaluateMdocTrustLocally` is private to `SirosWallet`, which a
+     * web-view host deliberately does not construct. The remote half is
+     * reachable, via `BackendApiClient.evaluateTrust`, but it takes a shaped
+     * AuthZEN body and a backend base URL that the page, not this wrapper,
+     * owns the conversation with.
+     *
+     * So this is a composition gap, not a missing capability, and it is one
+     * small SDK addition away: expose the local evaluator, and this becomes
+     * native with no change to the bridge contract.
      */
     private suspend fun evaluateReaderTrust(x5chain: List<ByteArray>): ReaderTrustResult {
         val payload =
@@ -265,14 +304,39 @@ class ProximityBridge(
         }
     }
 
-    private fun onStep(step: String) = calls.notify(STEP, stepPayload(step))
+    /**
+     * The SDK reports from whichever thread it is on, while [start] and [stop]
+     * run on [scope]'s main dispatcher. Land everything there, both to avoid
+     * racing over [peripheral]/[central] and to read [generation] consistently.
+     */
+    private fun onStep(
+        step: String,
+        session: Int,
+    ) {
+        scope.launch {
+            if (generation != session) {
+                Timber.d("Ignoring step '$step' from a replaced session.")
+                return@launch
+            }
+            calls.notify(STEP, stepPayload(step))
+        }
+    }
 
-    private fun onComplete(success: Boolean) {
-        calls.notify(
-            COMPLETE,
-            buildJsonObject { put("success", JsonPrimitive(success)) },
-        )
-        stop()
+    private fun onComplete(
+        success: Boolean,
+        session: Int,
+    ) {
+        scope.launch {
+            if (generation != session) {
+                Timber.d("Ignoring completion from a replaced session.")
+                return@launch
+            }
+            calls.notify(
+                COMPLETE,
+                buildJsonObject { put("success", JsonPrimitive(success)) },
+            )
+            stop()
+        }
     }
 
     // ── helpers ────────────────────────────────────────────────────────────

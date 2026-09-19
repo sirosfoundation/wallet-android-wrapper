@@ -396,7 +396,14 @@ JAVASCRIPT_BRIDGE.__cancelled__ = {}
 /** Register a handler native can invoke. Returns an unregister function. */
 JAVASCRIPT_BRIDGE.onRequest = function (name, handler) {
     JAVASCRIPT_BRIDGE.__handlers__[name] = handler
-    return function () { delete JAVASCRIPT_BRIDGE.__handlers__[name] }
+    // Only remove this handler, not whatever replaced it: a later onRequest
+    // for the same name wins, and a stale unregister from the handler it
+    // replaced must not silently unhook the live one.
+    return function () {
+        if (JAVASCRIPT_BRIDGE.__handlers__[name] === handler) {
+            delete JAVASCRIPT_BRIDGE.__handlers__[name]
+        }
+    }
 }
 
 function __b64ToJson(b64) {

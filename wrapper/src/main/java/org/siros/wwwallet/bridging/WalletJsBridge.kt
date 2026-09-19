@@ -367,7 +367,11 @@ class WalletJsBridge(
         promiseUuid: String,
         unusedParameter: String,
     ) {
-        proximity.stop()
+        // A @JavascriptInterface method runs on a WebView-internal thread, not
+        // the main one, and `stop()` mutates the transport the session is
+        // running on. Hand it to the same scope `start` uses so every mutation
+        // is serialized onto one dispatcher.
+        scope.launch { proximity.stop() }
         resolvePromise(promiseUuid, base64Json(JsonPrimitive(true)))
     }
 
