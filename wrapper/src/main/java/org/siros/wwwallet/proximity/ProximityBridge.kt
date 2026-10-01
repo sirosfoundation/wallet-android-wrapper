@@ -21,7 +21,7 @@ import org.siros.sdk.keystore.mdoc.DeviceEngagement
 import org.siros.sdk.keystore.mdoc.NfcHandoverSelect
 import org.siros.sdk.keystore.mdoc.ProximityConsentResult
 import org.siros.sdk.keystore.mdoc.ReaderTrustResult
-import org.siros.wwwallet.bridging.ProximityCallHost
+import org.siros.wwwallet.bridging.JsCallHost
 import timber.log.Timber
 import java.util.Base64
 
@@ -40,7 +40,7 @@ import java.util.Base64
  */
 class ProximityBridge(
     private val context: Context,
-    private val calls: ProximityCallHost,
+    private val calls: JsCallHost,
     private val scope: CoroutineScope,
 ) {
     /** Which BLE role the wallet plays. The engagement always offers both; this picks the one to actually start. */
@@ -195,12 +195,12 @@ class ProximityBridge(
         val result = calls.call(SIGN, payload)
         val encoded =
             result.jsonObject["deviceResponse"]?.jsonPrimitive?.content
-                ?: throw ProximityCallHost.JsCallException("bad_reply", "$SIGN returned no deviceResponse")
+                ?: throw JsCallHost.JsCallException("bad_reply", "$SIGN returned no deviceResponse")
         // Base64 decoding "" succeeds with zero bytes, so emptiness has to be
         // rejected explicitly or the reader gets an empty response rather than
         // an error.
         return unb64(encoded).also {
-            if (it.isEmpty()) throw ProximityCallHost.JsCallException("bad_reply", "$SIGN returned an empty deviceResponse")
+            if (it.isEmpty()) throw JsCallHost.JsCallException("bad_reply", "$SIGN returned an empty deviceResponse")
         }
     }
 
@@ -297,7 +297,7 @@ class ProximityBridge(
                 reason = result["reason"]?.jsonPrimitive?.contentOrNullSafe(),
                 entityName = result["entityName"]?.jsonPrimitive?.contentOrNullSafe(),
             )
-        } catch (e: ProximityCallHost.JsCallException) {
+        } catch (e: JsCallHost.JsCallException) {
             // Fail closed: an unanswered trust question is not a trusted reader.
             Timber.w(e, "Reader trust evaluation failed; treating the reader as untrusted.")
             ReaderTrustResult(trusted = false, reason = "trust evaluation unavailable: ${e.code}")

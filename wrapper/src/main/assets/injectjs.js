@@ -381,14 +381,15 @@ createWrappedMethod('proximityStart')
 createWrappedMethod('proximityStop')
 
 // ---------------------------------------------------------------------------
-// Proximity: calls FROM native INTO the page.
+// Native to webview call channels.
 //
-// The native session asks the page for the pieces it still owns - its
-// credentials, the user's consent, a signature. The page registers handlers by
-// short name with onProximityRequest; native reaches them through the
-// __proximity__ namespace below. Payloads are UTF-8 JSON in base64 in both
-// directions, so quoting, newlines and U+2028/U+2029 stop being hazards and a
-// binary payload needs no separate encoding. (The older __resolve__ path
+// A native session asks the page for the pieces it still owns. Each feature
+// gets its own channel - its own handler registry and the entry points native
+// drives it through - built by __makeCallNamespace__ so no feature shares
+// another's handlers or its in-flight calls, and adding the next one is two
+// lines rather than a copy of this machinery. Payloads are UTF-8 JSON in base64
+// in both directions, so quoting, newlines and U+2028/U+2029 stop being hazards
+// and a binary payload needs no separate encoding. (The older __resolve__ path
 // interpolates into a single-quoted string with no escaping - WebAuthn is its
 // last user; do not build on it.)
 // ---------------------------------------------------------------------------
@@ -408,76 +409,85 @@ function __jsonToB64(value) {
     return btoa(binary)
 }
 
-// The page's side of a native proximity session: its own handler registry and
-// the entry points native drives it through. Nothing else shares this space.
-JAVASCRIPT_BRIDGE.__proximity__ = {
-    handlers: {},
-    cancelled: {},
+// One feature's channel. `label` only shapes error and log text; the registry
+// and in-flight calls are private to the returned object.
+function __makeCallNamespace__(label) {
+    return {
+        handlers: {},
+        cancelled: {},
 
-    // Request/response: run the named handler and answer via __reply__.
-    invoke: function (callId, name, payloadB64) {
-        var self = this
-        var handler = this.handlers[name]
-        if (typeof handler !== 'function') {
-            JAVASCRIPT_BRIDGE.__replyError__(callId, 'no_handler', 'no proximity handler registered for ' + name)
-            return
-        }
+        // Request/response: run the named handler and answer via __reply__.
+        invoke: function (callId, name, payloadB64) {
+            var self = this
+            var handler = this.handlers[name]
+            if (typeof handler !== 'function') {
+                JAVASCRIPT_BRIDGE.__replyError__(callId, 'no_handler', 'no ' + label + ' handler registered for ' + name)
+                return
+            }
 
-        var payload
-        try {
-            payload = __b64ToJson(payloadB64)
-        } catch (e) {
-            JAVASCRIPT_BRIDGE.__replyError__(callId, 'bad_payload', String(e))
-            return
-        }
+            var payload
+            try {
+                payload = __b64ToJson(payloadB64)
+            } catch (e) {
+                JAVASCRIPT_BRIDGE.__replyError__(callId, 'bad_payload', String(e))
+                return
+            }
 
-        Promise.resolve()
-            .then(function () { return handler(payload) })
-            .then(function (result) {
-                if (self.cancelled[callId]) {
-                    delete self.cancelled[callId]
-                    return
-                }
-                JAVASCRIPT_BRIDGE.__reply__(callId, __jsonToB64(result))
-            })
-            .catch(function (e) {
-                if (self.cancelled[callId]) {
-                    delete self.cancelled[callId]
-                    return
-                }
-                JAVASCRIPT_BRIDGE.__replyError__(callId, 'handler_failed', (e && e.message) ? e.message : String(e))
-            })
-    },
+            Promise.resolve()
+                .then(function () { return handler(payload) })
+                .then(function (result) {
+                    if (self.cancelled[callId]) {
+                        delete self.cancelled[callId]
+                        return
+                    }
+                    JAVASCRIPT_BRIDGE.__reply__(callId, __jsonToB64(result))
+                })
+                .catch(function (e) {
+                    if (self.cancelled[callId]) {
+                        delete self.cancelled[callId]
+                        return
+                    }
+                    JAVASCRIPT_BRIDGE.__replyError__(callId, 'handler_failed', (e && e.message) ? e.message : String(e))
+                })
+        },
 
-    // Native gave up on a call. The handler may still be running - we cannot
-    // stop it - so mark the id and drop its answer when it arrives.
-    cancel: function (callId) {
-        this.cancelled[callId] = true
-    },
+        // Native gave up on a call. The handler may still be running - we cannot
+        // stop it - so mark the id and drop its answer when it arrives.
+        cancel: function (callId) {
+            this.cancelled[callId] = true
+        },
 
-    // One-way: progress and terminal events. Errors in a listener are swallowed.
-    notify: function (name, payloadB64) {
-        var handler = this.handlers[name]
-        if (typeof handler !== 'function') return
-        try {
-            handler(__b64ToJson(payloadB64))
-        } catch (e) {
-            console.log('proximity notify handler for ' + name + ' threw: ' + e)
-        }
-    },
+        // One-way: progress and terminal events. Errors in a listener are swallowed.
+        notify: function (name, payloadB64) {
+            var handler = this.handlers[name]
+            if (typeof handler !== 'function') return
+            try {
+                handler(__b64ToJson(payloadB64))
+            } catch (e) {
+                console.log(label + ' notify handler for ' + name + ' threw: ' + e)
+            }
+        },
+    }
 }
+
+// Register a handler on `namespace` by short name. Returns an unregister
+// function that removes only this handler, not whatever later replaced it.
+function __registerCallHandler__(namespace, name, handler) {
+    namespace.handlers[name] = handler
+    return function () {
+        if (namespace.handlers[name] === handler) {
+            delete namespace.handlers[name]
+        }
+    }
+}
+
+// Proximity: an ISO 18013-5 session hosted natively that asks the page for its
+// credentials, the user's consent, and a signature.
+JAVASCRIPT_BRIDGE.__proximity__ = __makeCallNamespace__('proximity')
 
 /** Register a proximity handler by short name. Returns an unregister function. */
 JAVASCRIPT_BRIDGE.onProximityRequest = function (name, handler) {
-    JAVASCRIPT_BRIDGE.__proximity__.handlers[name] = handler
-    // Only remove this handler, not whatever replaced it: a later registration
-    // for the same name wins, and a stale unregister from the handler it
-    // replaced must not silently unhook the live one.
-    return function () {
-        if (JAVASCRIPT_BRIDGE.__proximity__.handlers[name] === handler) {
-            delete JAVASCRIPT_BRIDGE.__proximity__.handlers[name]
-        }
-    }
+    return __registerCallHandler__(JAVASCRIPT_BRIDGE.__proximity__, name, handler)
 }
 
 // call out finalization

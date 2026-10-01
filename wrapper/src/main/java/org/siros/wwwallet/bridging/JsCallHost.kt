@@ -23,12 +23,17 @@ import java.util.concurrent.ConcurrentHashMap
  * credential list, the user's consent, a signature from a key that never
  * leaves the page - are needed *during* a native session, not before it.
  *
+ * One of these is constructed per feature, each with its own [namespace] (e.g.
+ * `__proximity__`), so the mechanics here are shared but no feature can see
+ * another's handlers or in-flight calls.
+ *
  * ## Wire shape
  *
- * Native evaluates `nativeWrapper.__proximity__.invoke(id, name, payloadB64)`.
- * The page looks up a handler registered under `name`, awaits it, and answers
- * with `nativeWrapper.__reply__(id, resultB64)` or
- * `nativeWrapper.__replyError__(id, code, message)`.
+ * Native evaluates `nativeWrapper.<namespace>.invoke(id, name, payloadB64)`.
+ * The page looks up a handler registered under `name` in that namespace,
+ * awaits it, and answers with `nativeWrapper.__reply__(id, resultB64)` or
+ * `nativeWrapper.__replyError__(id, code, message)`. The reply path is keyed
+ * by call id, not namespace, so it is shared across features.
  *
  * ## Why base64
  *
@@ -48,11 +53,20 @@ import java.util.concurrent.ConcurrentHashMap
  * fails those calls rather than leaving a session waiting on a promise no
  * one holds any more.
  */
-class ProximityCallHost(
+class JsCallHost(
     private val webView: WebView,
     private val scope: CoroutineScope,
+    private val namespace: String,
     private val bridgeName: String = WalletJsBridge.JAVASCRIPT_BRIDGE_NAME,
 ) {
+    init {
+        // Interpolated into the evaluated script; it is our own constant, so
+        // this guards a typo rather than sanitising untrusted input.
+        require(namespace.isNotEmpty() && namespace.all { it.isLetterOrDigit() || it == '_' }) {
+            "namespace '$namespace' must be non-empty, alphanumeric with '_'"
+        }
+    }
+
     /** A call the page answered with `__replyError__`, or that was invalidated. */
     class JsCallException(
         val code: String,
@@ -81,7 +95,7 @@ class ProximityCallHost(
         val deferred = CompletableDeferred<Result<JsonElement>>()
         pending[id] = deferred
 
-        evaluate("$bridgeName.__proximity__.invoke('$id', '${escapeName(name)}', '${encode(payload)}')")
+        evaluate("$bridgeName.$namespace.invoke('$id', '${escapeName(name)}', '${encode(payload)}')")
 
         val outcome = withTimeoutOrNull(timeoutMs) { deferred.await() }
         pending.remove(id)
@@ -89,7 +103,7 @@ class ProximityCallHost(
         if (outcome == null) {
             // Tell the page to stop working on it. Best-effort: if the page has
             // gone, this evaluation is a no-op.
-            evaluate("$bridgeName.__proximity__.cancel('$id')")
+            evaluate("$bridgeName.$namespace.cancel('$id')")
             throw JsCallException("timeout", "the page did not answer '$name' within ${timeoutMs}ms")
         }
         return outcome.getOrThrow()
@@ -100,7 +114,7 @@ class ProximityCallHost(
         name: String,
         payload: JsonElement,
     ) {
-        evaluate("$bridgeName.__proximity__.notify('${escapeName(name)}', '${encode(payload)}')")
+        evaluate("$bridgeName.$namespace.notify('${escapeName(name)}', '${encode(payload)}')")
     }
 
     /** Called from the bridge's `@JavascriptInterface` reply methods. */
