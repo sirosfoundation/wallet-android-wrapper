@@ -73,8 +73,8 @@ class ProximityBridge(
      * Starts a session and returns the engagement for the page to render.
      *
      * Returns as soon as the transport is up: the session itself continues in
-     * the background and reports through `proximity.step` and
-     * `proximity.complete`. Callers get `{ mdocUri, mode }`.
+     * the background and reports through the `step` and `complete`
+     * notifications. Callers get `{ mdocUri, mode }`.
      */
     fun start(paramsJson: String): JsonObject {
         stop()
@@ -369,12 +369,16 @@ class ProximityBridge(
     private fun JsonPrimitive.contentOrNullSafe(): String? = if (this is JsonNull) null else content
 
     companion object {
-        /** Handler names the page registers. Kept together so the contract is readable in one place. */
-        const val CREDENTIALS = "proximity.credentials"
-        const val SIGN = "proximity.sign"
-        const val CONSENT = "proximity.consent"
-        const val READER_TRUST = "proximity.readerTrust"
-        const val STEP = "proximity.step"
-        const val COMPLETE = "proximity.complete"
+        /**
+         * Short handler names the page registers with `onProximityRequest`. The
+         * `proximity` namespace is the call channel, not part of the name, so
+         * these carry no prefix. Kept together so the contract reads in one place.
+         */
+        const val CREDENTIALS = "credentials"
+        const val SIGN = "sign"
+        const val CONSENT = "consent"
+        const val READER_TRUST = "readerTrust"
+        const val STEP = "step"
+        const val COMPLETE = "complete"
     }
 }

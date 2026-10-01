@@ -50,7 +50,7 @@ class WalletJsBridge(
      */
     private val scope = CoroutineScope(dispatcher)
 
-    private val calls = JsCallHost(webView, scope)
+    private val calls = JsCallHost(webView, scope, namespace = "__proximity__")
 
     /**
      * ISO 18013-5 proximity, hosted by the SDK. Replaces the eight
@@ -341,7 +341,7 @@ class WalletJsBridge(
     /**
      * Starts an ISO 18013-5 proximity session and resolves with
      * `{ mdocUri, mode }` so the page can render its QR code. The session then
-     * runs natively and reports through `proximity.step` / `proximity.complete`.
+     * runs natively and reports through the `step` / `complete` notifications.
      */
     @JavascriptInterface
     @Suppress("unused")
@@ -377,7 +377,7 @@ class WalletJsBridge(
 
     // ── replies to calls we made into the page ──────────────────────────────
 
-    /** The page's answer to a `__invoke__`. See [JsCallHost]. */
+    /** The page's answer to a proximity `invoke`. See [JsCallHost]. */
     @JavascriptInterface
     @Suppress("unused", "ktlint:standard:function-naming")
     fun __reply__(
@@ -385,7 +385,7 @@ class WalletJsBridge(
         payloadB64: String,
     ) = calls.reply(callId, payloadB64)
 
-    /** The page's refusal of a `__invoke__`. See [JsCallHost]. */
+    /** The page's refusal of a proximity `invoke`. See [JsCallHost]. */
     @JavascriptInterface
     @Suppress("unused", "ktlint:standard:function-naming")
     fun __replyError__(
