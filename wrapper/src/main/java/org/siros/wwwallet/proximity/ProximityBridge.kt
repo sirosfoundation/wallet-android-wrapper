@@ -21,7 +21,7 @@ import org.siros.sdk.keystore.mdoc.DeviceEngagement
 import org.siros.sdk.keystore.mdoc.NfcHandoverSelect
 import org.siros.sdk.keystore.mdoc.ProximityConsentResult
 import org.siros.sdk.keystore.mdoc.ReaderTrustResult
-import org.siros.wwwallet.bridging.JsCallHost
+import org.siros.wwwallet.bridging.ProximityCallHost
 import timber.log.Timber
 import java.util.Base64
 
@@ -40,7 +40,7 @@ import java.util.Base64
  */
 class ProximityBridge(
     private val context: Context,
-    private val calls: JsCallHost,
+    private val calls: ProximityCallHost,
     private val scope: CoroutineScope,
 ) {
     /** Which BLE role the wallet plays. The engagement always offers both; this picks the one to actually start. */
@@ -73,8 +73,8 @@ class ProximityBridge(
      * Starts a session and returns the engagement for the page to render.
      *
      * Returns as soon as the transport is up: the session itself continues in
-     * the background and reports through `proximity.step` and
-     * `proximity.complete`. Callers get `{ mdocUri, mode }`.
+     * the background and reports through the `step` and `complete`
+     * notifications. Callers get `{ mdocUri, mode }`.
      */
     fun start(paramsJson: String): JsonObject {
         stop()
@@ -195,12 +195,12 @@ class ProximityBridge(
         val result = calls.call(SIGN, payload)
         val encoded =
             result.jsonObject["deviceResponse"]?.jsonPrimitive?.content
-                ?: throw JsCallHost.JsCallException("bad_reply", "$SIGN returned no deviceResponse")
+                ?: throw ProximityCallHost.JsCallException("bad_reply", "$SIGN returned no deviceResponse")
         // Base64 decoding "" succeeds with zero bytes, so emptiness has to be
         // rejected explicitly or the reader gets an empty response rather than
         // an error.
         return unb64(encoded).also {
-            if (it.isEmpty()) throw JsCallHost.JsCallException("bad_reply", "$SIGN returned an empty deviceResponse")
+            if (it.isEmpty()) throw ProximityCallHost.JsCallException("bad_reply", "$SIGN returned an empty deviceResponse")
         }
     }
 
@@ -297,7 +297,7 @@ class ProximityBridge(
                 reason = result["reason"]?.jsonPrimitive?.contentOrNullSafe(),
                 entityName = result["entityName"]?.jsonPrimitive?.contentOrNullSafe(),
             )
-        } catch (e: JsCallHost.JsCallException) {
+        } catch (e: ProximityCallHost.JsCallException) {
             // Fail closed: an unanswered trust question is not a trusted reader.
             Timber.w(e, "Reader trust evaluation failed; treating the reader as untrusted.")
             ReaderTrustResult(trusted = false, reason = "trust evaluation unavailable: ${e.code}")
@@ -369,12 +369,16 @@ class ProximityBridge(
     private fun JsonPrimitive.contentOrNullSafe(): String? = if (this is JsonNull) null else content
 
     companion object {
-        /** Handler names the page registers. Kept together so the contract is readable in one place. */
-        const val CREDENTIALS = "proximity.credentials"
-        const val SIGN = "proximity.sign"
-        const val CONSENT = "proximity.consent"
-        const val READER_TRUST = "proximity.readerTrust"
-        const val STEP = "proximity.step"
-        const val COMPLETE = "proximity.complete"
+        /**
+         * Short handler names the page registers with `onProximityRequest`. The
+         * `proximity` namespace is the call channel, not part of the name, so
+         * these carry no prefix. Kept together so the contract reads in one place.
+         */
+        const val CREDENTIALS = "credentials"
+        const val SIGN = "sign"
+        const val CONSENT = "consent"
+        const val READER_TRUST = "readerTrust"
+        const val STEP = "step"
+        const val COMPLETE = "complete"
     }
 }

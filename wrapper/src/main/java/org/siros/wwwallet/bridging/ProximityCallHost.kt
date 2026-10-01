@@ -25,9 +25,9 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * ## Wire shape
  *
- * Native evaluates `nativeWrapper.__invoke__(id, name, payloadB64)`. The page
- * looks up a handler registered under `name`, awaits it, and answers with
- * `nativeWrapper.__reply__(id, resultB64)` or
+ * Native evaluates `nativeWrapper.__proximity__.invoke(id, name, payloadB64)`.
+ * The page looks up a handler registered under `name`, awaits it, and answers
+ * with `nativeWrapper.__reply__(id, resultB64)` or
  * `nativeWrapper.__replyError__(id, code, message)`.
  *
  * ## Why base64
@@ -48,7 +48,7 @@ import java.util.concurrent.ConcurrentHashMap
  * fails those calls rather than leaving a session waiting on a promise no
  * one holds any more.
  */
-class JsCallHost(
+class ProximityCallHost(
     private val webView: WebView,
     private val scope: CoroutineScope,
     private val bridgeName: String = WalletJsBridge.JAVASCRIPT_BRIDGE_NAME,
@@ -81,7 +81,7 @@ class JsCallHost(
         val deferred = CompletableDeferred<Result<JsonElement>>()
         pending[id] = deferred
 
-        evaluate("$bridgeName.__invoke__('$id', '${escapeName(name)}', '${encode(payload)}')")
+        evaluate("$bridgeName.__proximity__.invoke('$id', '${escapeName(name)}', '${encode(payload)}')")
 
         val outcome = withTimeoutOrNull(timeoutMs) { deferred.await() }
         pending.remove(id)
@@ -89,7 +89,7 @@ class JsCallHost(
         if (outcome == null) {
             // Tell the page to stop working on it. Best-effort: if the page has
             // gone, this evaluation is a no-op.
-            evaluate("$bridgeName.__cancel__('$id')")
+            evaluate("$bridgeName.__proximity__.cancel('$id')")
             throw JsCallException("timeout", "the page did not answer '$name' within ${timeoutMs}ms")
         }
         return outcome.getOrThrow()
@@ -100,7 +100,7 @@ class JsCallHost(
         name: String,
         payload: JsonElement,
     ) {
-        evaluate("$bridgeName.__notify__('${escapeName(name)}', '${encode(payload)}')")
+        evaluate("$bridgeName.__proximity__.notify('${escapeName(name)}', '${encode(payload)}')")
     }
 
     /** Called from the bridge's `@JavascriptInterface` reply methods. */
