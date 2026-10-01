@@ -34,6 +34,9 @@
     <string name="photo_id_match_refused_nfc_not_authenticated">The chip in your document could not be verified, so no credential was issued.</string>
     <string name="photo_id_match_refused_chip_untrusted">The chip in your document could not be confirmed as issued by a recognised authority, so no credential was issued.</string>
     <string name="photo_id_match_refused_policy_rejected">Your scan could not be accepted: your face did not match the document photo closely enough, or this type of document is not accepted. Please try again in good light, or use another identity document.</string>
+    <string name="photo_id_match_refused_match_failed">Your scan could not be checked. Please try again.</string>
+    <string name="photo_id_match_refused_issuance_failed">Your identity was verified, but the credential could not be issued. Please try again later.</string>
+    <string name="photo_id_match_refused_internal_error">Something went wrong on our side, so no credential was issued. Please try again later.</string>
     <string name="photo_id_match_refused_other">Your identity could not be verified, so no credential was issued. Please try again.</string>
     <string name="photo_id_match_ok">OK</string>
 </resources>
