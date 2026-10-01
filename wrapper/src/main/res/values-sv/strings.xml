@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Photo ID verification (FaceTec) messages. Only these are translated: the
+     rest of the app is the web wallet, which has its own translations. -->
+<resources>
+    <string name="photo_id_match_camera_permission_denied">Kameraåtkomst krävs för att verifiera din identitet.</string>
+    <string name="photo_id_match_initialization_failed">Det gick inte att starta identitetsverifieringen. Försök igen senare.</string>
+    <string name="photo_id_match_nfc_unavailable">Den här telefonen kan inte läsa NFC. Chippet i ditt pass eller id-kort måste läsas, så identitetsverifiering är inte möjlig på den här enheten.</string>
+    <string name="photo_id_match_nfc_disabled_title">Slå på NFC</string>
+    <string name="photo_id_match_nfc_disabled_message">Identitetsverifieringen läser chippet i ditt pass eller id-kort, vilket kräver NFC. Slå på NFC i inställningarna och kom sedan tillbaka.</string>
+    <string name="photo_id_match_nfc_open_settings">Öppna inställningar</string>
+    <string name="photo_id_match_nfc_still_disabled">NFC är fortfarande avstängt. Slå på det för att verifiera din identitet.</string>
+    <string name="photo_id_match_cancel">Avbryt</string>
+    <string name="photo_id_match_refused_title">Inget intyg utfärdat</string>
+    <string name="photo_id_match_refused_nfc_not_requested">Det här dokumentet kan inte verifieras via sitt chip. Använd ett e-pass eller ett id-kort vars chip kan läsas.</string>
+    <string name="photo_id_match_refused_nfc_device_not_capable">Telefonen kunde inte läsa chippet. Kontrollera att NFC är påslaget och försök igen.</string>
+    <string name="photo_id_match_refused_nfc_skipped">Chippet i ditt dokument måste läsas. Försök igen och håll dokumentet mot telefonens baksida när du blir ombedd.</string>
+    <string name="photo_id_match_refused_nfc_chip_read_failed">Chippet i ditt dokument kunde inte läsas. Försök igen och håll dokumentet stilla mot telefonens baksida.</string>
+    <string name="photo_id_match_refused_nfc_not_authenticated">Chippet i ditt dokument kunde inte verifieras, så inget intyg utfärdades.</string>
+    <string name="photo_id_match_refused_chip_untrusted">Det gick inte att bekräfta att chippet i ditt dokument har utfärdats av en erkänd myndighet, så inget intyg utfärdades.</string>
+    <string name="photo_id_match_refused_policy_rejected">Din skanning kunde inte godkännas: ditt ansikte stämde inte tillräckligt väl med dokumentets foto, eller så godtas inte den här typen av dokument. Försök igen i bra ljus eller använd en annan identitetshandling.</string>
+    <string name="photo_id_match_refused_match_failed">Din skanning kunde inte kontrolleras. Försök igen.</string>
+    <string name="photo_id_match_refused_issuance_failed">Din identitet har verifierats, men intyget kunde inte utfärdas. Försök igen senare.</string>
+    <string name="photo_id_match_refused_internal_error">Något gick fel hos oss, så inget intyg utfärdades. Försök igen senare.</string>
+    <string name="photo_id_match_refused_other">Din identitet kunde inte verifieras, så inget intyg utfärdades. Försök igen.</string>
+    <string name="photo_id_match_ok">OK</string>
+</resources>

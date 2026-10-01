@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Photo ID verification (FaceTec) messages. Only these are translated: the
+     rest of the app is the web wallet, which has its own translations. -->
+<resources>
+    <string name="photo_id_match_camera_permission_denied">Henkilöllisyytesi vahvistaminen edellyttää kameran käyttöoikeutta.</string>
+    <string name="photo_id_match_initialization_failed">Henkilöllisyyden vahvistamista ei voitu aloittaa. Yritä myöhemmin uudelleen.</string>
+    <string name="photo_id_match_nfc_unavailable">Tämä puhelin ei pysty lukemaan NFC:tä. Passin tai henkilökortin sirun lukeminen on pakollista, joten henkilöllisyyttä ei voi vahvistaa tällä laitteella.</string>
+    <string name="photo_id_match_nfc_disabled_title">Ota NFC käyttöön</string>
+    <string name="photo_id_match_nfc_disabled_message">Henkilöllisyyden vahvistaminen lukee passisi tai henkilökorttisi sirun, mikä edellyttää NFC:tä. Ota NFC käyttöön asetuksista ja palaa sitten takaisin.</string>
+    <string name="photo_id_match_nfc_open_settings">Avaa asetukset</string>
+    <string name="photo_id_match_nfc_still_disabled">NFC on yhä pois päältä. Ota se käyttöön vahvistaaksesi henkilöllisyytesi.</string>
+    <string name="photo_id_match_cancel">Peruuta</string>
+    <string name="photo_id_match_refused_title">Todistusta ei myönnetty</string>
+    <string name="photo_id_match_refused_nfc_not_requested">Tätä asiakirjaa ei voi vahvistaa sen sirun avulla. Käytä sähköistä passia tai henkilökorttia, jonka siru voidaan lukea.</string>
+    <string name="photo_id_match_refused_nfc_device_not_capable">Puhelin ei pystynyt lukemaan sirua. Varmista, että NFC on käytössä, ja yritä uudelleen.</string>
+    <string name="photo_id_match_refused_nfc_skipped">Asiakirjan sirun lukeminen on pakollista. Yritä uudelleen ja pidä asiakirjaa puhelimen takaosaa vasten, kun sitä pyydetään.</string>
+    <string name="photo_id_match_refused_nfc_chip_read_failed">Asiakirjasi sirua ei voitu lukea. Yritä uudelleen ja pidä asiakirja paikallaan puhelimen takaosaa vasten.</string>
+    <string name="photo_id_match_refused_nfc_not_authenticated">Asiakirjasi sirua ei voitu vahvistaa, joten todistusta ei myönnetty.</string>
+    <string name="photo_id_match_refused_chip_untrusted">Ei voitu varmistaa, että asiakirjasi sirun on myöntänyt tunnustettu viranomainen, joten todistusta ei myönnetty.</string>
+    <string name="photo_id_match_refused_policy_rejected">Skannaustasi ei voitu hyväksyä: kasvosi eivät vastanneet asiakirjan kuvaa riittävän hyvin, tai tämäntyyppistä asiakirjaa ei hyväksytä. Yritä uudelleen hyvässä valaistuksessa tai käytä toista henkilöllisyysasiakirjaa.</string>
+    <string name="photo_id_match_refused_match_failed">Skannaustasi ei voitu tarkistaa. Yritä uudelleen.</string>
+    <string name="photo_id_match_refused_issuance_failed">Henkilöllisyytesi vahvistettiin, mutta todistusta ei voitu myöntää. Yritä myöhemmin uudelleen.</string>
+    <string name="photo_id_match_refused_internal_error">Meillä tapahtui virhe, joten todistusta ei myönnetty. Yritä myöhemmin uudelleen.</string>
+    <string name="photo_id_match_refused_other">Henkilöllisyyttäsi ei voitu vahvistaa, joten todistusta ei myönnetty. Yritä uudelleen.</string>
+    <string name="photo_id_match_ok">OK</string>
+</resources>
