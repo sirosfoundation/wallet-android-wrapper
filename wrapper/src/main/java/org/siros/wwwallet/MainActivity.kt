@@ -46,6 +46,7 @@ import androidx.credentials.exceptions.GetCredentialUnknownException
 import androidx.credentials.provider.PendingIntentHandler
 import androidx.credentials.provider.ProviderGetCredentialRequest
 import androidx.credentials.registry.provider.selectedCredentialSet
+import androidx.credentials.registry.provider.selectedEntryId
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
@@ -59,9 +60,11 @@ import org.siros.wwwallet.bridging.DebugMenuHandler
 import org.siros.wwwallet.bridging.WalletJsBridge
 import org.siros.wwwallet.credentials.AndroidContainer
 import org.siros.wwwallet.credentials.YubicoContainer
+import org.siros.wwwallet.credentials.dcApi.DcApiSelection
 import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.json.DcApiRequests
+import org.siros.wwwallet.storage.Settings
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -257,20 +260,20 @@ class MainActivity : ComponentActivity() {
     private fun handleGetCredential(intent: Intent) {
         val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent)
 
-        val selectedId =
+        val selectedIds =
             request
                 ?.selectedCredentialSet
                 ?.credentials
-                ?.firstOrNull()
-                ?.credentialId
+                ?.map { it.credentialId }
+                ?: request?.selectedEntryId?.let { listOf(it) }
 
-        if (selectedId == null) {
+        if (request == null || selectedIds.isNullOrEmpty()) {
             Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential ID given!")
             finishWithException("No credential ID given.")
             return
         }
 
-        val option = request.credentialOptions.first { it is GetDigitalCredentialOption } as? GetDigitalCredentialOption
+        val option = request.credentialOptions.filterIsInstance<GetDigitalCredentialOption>().singleOrNull()
 
         if (option == null) {
             Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential options given!")
@@ -289,17 +292,33 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        val firstRequest = requests.requests.firstOrNull()
-        if (firstRequest == null) {
-            Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential request given!")
-            finishWithException("No credential request given.")
-            return
+        val selection =
+            try {
+                DcApiSelection.parse(selectedIds, requests.requests)
+            } catch (e: IllegalArgumentException) {
+                Timber.e(e, "Could not handle DC-API selection")
+                finishWithException(e.message)
+                return
+            }
+
+        lifecycleScope.launch {
+            val reference = selection.reference
+            val credentials = Settings.getDcApiCredentials()[reference.callbackUrl]
+            if (credentials?.none { it.id == reference.id } != false) {
+                Timber.e("Selected DC-API credential is no longer registered")
+                finishWithException("The selected credential is no longer available.")
+                return@launch
+            }
+            // Store for the response from the web wallet.
+            lastCredentialRequest = request
+            vm.enqueueDcApiRequest(
+                reference.id,
+                getOrigin(request),
+                selection.request.protocol,
+                selection.request.data,
+                reference.callbackUrl,
+            )
         }
-
-        // Store for later response.
-        lastCredentialRequest = request
-
-        vm.enqueueDcApiRequest(selectedId, getOrigin(request), firstRequest.protocol, firstRequest.data)
     }
 
     private fun getOrigin(request: ProviderGetCredentialRequest?): String {
