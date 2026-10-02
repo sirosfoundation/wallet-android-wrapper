@@ -165,8 +165,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.fragment)
-    implementation(libs.androidx.registry.digitalcredentials.openid)
-    implementation(libs.androidx.registry.digitalcredentials.sdjwtvc)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
@@ -184,6 +182,7 @@ dependencies {
     implementation(libs.cbor)
     implementation(libs.cose)
     implementation(libs.kotlinx.serialization)
+    implementation(libs.multipaz)
 
     if (includeFaceTec) {
         implementation(libs.facetec.sdk)
@@ -193,10 +192,10 @@ dependencies {
     implementation(libs.playservices.identity.credentials)
     implementation(libs.androidx.registry.provider)
     implementation(libs.androidx.registry.provider.play.services)
-    implementation(libs.androidx.registry.digitalcredentials.mdoc)
 
     testImplementation(libs.junit)
     testImplementation(libs.test.json)
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:${libs.versions.kotlin.get()}")
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
@@ -219,6 +218,71 @@ configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
             "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
         ),
     )
+}
+
+val isMac = System.getProperty("os.name").startsWith("Mac")
+val hostMatcherLibrary = layout.buildDirectory.file("native/${System.mapLibraryName("MatcherTest")}")
+val compileHostMatcher by tasks.registering(Exec::class) {
+    val matcherDir = file("src/main/matcher")
+    val harness = file("src/test/matcher/MatcherTest.cpp")
+    val sources =
+        listOf(
+            "Request.cpp",
+            "CredentialDatabase.cpp",
+            "cppbor.cpp",
+            "cppbor_parse.cpp",
+            "cJSON.c",
+            "matcher.cpp",
+            "logger.cpp",
+            "dcql.cpp",
+            "paths.cpp",
+        ).map { matcherDir.resolve(it) }
+    inputs.files(sources, harness, fileTree(matcherDir) { include("*.h") })
+    outputs.file(hostMatcherLibrary)
+    doFirst {
+        hostMatcherLibrary
+            .get()
+            .asFile.parentFile
+            .mkdirs()
+        val javaHome = System.getProperty("java.home")
+        commandLine(
+            listOf(
+                "c++",
+                "-std=c++20",
+                if (isMac) "-dynamiclib" else "-shared",
+                "-fPIC",
+                "-Wno-deprecated-declarations",
+                "-I$javaHome/include",
+                "-I$javaHome/include/${if (isMac) "darwin" else "linux"}",
+                "-o",
+                hostMatcherLibrary.get().asFile.absolutePath,
+                harness.absolutePath,
+            ) + sources.map { it.absolutePath },
+        )
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    dependsOn(compileHostMatcher)
+    systemProperty("java.library.path", hostMatcherLibrary.get().asFile.parent)
+}
+
+val rebuildMatcher by tasks.registering(Exec::class) {
+    description = "Rebuilds the WASM matcher using WASI SDK 20 in ~/wasi-sdk-20.0."
+    workingDir("src/main/matcher")
+    commandLine("make", "-j4")
+}
+
+val updateMatcherAsset by tasks.registering(Copy::class) {
+    description = "Updates the bundled WASM asset after changing matcher sources."
+    dependsOn(rebuildMatcher)
+    from("src/main/matcher/build/matcher.wasm")
+    into("src/main/assets")
+    rename { "identitycredentialmatcher.wasm" }
+}
+
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
+    mustRunAfter(updateMatcherAsset)
 }
 
 abstract class GenerateManifestTask : DefaultTask() {
