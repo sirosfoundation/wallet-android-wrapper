@@ -246,6 +246,9 @@ class PhotoIdMatchActivity : ComponentActivity() {
                 "match_failed" -> R.string.photo_id_match_refused_match_failed
                 "issuance_failed" -> R.string.photo_id_match_refused_issuance_failed
                 "internal_error" -> R.string.photo_id_match_refused_internal_error
+                "liveness_failed" -> R.string.photo_id_match_refused_liveness_failed
+                "document_expired" -> R.string.photo_id_match_refused_document_expired
+                "document_unreadable" -> R.string.photo_id_match_refused_document_unreadable
                 else -> R.string.photo_id_match_refused_other
             }
 
