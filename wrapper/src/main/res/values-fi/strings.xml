@@ -21,6 +21,9 @@
     <string name="photo_id_match_refused_match_failed">Skannaustasi ei voitu tarkistaa. Yritä uudelleen.</string>
     <string name="photo_id_match_refused_issuance_failed">Henkilöllisyytesi vahvistettiin, mutta todistusta ei voitu myöntää. Yritä myöhemmin uudelleen.</string>
     <string name="photo_id_match_refused_internal_error">Meillä tapahtui virhe, joten todistusta ei myönnetty. Yritä myöhemmin uudelleen.</string>
+    <string name="photo_id_match_refused_liveness_failed">Emme voineet varmistaa, että kameran edessä oli elävä henkilö, joten todistusta ei myönnetty. Yritä uudelleen hyvässä valaistuksessa kameraan katsoen.</string>
+    <string name="photo_id_match_refused_document_expired">Tämä asiakirja on vanhentunut, joten todistusta ei myönnetty. Käytä voimassa olevaa henkilöllisyysasiakirjaa.</string>
+    <string name="photo_id_match_refused_document_unreadable">Asiakirjan tietoja ei voitu lukea, joten todistusta ei myönnetty. Yritä uudelleen tai käytä toista henkilöllisyysasiakirjaa.</string>
     <string name="photo_id_match_refused_other">Henkilöllisyyttäsi ei voitu vahvistaa, joten todistusta ei myönnetty. Yritä uudelleen.</string>
     <string name="photo_id_match_ok">OK</string>
 </resources>
