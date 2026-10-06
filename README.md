@@ -24,6 +24,10 @@ This project uses gradle as a build tool:
 
 The above commands will build and install the Android application (apk) on all connected phones.
 
+See [DC API integration](wrapper/DC-API.md) for details about the current DC-API implementation
+which leverages its own WASM matcher taken from the 
+[Multipaz](https://github.com/openwallet-foundation/multipaz/) project.
+
 
 Local development
 -----------------
@@ -398,4 +402,3 @@ Next Steps
 ----------
 
 Thanking you.
-

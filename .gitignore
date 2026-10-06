@@ -20,6 +20,7 @@ package-lock.json
 *.keystore
 wrapper/build/
 wrapper/release/
+wrapper/src/main/matcher/build/
 
 fastlane/report.xml
 Gemfile

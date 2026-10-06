@@ -1,15 +1,9 @@
 package org.siros.wwwallet.bridging
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
-import androidx.core.graphics.createBitmap
-import androidx.credentials.registry.digitalcredentials.mdoc.MdocEntry
-import androidx.credentials.registry.digitalcredentials.openid4vp.OpenId4VpRegistry
-import androidx.credentials.registry.digitalcredentials.sdjwt.SdJwtEntry
-import androidx.credentials.registry.provider.RegistryManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,14 +13,13 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import org.siros.wwwallet.BuildConfig
-import org.siros.wwwallet.MainViewModel
 import org.siros.wwwallet.bluetooth.BleClientHandler
 import org.siros.wwwallet.bluetooth.BleServerHandler
 import org.siros.wwwallet.bluetooth.ServiceCharacteristic
 import org.siros.wwwallet.credentials.Container
+import org.siros.wwwallet.credentials.dcApi.DigitalCredentials
 import org.siros.wwwallet.json.DcApiCredential
 import org.siros.wwwallet.json.toList
-import org.siros.wwwallet.storage.Settings
 import timber.log.Timber
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -167,53 +160,10 @@ class WalletJsBridge(
         Timber.i("Received ${credentials.size} credentials for $callbackUrl.")
 
         CoroutineScope(dispatcher).launch {
-            val allCredentials = Settings.getDcApiCredentials().toMutableMap()
-
-            val fbCredentials = allCredentials[MainViewModel.DCAPI_CREDENTIALS_FALLBACK_URL]?.toMutableList() ?: mutableListOf()
-
-            // Graceful frontend upgrade: When a frontend starts to support tenancy-aware credentials
-            // we need to remove these credentials from the fallback list.
-            // When it doesn't support it, yet, we need to remove old versions so we can add the updated
-            // ones later.
-            fbCredentials.removeAll { fbc -> credentials.firstOrNull { it.id == fbc.id } != null }
-
-            if (!callbackUrl.isNullOrBlank()) {
-                allCredentials[callbackUrl] = credentials
-            } else {
-                // Fallback to support frontends, which aren't aware of the second argument, yet.
-                // We mix all of them together here, in the hopes, that a user will only select a
-                // credential later, which belongs to the currently set tenant.
-                fbCredentials.addAll(credentials)
-            }
-
-            if (fbCredentials.isEmpty()) {
-                allCredentials.remove(MainViewModel.DCAPI_CREDENTIALS_FALLBACK_URL)
-            } else {
-                allCredentials[MainViewModel.DCAPI_CREDENTIALS_FALLBACK_URL] = fbCredentials
-            }
-
-            Settings.setDcApiCredentials(allCredentials)
-
-            val bitmap = getAppIconBitmap()
-
-            val sdJwts = mutableListOf<SdJwtEntry>()
-            val mDocs = mutableListOf<MdocEntry>()
-
-            allCredentials.forEach { (_, credentials) ->
-                credentials.forEach { it.bitmap = bitmap }
-                sdJwts.addAll(credentials.mapNotNull { it.sdJwt })
-                mDocs.addAll(credentials.mapNotNull { it.mDoc })
-            }
-
-            val rm = RegistryManager.create(webView.context)
-            val request = OpenId4VpRegistry(sdJwts + mDocs, webView.context.packageName)
-
             try {
-                // As per experiments, this call will automatically drop all credentials which were
-                // registered before, but aren't in the list anymore.
-                val response = rm.registerCredentials(request)
-                Timber.i("Registration succeeded: $response")
+                DigitalCredentials.updateCredentials(webView.context.applicationContext, credentials, callbackUrl)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Timber.e(e, "Registration failed")
             }
         }
@@ -460,17 +410,6 @@ class WalletJsBridge(
                 "${JAVASCRIPT_BRIDGE_NAME}.__reject__('$promiseUuid', '$wrapped')",
             ) {}
         }
-    }
-
-    private fun getAppIconBitmap(): Bitmap {
-        val drawable = webView.context.packageManager.getApplicationIcon(webView.context.packageName)
-        val bitmap = createBitmap(32, 32)
-        val canvas = Canvas(bitmap)
-
-        drawable.setBounds(0, 0, 32, 32)
-        drawable.draw(canvas)
-
-        return bitmap
     }
 }
 

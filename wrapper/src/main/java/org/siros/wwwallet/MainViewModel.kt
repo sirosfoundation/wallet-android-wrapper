@@ -115,25 +115,14 @@ class MainViewModel : ViewModel() {
         origin: String,
         protocol: String,
         requestData: DcApiRequestData,
+        callbackUrl: String,
     ) {
         Timber.i("Enqueued requested for ID: $selectedId, origin: $origin, protocol: $protocol, data: $requestData")
 
         viewModelScope.launch {
-            val allCredentials = Settings.getDcApiCredentials()
-            var callbackUrl: String? = null
-
-            for (credentials in allCredentials) {
-                val credential = credentials.value.firstOrNull { it.id == selectedId }
-
-                if (credential != null) {
-                    callbackUrl = credentials.key
-                    break
-                }
-            }
-
             val url: Uri
 
-            if (callbackUrl != null && callbackUrl != DCAPI_CREDENTIALS_FALLBACK_URL) {
+            if (callbackUrl != DCAPI_CREDENTIALS_FALLBACK_URL) {
                 url = callbackUrl.toUri()
             } else {
                 url = currentUrl.filterNotNull().first()
