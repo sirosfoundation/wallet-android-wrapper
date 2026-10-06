@@ -8,7 +8,6 @@ import timber.log.Timber
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.UUID
 
 /**
  * Forwards FaceTec SDK Session Request/Response Blobs to facetec-api's `/v1/process-request`,
@@ -35,10 +34,6 @@ class PhotoIdMatchSessionRequestProcessor(
 ) : FaceTecSessionRequestProcessor {
     companion object {
         private const val REDACT_THRESHOLD = 200
-
-        // Prefixes the per-session identifier below, so a record in FaceTec Server can be
-        // traced back to the client that created it.
-        private const val EXTERNAL_DB_REF_PREFIX = "wwwallet-android-"
     }
 
     /**
@@ -57,8 +52,16 @@ class PhotoIdMatchSessionRequestProcessor(
      * synthesize a stable key on our behalf. Sending none (issue #27) left every session
      * sharing one empty key, and the ID match step then failed with "A Record could not be
      * found for the Enrollment".
+     *
+     * facetec-api v0.16.0 also records FaceTec Server's liveness verdict under this key and
+     * refuses the final result with `liveness_failed` unless it was proven for this very
+     * session, so a request without the key, or a key reused for a second session, ends in a
+     * refusal. FaceTec's own retry screens stay inside one session and keep the key; the
+     * verdict is single-use and expires after 15 minutes, so a new scan always starts a new
+     * session with a processor, and a key, of its own. Every request of a session must also
+     * reach the same facetec-api instance (a deployment concern: sticky routing or one instance).
      */
-    private val externalDatabaseRefID = EXTERNAL_DB_REF_PREFIX + UUID.randomUUID()
+    private val externalDatabaseRefID = PhotoIdMatchProtocol.newExternalDatabaseRefID()
 
     override fun onSessionRequest(
         sessionRequestBlob: String,
@@ -74,13 +77,11 @@ class PhotoIdMatchSessionRequestProcessor(
 
             Timber.i("process-request response: ${redactLongValues(response)}")
 
-            val credentialOfferURI = response.optString("credentialOfferURI").takeIf { it.isNotBlank() }
-            credentialOfferURI?.let(onCredentialOfferReceived)
+            PhotoIdMatchProtocol.credentialOfferURI(response)?.let(onCredentialOfferReceived)
 
             // Set when the scan completed but facetec-api refused to issue, e.g. because
             // the document's chip was not read and authenticated.
-            val credentialIssueErrorCode = response.optString("credentialIssueErrorCode").takeIf { it.isNotBlank() }
-            credentialIssueErrorCode?.let(onCredentialIssueRefused)
+            PhotoIdMatchProtocol.credentialIssueErrorCode(response)?.let(onCredentialIssueRefused)
 
             sessionRequestCallback.processResponse(response.getString("responseBlob"))
         } catch (t: Throwable) {
@@ -115,10 +116,7 @@ class PhotoIdMatchSessionRequestProcessor(
         connection.setRequestProperty("Content-Type", "application/json")
         connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.FACETEC_API_BEARER_TOKEN}")
 
-        val payload =
-            JSONObject()
-                .put("requestBlob", sessionRequestBlob)
-                .put("externalDatabaseRefID", externalDatabaseRefID)
+        val payload = PhotoIdMatchProtocol.requestPayload(sessionRequestBlob, externalDatabaseRefID)
 
         connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
 

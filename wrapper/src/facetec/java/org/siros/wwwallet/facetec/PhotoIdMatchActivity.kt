@@ -234,23 +234,7 @@ class PhotoIdMatchActivity : ComponentActivity() {
     private fun showRefusalAndFinish(credentialIssueErrorCode: String) {
         Timber.i("No credential issued: credentialIssueErrorCode=$credentialIssueErrorCode.")
 
-        val message =
-            when (credentialIssueErrorCode) {
-                "nfc_not_requested" -> R.string.photo_id_match_refused_nfc_not_requested
-                "nfc_device_not_capable" -> R.string.photo_id_match_refused_nfc_device_not_capable
-                "nfc_skipped" -> R.string.photo_id_match_refused_nfc_skipped
-                "nfc_chip_read_failed" -> R.string.photo_id_match_refused_nfc_chip_read_failed
-                "nfc_not_authenticated" -> R.string.photo_id_match_refused_nfc_not_authenticated
-                "chip_untrusted" -> R.string.photo_id_match_refused_chip_untrusted
-                "policy_rejected" -> R.string.photo_id_match_refused_policy_rejected
-                "match_failed" -> R.string.photo_id_match_refused_match_failed
-                "issuance_failed" -> R.string.photo_id_match_refused_issuance_failed
-                "internal_error" -> R.string.photo_id_match_refused_internal_error
-                "liveness_failed" -> R.string.photo_id_match_refused_liveness_failed
-                "document_expired" -> R.string.photo_id_match_refused_document_expired
-                "document_unreadable" -> R.string.photo_id_match_refused_document_unreadable
-                else -> R.string.photo_id_match_refused_other
-            }
+        val message = PhotoIdMatchProtocol.refusalMessage(credentialIssueErrorCode)
 
         AlertDialog
             .Builder(this)

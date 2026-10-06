@@ -24,6 +24,7 @@
     <string name="photo_id_match_refused_liveness_failed">Não foi possível confirmar que estava uma pessoa real em frente à câmara, pelo que não foi emitida nenhuma credencial. Tente novamente com boa iluminação, de frente para a câmara.</string>
     <string name="photo_id_match_refused_document_expired">Este documento expirou, pelo que não foi emitida nenhuma credencial. Utilize um documento de identificação válido.</string>
     <string name="photo_id_match_refused_document_unreadable">Não foi possível ler os dados do documento, pelo que não foi emitida nenhuma credencial. Tente novamente ou utilize outro documento de identificação.</string>
+    <string name="photo_id_match_refused_session_expired">A verificação demorou demasiado tempo ou já foi utilizada, pelo que não foi emitida nenhuma credencial. Inicie a leitura novamente.</string>
     <string name="photo_id_match_refused_other">Não foi possível verificar a sua identidade, pelo que não foi emitida nenhuma credencial. Tente novamente.</string>
     <string name="photo_id_match_ok">OK</string>
 </resources>
