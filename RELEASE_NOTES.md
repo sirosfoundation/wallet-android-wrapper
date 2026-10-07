@@ -1,3 +1,7 @@
+# 0.1.18
+
+- Updated FaceTec SDK.
+
 # 0.1.17
 
 - Fixed Siros ID credential issuance failing after a completed FaceTec scan.

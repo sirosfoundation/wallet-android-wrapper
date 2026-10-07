@@ -16,4 +16,30 @@
 
     <string name="photo_id_match_camera_permission_denied">Camera permission is required to verify your identity.</string>
     <string name="photo_id_match_initialization_failed">Could not start identity verification. Please try again later.</string>
+
+    <!-- NFC is required: no credential is issued without reading the document's chip. -->
+    <string name="photo_id_match_nfc_unavailable">This phone cannot read NFC. Reading the chip in your passport or ID card is required, so identity verification is not possible on this device.</string>
+    <string name="photo_id_match_nfc_disabled_title">Turn on NFC</string>
+    <string name="photo_id_match_nfc_disabled_message">Identity verification reads the chip in your passport or ID card, which needs NFC. Turn on NFC in the settings, then come back.</string>
+    <string name="photo_id_match_nfc_open_settings">Open settings</string>
+    <string name="photo_id_match_nfc_still_disabled">NFC is still off. Turn it on to verify your identity.</string>
+    <string name="photo_id_match_cancel">Cancel</string>
+
+    <!-- Why facetec-api did not issue a credential (credentialIssueErrorCode). -->
+    <string name="photo_id_match_refused_title">No credential issued</string>
+    <string name="photo_id_match_refused_nfc_not_requested">This document cannot be verified by its chip. Please use an e-passport or an ID card whose chip can be read.</string>
+    <string name="photo_id_match_refused_nfc_device_not_capable">This phone could not read the chip. Make sure NFC is turned on and try again.</string>
+    <string name="photo_id_match_refused_nfc_skipped">Reading the chip in your document is required. Please try again and hold your document against the back of the phone when asked.</string>
+    <string name="photo_id_match_refused_nfc_chip_read_failed">The chip in your document could not be read. Please try again and hold the document still against the back of the phone.</string>
+    <string name="photo_id_match_refused_nfc_not_authenticated">The chip in your document could not be verified, so no credential was issued.</string>
+    <string name="photo_id_match_refused_chip_untrusted">The chip in your document could not be confirmed as issued by a recognised authority, so no credential was issued.</string>
+    <string name="photo_id_match_refused_policy_rejected">Your scan could not be accepted: your face did not match the document photo closely enough, or this type of document is not accepted. Please try again in good light, or use another identity document.</string>
+    <string name="photo_id_match_refused_match_failed">Your scan could not be checked. Please try again.</string>
+    <string name="photo_id_match_refused_issuance_failed">Your identity was verified, but the credential could not be issued. Please try again later.</string>
+    <string name="photo_id_match_refused_internal_error">Something went wrong on our side, so no credential was issued. Please try again later.</string>
+    <string name="photo_id_match_refused_liveness_failed">We could not confirm that a live person was in front of the camera, so no credential was issued. Please try again in good light, facing the camera.</string>
+    <string name="photo_id_match_refused_document_expired">This document has expired, so no credential was issued. Please use a valid identity document.</string>
+    <string name="photo_id_match_refused_document_unreadable">The document\'s details could not be read, so no credential was issued. Please try again, or use another identity document.</string>
+    <string name="photo_id_match_refused_other">Your identity could not be verified, so no credential was issued. Please try again.</string>
+    <string name="photo_id_match_ok">OK</string>
 </resources>

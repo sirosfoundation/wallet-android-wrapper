@@ -1,9 +1,13 @@
 package org.siros.wwwallet.facetec
 
 import android.Manifest
+import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.nfc.NfcAdapter
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,15 +31,36 @@ import timber.log.Timber
  *
  * Every call into the SDK goes through [FaceTecDiagnostics.step], which logs the step and
  * catches [Throwable] rather than [Exception] — see that class for why (issue #20).
+ *
+ * facetec-api issues nothing without an authenticated read of the document's NFC chip
+ * (sirosfoundation/facetec-api#65), so the scan is not started on a phone without NFC, and
+ * a user with NFC switched off is sent to the settings first. When the scan completes but no
+ * credential is issued, the `credentialIssueErrorCode` facetec-api returned is explained to the
+ * user instead of silently returning to the wallet.
  */
 class PhotoIdMatchActivity : ComponentActivity() {
     private var sdkInstance: FaceTecSDKInstance? = null
     private var capturedCredentialOfferURI: String? = null
+    private var capturedCredentialIssueErrorCode: String? = null
 
     private val processor =
         PhotoIdMatchSessionRequestProcessor(
             onCredentialOfferReceived = { capturedCredentialOfferURI = it },
+            onCredentialIssueRefused = { capturedCredentialIssueErrorCode = it },
         )
+
+    private val nfcSettingsLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            val enabled = NfcAdapter.getDefaultAdapter(this)?.isEnabled == true
+            Timber.i("Returned from the NFC settings: NFC enabled=$enabled.")
+
+            if (enabled) {
+                prepareAndStart()
+            } else {
+                Toast.makeText(this, getString(R.string.photo_id_match_nfc_still_disabled), Toast.LENGTH_LONG).show()
+                finishWithoutOffer()
+            }
+        }
 
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -56,6 +81,41 @@ class PhotoIdMatchActivity : ComponentActivity() {
 
         FaceTecDiagnostics.logEnvironment(this)
 
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        Timber.i("NFC available=${nfcAdapter != null}, enabled=${nfcAdapter?.isEnabled}.")
+
+        when {
+            nfcAdapter == null -> {
+                Toast.makeText(this, getString(R.string.photo_id_match_nfc_unavailable), Toast.LENGTH_LONG).show()
+                finishWithoutOffer()
+            }
+            !nfcAdapter.isEnabled -> askToEnableNfc()
+            else -> prepareAndStart()
+        }
+    }
+
+    private fun askToEnableNfc() {
+        AlertDialog
+            .Builder(this)
+            .setTitle(R.string.photo_id_match_nfc_disabled_title)
+            .setMessage(R.string.photo_id_match_nfc_disabled_message)
+            .setPositiveButton(R.string.photo_id_match_nfc_open_settings) { _, _ -> openNfcSettings() }
+            .setNegativeButton(R.string.photo_id_match_cancel) { _, _ -> finishWithoutOffer() }
+            .setOnCancelListener { finishWithoutOffer() }
+            .show()
+    }
+
+    private fun openNfcSettings() {
+        try {
+            nfcSettingsLauncher.launch(Intent(Settings.ACTION_NFC_SETTINGS))
+        } catch (e: ActivityNotFoundException) {
+            // Some devices have no dedicated NFC settings screen.
+            Timber.w(e, "No NFC settings screen; falling back to the wireless settings.")
+            nfcSettingsLauncher.launch(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+        }
+    }
+
+    private fun prepareAndStart() {
         // The preparation calls are listed one per step so the log names whichever of them
         // fails; `preload` in particular is where the SDK first loads its own classes.
         val prepared =
@@ -163,7 +223,42 @@ class PhotoIdMatchActivity : ComponentActivity() {
 
         Timber.i("FaceTec session finished with status ${result.status}.")
 
-        finishWithOfferIfAvailable()
+        val refusal = capturedCredentialIssueErrorCode
+        if (capturedCredentialOfferURI == null && refusal != null) {
+            showRefusalAndFinish(refusal)
+        } else {
+            finishWithOfferIfAvailable()
+        }
+    }
+
+    private fun showRefusalAndFinish(credentialIssueErrorCode: String) {
+        Timber.i("No credential issued: credentialIssueErrorCode=$credentialIssueErrorCode.")
+
+        val message =
+            when (credentialIssueErrorCode) {
+                "nfc_not_requested" -> R.string.photo_id_match_refused_nfc_not_requested
+                "nfc_device_not_capable" -> R.string.photo_id_match_refused_nfc_device_not_capable
+                "nfc_skipped" -> R.string.photo_id_match_refused_nfc_skipped
+                "nfc_chip_read_failed" -> R.string.photo_id_match_refused_nfc_chip_read_failed
+                "nfc_not_authenticated" -> R.string.photo_id_match_refused_nfc_not_authenticated
+                "chip_untrusted" -> R.string.photo_id_match_refused_chip_untrusted
+                "policy_rejected" -> R.string.photo_id_match_refused_policy_rejected
+                "match_failed" -> R.string.photo_id_match_refused_match_failed
+                "issuance_failed" -> R.string.photo_id_match_refused_issuance_failed
+                "internal_error" -> R.string.photo_id_match_refused_internal_error
+                "liveness_failed" -> R.string.photo_id_match_refused_liveness_failed
+                "document_expired" -> R.string.photo_id_match_refused_document_expired
+                "document_unreadable" -> R.string.photo_id_match_refused_document_unreadable
+                else -> R.string.photo_id_match_refused_other
+            }
+
+        AlertDialog
+            .Builder(this)
+            .setTitle(R.string.photo_id_match_refused_title)
+            .setMessage(message)
+            .setPositiveButton(R.string.photo_id_match_ok) { _, _ -> finishWithoutOffer() }
+            .setOnCancelListener { finishWithoutOffer() }
+            .show()
     }
 
     override fun onDestroy() {

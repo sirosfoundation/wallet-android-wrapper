@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Photo ID verification (FaceTec) messages. Only these are translated: the
+     rest of the app is the web wallet, which has its own translations. -->
+<resources>
+    <string name="photo_id_match_camera_permission_denied">É necessária permissão de acesso à câmara para verificar a sua identidade.</string>
+    <string name="photo_id_match_initialization_failed">Não foi possível iniciar a verificação de identidade. Tente novamente mais tarde.</string>
+    <string name="photo_id_match_nfc_unavailable">Este telemóvel não consegue ler NFC. É necessário ler o chip do seu passaporte ou cartão de identificação, pelo que não é possível verificar a identidade neste dispositivo.</string>
+    <string name="photo_id_match_nfc_disabled_title">Ative o NFC</string>
+    <string name="photo_id_match_nfc_disabled_message">A verificação de identidade lê o chip do seu passaporte ou cartão de identificação, o que requer NFC. Ative o NFC nas definições e depois volte.</string>
+    <string name="photo_id_match_nfc_open_settings">Abrir definições</string>
+    <string name="photo_id_match_nfc_still_disabled">O NFC continua desativado. Ative-o para verificar a sua identidade.</string>
+    <string name="photo_id_match_cancel">Cancelar</string>
+    <string name="photo_id_match_refused_title">Nenhuma credencial emitida</string>
+    <string name="photo_id_match_refused_nfc_not_requested">Este documento não pode ser verificado através do chip. Utilize um passaporte eletrónico ou um cartão de identificação cujo chip possa ser lido.</string>
+    <string name="photo_id_match_refused_nfc_device_not_capable">O telemóvel não conseguiu ler o chip. Certifique-se de que o NFC está ativado e tente novamente.</string>
+    <string name="photo_id_match_refused_nfc_skipped">É necessário ler o chip do seu documento. Tente novamente e encoste o documento à parte de trás do telemóvel quando lhe for pedido.</string>
+    <string name="photo_id_match_refused_nfc_chip_read_failed">Não foi possível ler o chip do seu documento. Tente novamente e mantenha o documento imóvel encostado à parte de trás do telemóvel.</string>
+    <string name="photo_id_match_refused_nfc_not_authenticated">Não foi possível verificar o chip do seu documento, pelo que não foi emitida nenhuma credencial.</string>
+    <string name="photo_id_match_refused_chip_untrusted">Não foi possível confirmar que o chip do seu documento foi emitido por uma autoridade reconhecida, pelo que não foi emitida nenhuma credencial.</string>
+    <string name="photo_id_match_refused_policy_rejected">A sua digitalização não pôde ser aceite: o seu rosto não correspondeu suficientemente à fotografia do documento, ou este tipo de documento não é aceite. Tente novamente com boa iluminação ou utilize outro documento de identificação.</string>
+    <string name="photo_id_match_refused_match_failed">Não foi possível verificar a sua digitalização. Tente novamente.</string>
+    <string name="photo_id_match_refused_issuance_failed">A sua identidade foi verificada, mas não foi possível emitir a credencial. Tente novamente mais tarde.</string>
+    <string name="photo_id_match_refused_internal_error">Ocorreu um erro do nosso lado, pelo que não foi emitida nenhuma credencial. Tente novamente mais tarde.</string>
+    <string name="photo_id_match_refused_liveness_failed">Não foi possível confirmar que estava uma pessoa real em frente à câmara, pelo que não foi emitida nenhuma credencial. Tente novamente com boa iluminação, de frente para a câmara.</string>
+    <string name="photo_id_match_refused_document_expired">Este documento expirou, pelo que não foi emitida nenhuma credencial. Utilize um documento de identificação válido.</string>
+    <string name="photo_id_match_refused_document_unreadable">Não foi possível ler os dados do documento, pelo que não foi emitida nenhuma credencial. Tente novamente ou utilize outro documento de identificação.</string>
+    <string name="photo_id_match_refused_other">Não foi possível verificar a sua identidade, pelo que não foi emitida nenhuma credencial. Tente novamente.</string>
+    <string name="photo_id_match_ok">OK</string>
+</resources>

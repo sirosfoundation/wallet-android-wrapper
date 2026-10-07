@@ -31,6 +31,7 @@ import java.util.UUID
  */
 class PhotoIdMatchSessionRequestProcessor(
     private val onCredentialOfferReceived: (String) -> Unit,
+    private val onCredentialIssueRefused: (String) -> Unit,
 ) : FaceTecSessionRequestProcessor {
     companion object {
         private const val REDACT_THRESHOLD = 200
@@ -75,6 +76,11 @@ class PhotoIdMatchSessionRequestProcessor(
 
             val credentialOfferURI = response.optString("credentialOfferURI").takeIf { it.isNotBlank() }
             credentialOfferURI?.let(onCredentialOfferReceived)
+
+            // Set when the scan completed but facetec-api refused to issue, e.g. because
+            // the document's chip was not read and authenticated.
+            val credentialIssueErrorCode = response.optString("credentialIssueErrorCode").takeIf { it.isNotBlank() }
+            credentialIssueErrorCode?.let(onCredentialIssueRefused)
 
             sessionRequestCallback.processResponse(response.getString("responseBlob"))
         } catch (t: Throwable) {

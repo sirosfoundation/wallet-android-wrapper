@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Photo ID verification (FaceTec) messages. Only these are translated: the
+     rest of the app is the web wallet, which has its own translations. -->
+<resources>
+    <string name="photo_id_match_camera_permission_denied">Απαιτείται άδεια πρόσβασης στην κάμερα για την επαλήθευση της ταυτότητάς σας.</string>
+    <string name="photo_id_match_initialization_failed">Δεν ήταν δυνατή η έναρξη της επαλήθευσης ταυτότητας. Δοκιμάστε ξανά αργότερα.</string>
+    <string name="photo_id_match_nfc_unavailable">Αυτό το τηλέφωνο δεν μπορεί να διαβάσει NFC. Απαιτείται ανάγνωση του τσιπ του διαβατηρίου ή της ταυτότητάς σας, επομένως η επαλήθευση ταυτότητας δεν είναι δυνατή σε αυτή τη συσκευή.</string>
+    <string name="photo_id_match_nfc_disabled_title">Ενεργοποιήστε το NFC</string>
+    <string name="photo_id_match_nfc_disabled_message">Η επαλήθευση ταυτότητας διαβάζει το τσιπ του διαβατηρίου ή της ταυτότητάς σας, κάτι που απαιτεί NFC. Ενεργοποιήστε το NFC στις ρυθμίσεις και, στη συνέχεια, επιστρέψτε.</string>
+    <string name="photo_id_match_nfc_open_settings">Άνοιγμα ρυθμίσεων</string>
+    <string name="photo_id_match_nfc_still_disabled">Το NFC είναι ακόμα απενεργοποιημένο. Ενεργοποιήστε το για να επαληθεύσετε την ταυτότητά σας.</string>
+    <string name="photo_id_match_cancel">Ακύρωση</string>
+    <string name="photo_id_match_refused_title">Δεν εκδόθηκε πιστοποιητικό</string>
+    <string name="photo_id_match_refused_nfc_not_requested">Αυτό το έγγραφο δεν μπορεί να επαληθευτεί μέσω του τσιπ του. Χρησιμοποιήστε ηλεκτρονικό διαβατήριο ή ταυτότητα της οποίας το τσιπ μπορεί να διαβαστεί.</string>
+    <string name="photo_id_match_refused_nfc_device_not_capable">Το τηλέφωνο δεν μπόρεσε να διαβάσει το τσιπ. Βεβαιωθείτε ότι το NFC είναι ενεργοποιημένο και δοκιμάστε ξανά.</string>
+    <string name="photo_id_match_refused_nfc_skipped">Απαιτείται ανάγνωση του τσιπ του εγγράφου σας. Δοκιμάστε ξανά και κρατήστε το έγγραφο στο πίσω μέρος του τηλεφώνου όταν σας ζητηθεί.</string>
+    <string name="photo_id_match_refused_nfc_chip_read_failed">Δεν ήταν δυνατή η ανάγνωση του τσιπ του εγγράφου σας. Δοκιμάστε ξανά και κρατήστε το έγγραφο σταθερό στο πίσω μέρος του τηλεφώνου.</string>
+    <string name="photo_id_match_refused_nfc_not_authenticated">Δεν ήταν δυνατή η επαλήθευση του τσιπ του εγγράφου σας, επομένως δεν εκδόθηκε πιστοποιητικό.</string>
+    <string name="photo_id_match_refused_chip_untrusted">Δεν ήταν δυνατό να επιβεβαιωθεί ότι το τσιπ του εγγράφου σας έχει εκδοθεί από αναγνωρισμένη αρχή, επομένως δεν εκδόθηκε πιστοποιητικό.</string>
+    <string name="photo_id_match_refused_policy_rejected">Η σάρωσή σας δεν έγινε αποδεκτή: το πρόσωπό σας δεν ταίριαξε αρκετά με τη φωτογραφία του εγγράφου ή αυτός ο τύπος εγγράφου δεν γίνεται αποδεκτός. Δοκιμάστε ξανά με καλό φωτισμό ή χρησιμοποιήστε άλλο έγγραφο ταυτότητας.</string>
+    <string name="photo_id_match_refused_match_failed">Δεν ήταν δυνατός ο έλεγχος της σάρωσής σας. Δοκιμάστε ξανά.</string>
+    <string name="photo_id_match_refused_issuance_failed">Η ταυτότητά σας επαληθεύτηκε, αλλά δεν ήταν δυνατή η έκδοση του πιστοποιητικού. Δοκιμάστε ξανά αργότερα.</string>
+    <string name="photo_id_match_refused_internal_error">Παρουσιάστηκε σφάλμα από την πλευρά μας, επομένως δεν εκδόθηκε πιστοποιητικό. Δοκιμάστε ξανά αργότερα.</string>
+    <string name="photo_id_match_refused_liveness_failed">Δεν ήταν δυνατό να επιβεβαιωθεί ότι μπροστά στην κάμερα βρισκόταν ζωντανό πρόσωπο, επομένως δεν εκδόθηκε πιστοποιητικό. Δοκιμάστε ξανά με καλό φωτισμό, κοιτάζοντας την κάμερα.</string>
+    <string name="photo_id_match_refused_document_expired">Αυτό το έγγραφο έχει λήξει, επομένως δεν εκδόθηκε πιστοποιητικό. Χρησιμοποιήστε ένα έγκυρο έγγραφο ταυτότητας.</string>
+    <string name="photo_id_match_refused_document_unreadable">Δεν ήταν δυνατή η ανάγνωση των στοιχείων του εγγράφου, επομένως δεν εκδόθηκε πιστοποιητικό. Δοκιμάστε ξανά ή χρησιμοποιήστε άλλο έγγραφο ταυτότητας.</string>
+    <string name="photo_id_match_refused_other">Δεν ήταν δυνατή η επαλήθευση της ταυτότητάς σας, επομένως δεν εκδόθηκε πιστοποιητικό. Δοκιμάστε ξανά.</string>
+    <string name="photo_id_match_ok">OK</string>
+</resources>
