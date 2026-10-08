@@ -312,7 +312,9 @@ JAVASCRIPT_BRIDGE.__resolve__ = (uuid, result) => {
         var promise = JAVASCRIPT_BRIDGE.__promise_cache__[uuid]
         console.log("Promise resolved:", promise.method, uuid)
 
-        if (!promise.method.startsWith('bluetooth')) {
+        if (promise.method.startsWith('proximity')) {
+            result = __b64ToJson(result)
+        } else {
             result = __decode__credentials(result)
         }
 
@@ -327,6 +329,9 @@ JAVASCRIPT_BRIDGE.__resolve__ = (uuid, result) => {
 JAVASCRIPT_BRIDGE.__reject__ = (uuid, result) => {
     if (uuid in JAVASCRIPT_BRIDGE.__promise_cache__) {
         var promise = JAVASCRIPT_BRIDGE.__promise_cache__ [uuid]
+        if (promise.method.startsWith('proximity')) {
+            try { result = __b64ToJson(result) } catch (e) { /* leave it as the raw string */ }
+        }
         console.log("Rejected promise", JSON.stringify(promise), "with uuid", uuid, "and result", result)
 
         JAVASCRIPT_BRIDGE.__promise_cache__[uuid].reject(result)
@@ -339,8 +344,9 @@ JAVASCRIPT_BRIDGE.__reject__ = (uuid, result) => {
 overrideNavigatorCredentialsWithBridgeCall("create")
 overrideNavigatorCredentialsWithBridgeCall("get")
 
-// create ble methods
-function createBluetoothMethod(method) {
+// Wrap a native *Wrapped(promiseUuid, parameter) method as a promise-returning
+// method whose result is decoded from base64 JSON.
+function createWrappedMethod(method) {
     console.assert (
         typeof JAVASCRIPT_BRIDGE[method+"Wrapped"] !== 'undefined',
         "Associated wrapper function 'JAVASCRIPT_BRIDGE." + method +"Wrapped(promiseUuid,parameter)' not found."
@@ -367,15 +373,122 @@ function createBluetoothMethod(method) {
     }
 }
 
-createBluetoothMethod('bluetoothStatus')
-createBluetoothMethod('bluetoothTerminate')
+// ISO 18013-5 proximity is now a session hosted by the SDK, not eight GATT
+// methods. The page starts one and gets an engagement URI for its QR code;
+// the session then runs natively and asks the page for the three things the
+// page still owns.
+createWrappedMethod('proximityStart')
+createWrappedMethod('proximityStop')
 
-createBluetoothMethod('bluetoothCreateServer')
-createBluetoothMethod('bluetoothCreateClient')
-createBluetoothMethod('bluetoothSendToServer')
-createBluetoothMethod('bluetoothSendToClient')
-createBluetoothMethod('bluetoothReceiveFromClient')
-createBluetoothMethod('bluetoothReceiveFromServer')
+// ---------------------------------------------------------------------------
+// Native to webview call channels.
+//
+// A native session asks the page for the pieces it still owns. Each feature
+// gets its own channel - its own handler registry and the entry points native
+// drives it through - built by __makeCallNamespace__ so no feature shares
+// another's handlers or its in-flight calls, and adding the next one is two
+// lines rather than a copy of this machinery. Payloads are UTF-8 JSON in base64
+// in both directions, so quoting, newlines and U+2028/U+2029 stop being hazards
+// and a binary payload needs no separate encoding. (The older __resolve__ path
+// interpolates into a single-quoted string with no escaping - WebAuthn is its
+// last user; do not build on it.)
+// ---------------------------------------------------------------------------
+
+function __b64ToJson(b64) {
+    if (!b64) return null
+    var binary = atob(b64)
+    var bytes = new Uint8Array(binary.length)
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    return JSON.parse(new TextDecoder().decode(bytes))
+}
+
+function __jsonToB64(value) {
+    var bytes = new TextEncoder().encode(JSON.stringify(value === undefined ? null : value))
+    var binary = ''
+    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    return btoa(binary)
+}
+
+// One feature's channel. `label` only shapes error and log text; the registry
+// and in-flight calls are private to the returned object.
+function __makeCallNamespace__(label) {
+    return {
+        handlers: {},
+        cancelled: {},
+
+        // Request/response: run the named handler and answer via __reply__.
+        invoke: function (callId, name, payloadB64) {
+            var self = this
+            var handler = this.handlers[name]
+            if (typeof handler !== 'function') {
+                JAVASCRIPT_BRIDGE.__replyError__(callId, 'no_handler', 'no ' + label + ' handler registered for ' + name)
+                return
+            }
+
+            var payload
+            try {
+                payload = __b64ToJson(payloadB64)
+            } catch (e) {
+                JAVASCRIPT_BRIDGE.__replyError__(callId, 'bad_payload', String(e))
+                return
+            }
+
+            Promise.resolve()
+                .then(function () { return handler(payload) })
+                .then(function (result) {
+                    if (self.cancelled[callId]) {
+                        delete self.cancelled[callId]
+                        return
+                    }
+                    JAVASCRIPT_BRIDGE.__reply__(callId, __jsonToB64(result))
+                })
+                .catch(function (e) {
+                    if (self.cancelled[callId]) {
+                        delete self.cancelled[callId]
+                        return
+                    }
+                    JAVASCRIPT_BRIDGE.__replyError__(callId, 'handler_failed', (e && e.message) ? e.message : String(e))
+                })
+        },
+
+        // Native gave up on a call. The handler may still be running - we cannot
+        // stop it - so mark the id and drop its answer when it arrives.
+        cancel: function (callId) {
+            this.cancelled[callId] = true
+        },
+
+        // One-way: progress and terminal events. Errors in a listener are swallowed.
+        notify: function (name, payloadB64) {
+            var handler = this.handlers[name]
+            if (typeof handler !== 'function') return
+            try {
+                handler(__b64ToJson(payloadB64))
+            } catch (e) {
+                console.log(label + ' notify handler for ' + name + ' threw: ' + e)
+            }
+        },
+    }
+}
+
+// Register a handler on `namespace` by short name. Returns an unregister
+// function that removes only this handler, not whatever later replaced it.
+function __registerCallHandler__(namespace, name, handler) {
+    namespace.handlers[name] = handler
+    return function () {
+        if (namespace.handlers[name] === handler) {
+            delete namespace.handlers[name]
+        }
+    }
+}
+
+// Proximity: an ISO 18013-5 session hosted natively that asks the page for its
+// credentials, the user's consent, and a signature.
+JAVASCRIPT_BRIDGE.__proximity__ = __makeCallNamespace__('proximity')
+
+/** Register a proximity handler by short name. Returns an unregister function. */
+JAVASCRIPT_BRIDGE.onProximityRequest = function (name, handler) {
+    return __registerCallHandler__(JAVASCRIPT_BRIDGE.__proximity__, name, handler)
+}
 
 // call out finalization
 console.log('injected!')

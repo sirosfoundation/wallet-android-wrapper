@@ -161,6 +161,13 @@ android {
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
+    // The SIROS SDK provides the ISO 18013-5 proximity stack: device
+    // engagement, both BLE roles, NFC static handover, session crypto,
+    // reader authentication and device-response assembly.
+    implementation(platform(libs.siros.sdk.bom))
+    implementation(libs.siros.sdk.keystore)
+    implementation(libs.siros.sdk.credentials)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
