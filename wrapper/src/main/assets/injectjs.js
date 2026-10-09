@@ -307,12 +307,21 @@ function __decode__credentials(result) {
     return result
 }
 
+/**
+ * Wrapped methods (see createWrappedMethod) resolve with base64 JSON. Every
+ * other promise in the cache is a WebAuthn create/get, whose result is a
+ * credential to decode instead.
+ */
+function __isBase64JsonMethod(method) {
+    return method.startsWith('proximity') || method.startsWith('zkp')
+}
+
 JAVASCRIPT_BRIDGE.__resolve__ = (uuid, result) => {
     if (uuid in JAVASCRIPT_BRIDGE.__promise_cache__) {
         var promise = JAVASCRIPT_BRIDGE.__promise_cache__[uuid]
         console.log("Promise resolved:", promise.method, uuid)
 
-        if (promise.method.startsWith('proximity')) {
+        if (__isBase64JsonMethod(promise.method)) {
             result = __b64ToJson(result)
         } else {
             result = __decode__credentials(result)
@@ -329,7 +338,7 @@ JAVASCRIPT_BRIDGE.__resolve__ = (uuid, result) => {
 JAVASCRIPT_BRIDGE.__reject__ = (uuid, result) => {
     if (uuid in JAVASCRIPT_BRIDGE.__promise_cache__) {
         var promise = JAVASCRIPT_BRIDGE.__promise_cache__ [uuid]
-        if (promise.method.startsWith('proximity')) {
+        if (__isBase64JsonMethod(promise.method)) {
             try { result = __b64ToJson(result) } catch (e) { /* leave it as the raw string */ }
         }
         console.log("Rejected promise", JSON.stringify(promise), "with uuid", uuid, "and result", result)
@@ -379,6 +388,14 @@ function createWrappedMethod(method) {
 // page still owns.
 createWrappedMethod('proximityStart')
 createWrappedMethod('proximityStop')
+
+// Zero-knowledge mdoc proofs, hosted by the SDK the same way. The page calls
+// zkpGenerate(params) and gets { proofId } back at once; the proof then runs
+// natively, asks the page to sign through the 'zkp.sign' handler, and reports
+// through 'zkp.step' / 'zkp.complete' (see ZkpBridge for the payloads).
+createWrappedMethod('zkpCapabilities')
+createWrappedMethod('zkpGenerate')
+createWrappedMethod('zkpCancel')
 
 // ---------------------------------------------------------------------------
 // Calls FROM native INTO the page.

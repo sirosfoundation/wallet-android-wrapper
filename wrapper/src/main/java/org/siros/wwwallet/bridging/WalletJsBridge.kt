@@ -27,6 +27,7 @@ import org.siros.wwwallet.json.DcApiCredential
 import org.siros.wwwallet.json.toList
 import org.siros.wwwallet.proximity.ProximityBridge
 import org.siros.wwwallet.storage.Settings
+import org.siros.wwwallet.zkp.ZkpBridge
 import timber.log.Timber
 import java.util.Base64
 import kotlin.coroutines.EmptyCoroutineContext
@@ -39,6 +40,13 @@ class WalletJsBridge(
     private val debugMenuHandler: DebugMenuHandler?,
     private val startPhotoIdMatch: () -> Unit,
     private val finishDcApiRequest: (response: String?, error: String?) -> Unit,
+    /**
+     * The go-zk-circuits catalog URL(s) [ZkpBridge] downloads proof circuits
+     * from. Defaults to the comma-separated `ZK_CIRCUIT_URLS` build config
+     * field, so existing call sites need no change.
+     */
+    zkCircuitSources: List<String> =
+        BuildConfig.ZK_CIRCUIT_URLS.split(',').map { it.trim() }.filter { it.isNotEmpty() },
 ) {
     companion object {
         const val JAVASCRIPT_BRIDGE_NAME = "nativeWrapper"
@@ -58,6 +66,13 @@ class WalletJsBridge(
      * to the page and left it to run the protocol.
      */
     private val proximity = ProximityBridge(webView.context, calls, scope)
+
+    /**
+     * Zero-knowledge mdoc proofs (`mso_mdoc_zk`), hosted by the SDK. Same
+     * split as [proximity]: the page owns the credential and the device key
+     * and signs through `zkp.sign`; the prover runs natively.
+     */
+    private val zkp = ZkpBridge(webView.context, calls, scope, zkCircuitSources)
 
     private fun credentialsContainerByOption(mappedOptions: JSONObject): Container =
         try {
@@ -373,6 +388,73 @@ class WalletJsBridge(
         // is serialized onto one dispatcher.
         scope.launch { proximity.stop() }
         resolvePromise(promiseUuid, base64Json(JsonPrimitive(true)))
+    }
+
+    // ── zero-knowledge proofs ───────────────────────────────────────────────
+    //
+    // Same shape as proximity: every call hops onto [scope] so the bridge's
+    // state is only ever touched from one dispatcher, never from the
+    // WebView's JavaBridge thread.
+
+    /**
+     * Resolves with `{ zkSystems, busy }`. `zkSystems` is what the page uses
+     * to decide whether to offer a ZK presentation at all.
+     */
+    @JavascriptInterface
+    @Suppress("unused")
+    fun zkpCapabilitiesWrapped(
+        promiseUuid: String,
+        unusedParameter: String,
+    ) {
+        scope.launch {
+            try {
+                resolvePromise(promiseUuid, base64Json(zkp.capabilities()))
+            } catch (e: Exception) {
+                Timber.e(e, "Could not read ZK capabilities.")
+                rejectPromise(promiseUuid, base64Json(errorPayload(e)))
+            }
+        }
+    }
+
+    /**
+     * Starts a proof and resolves with `{ proofId }` straight away. The proof
+     * then runs natively, asks the page to sign through `zkp.sign`, and
+     * reports through `zkp.step` / `zkp.complete`. See [ZkpBridge] for the
+     * shape of `params`.
+     */
+    @JavascriptInterface
+    @Suppress("unused")
+    fun zkpGenerateWrapped(
+        promiseUuid: String,
+        params: String,
+    ) {
+        scope.launch {
+            try {
+                resolvePromise(promiseUuid, base64Json(zkp.generate(params)))
+            } catch (e: Exception) {
+                Timber.e(e, "Could not start a ZK proof.")
+                rejectPromise(promiseUuid, base64Json(errorPayload(e)))
+            }
+        }
+    }
+
+    /** Cancels a running proof, which then reports `cancelled` through `zkp.complete`. Idempotent. */
+    @JavascriptInterface
+    @Suppress("unused")
+    fun zkpCancelWrapped(
+        promiseUuid: String,
+        unusedParameter: String,
+    ) {
+        scope.launch { zkp.cancel() }
+        resolvePromise(promiseUuid, base64Json(JsonPrimitive(true)))
+    }
+
+    /**
+     * Release what outlives a page: the ZK bridge's memory-pressure callback
+     * and any resident prover. Call from the hosting Activity's `onDestroy`.
+     */
+    fun dispose() {
+        zkp.dispose()
     }
 
     // ── replies to calls we made into the page ──────────────────────────────
