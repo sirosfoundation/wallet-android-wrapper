@@ -24,6 +24,7 @@
     <string name="photo_id_match_refused_liveness_failed">Vi kunde inte bekräfta att en levande person fanns framför kameran, så inget intyg utfärdades. Försök igen i bra ljus och titta mot kameran.</string>
     <string name="photo_id_match_refused_document_expired">Det här dokumentet har gått ut, så inget intyg utfärdades. Använd en giltig identitetshandling.</string>
     <string name="photo_id_match_refused_document_unreadable">Dokumentets uppgifter kunde inte läsas, så inget intyg utfärdades. Försök igen eller använd en annan identitetshandling.</string>
+    <string name="photo_id_match_refused_chip_photo_mismatch">Ditt ansikte stämde inte med fotot som är lagrat i dokumentets chip, så inget intyg utfärdades. Försök igen eller använd en annan identitetshandling.</string>
     <string name="photo_id_match_refused_other">Din identitet kunde inte verifieras, så inget intyg utfärdades. Försök igen.</string>
     <string name="photo_id_match_ok">OK</string>
 </resources>
