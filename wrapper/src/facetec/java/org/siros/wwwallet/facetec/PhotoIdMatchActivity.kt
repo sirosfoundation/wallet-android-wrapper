@@ -242,6 +242,7 @@ class PhotoIdMatchActivity : ComponentActivity() {
                 "nfc_chip_read_failed" -> R.string.photo_id_match_refused_nfc_chip_read_failed
                 "nfc_not_authenticated" -> R.string.photo_id_match_refused_nfc_not_authenticated
                 "chip_untrusted" -> R.string.photo_id_match_refused_chip_untrusted
+                "chip_photo_mismatch" -> R.string.photo_id_match_refused_chip_photo_mismatch
                 "policy_rejected" -> R.string.photo_id_match_refused_policy_rejected
                 "match_failed" -> R.string.photo_id_match_refused_match_failed
                 "issuance_failed" -> R.string.photo_id_match_refused_issuance_failed
