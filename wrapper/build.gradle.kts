@@ -20,6 +20,11 @@ android {
     compileSdk = 37
 
     defaultConfig {
+        buildConfigField(
+            "String",
+            "ZK_CIRCUIT_URLS",
+            "\"https://zk-circuits.fly.dev/\"",
+        )
         applicationId = env("WWWALLET_ANDROID_APPLICATION_ID")
         minSdk = 33
         targetSdk = 37
@@ -160,6 +165,8 @@ android {
 }
 
 dependencies {
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
     implementation(platform(libs.androidx.compose.bom))
     // The SIROS SDK provides the ISO 18013-5 proximity stack: device
     // engagement, both BLE roles, NFC static handover, session crypto,
