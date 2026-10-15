@@ -1,3 +1,8 @@
+# 0.1.19
+
+- Updated FaceTec SDK.
+- Improved error handling and error messages during passport check.
+
 # 0.1.18
 
 - Updated FaceTec SDK.
