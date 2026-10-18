@@ -396,7 +396,7 @@ createWrappedMethod('proximityStop')
 createWrappedMethod('zkpCapabilities')
 createWrappedMethod('zkpGenerate')
 createWrappedMethod('zkpCancel')
-
+createWrappedMethod('zkpSelectCircuit')
 // ---------------------------------------------------------------------------
 // Calls FROM native INTO the page.
 //

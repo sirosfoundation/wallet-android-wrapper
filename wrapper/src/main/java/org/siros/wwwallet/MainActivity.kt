@@ -67,7 +67,7 @@ import timber.log.Timber
 import ui.EnterBaseUrlDialog
 import java.lang.ref.WeakReference
 import java.security.MessageDigest
-
+import org.siros.wwwallet.zkp.debugZkConfig
 class MainActivity : ComponentActivity() {
     val vm: MainViewModel by viewModels<MainViewModel>()
 
@@ -129,6 +129,7 @@ class MainActivity : ComponentActivity() {
 
                     finish()
                 },
+                zkConfig = debugZkConfig(),
             )
 
         // Avoid circular reference.

@@ -11,161 +11,174 @@ import kotlinx.coroutines.yield
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import okhttp3.OkHttpClient
 import org.siros.sdk.credentials.COSE_ALG_ES256
-import org.siros.sdk.credentials.CredentialMatcher
+import org.siros.sdk.credentials.CircuitZkCircuit
+import org.siros.sdk.credentials.CircuitZkCircuitSource
+import org.siros.sdk.credentials.CircuitZkFunction
+import org.siros.sdk.credentials.CircuitZkPlan
+import org.siros.sdk.credentials.CircuitZkRequestValidator
+import org.siros.sdk.credentials.CircuitZkVerdict
 import org.siros.sdk.credentials.CredentialUtils
 import org.siros.sdk.credentials.StoredCredential
-import org.siros.sdk.credentials.VerifierIdentity
-import org.siros.sdk.credentials.ZkCircuitClient
-import org.siros.sdk.credentials.ZkSystemSpec
-import org.siros.sdk.keystore.LongfellowZkProofSystem
+import org.siros.sdk.credentials.ZkWitnessSigner
+import org.siros.sdk.keystore.CircuitZkError
+import org.siros.sdk.keystore.CircuitZkPresenter
+import org.siros.sdk.keystore.CircuitZkProver
+import org.siros.sdk.keystore.CircuitZkFunctionWitness
+import org.siros.sdk.keystore.CircuitZkWitnessKind
+import org.siros.sdk.keystore.CircuitZkWitnessProvider
+import org.siros.sdk.keystore.ZkProverResidency
 import org.siros.sdk.keystore.MdocDeviceResponseBuilder
-import org.siros.sdk.keystore.ZkMdocPresentation
 import org.siros.wwwallet.bridging.JsCallHost
 import timber.log.Timber
-import java.io.File
+import java.security.MessageDigest
 import java.util.Base64
 import java.util.UUID
 
 /**
- * Zero-knowledge mdoc presentation (`"mso_mdoc_zk"`), hosted natively.
+ * Everything [ZkpBridge] needs to prove. Absent (null) means this build cannot
+ * present with zero knowledge, and the page is told so through `capabilities()`.
+ */
+/** A circuit artifact as the catalogue publishes it. [url] is absolute. */
+class ZkArtifact(
+    val url: String,
+    /** `sha256:<hex>` of the compressed artifact. */
+    val hash: String,
+    /** `zstd` or `none`. */
+    val compression: String,
+)
+
+/**
+ * One circuit the wallet can prove with, as the catalogue describes it.
+ * [circuit] is what the SDK presenter matches on; the rest is what the page's registry needs to select it.
+ */
+class ZkCircuit(
+    val circuit: CircuitZkCircuit,
+    /** The nym_auth configuration the circuit was built for, e.g. `known-offender-matching-ssc`. */
+    val configuration: String,
+    /** The catalogue's `systemVersion`. */
+    val proofSystemVersion: String,
+    val artifact: ZkArtifact?,
+)
+
+class ZkConfig(
+    /** The `circuit_zk` prover. The SDK ships none that produces real proofs. */
+    val prover: CircuitZkProver,
+    /** The circuits this build can prove with; also what [ZkpBridge.selectCircuit] chooses from. */
+    val catalogue: List<ZkCircuit>,
+    val validator: CircuitZkRequestValidator,
+    val residency: ZkProverResidency?,
+) {
+    /** What the SDK presenter matches circuits against. */
+    val circuits: CircuitZkCircuitSource = CircuitZkCircuitSource { catalogue.map { it.circuit } }
+
+    /** System ids the page may offer (what the prover and circuits support). */
+    fun systemIds(): List<String> = catalogue.map { it.circuit.system }.distinct()
+}
+
+/**
+ * Zero-knowledge presentation (`circuit_zk`: nym_auth pseudonym + age predicate), hosted natively.
+ * Replaces the former `mso_mdoc_zk` / DCQL implementation; the page-facing contract keeps its
+ * names (`capabilities`, `generate`, `cancel`, `zkp.sign`, `zkp.step`, `zkp.complete`).
  *
- * Same split as [org.siros.wwwallet.proximity.ProximityBridge]: the page owns
- * the credential, the device key and the decision to present; the SDK owns
- * everything protocol-shaped. Here that is DCQL matching against the one
- * credential the page chose, picking a proof system, building the
- * SessionTranscript, loading circuits and running the prover - none of which
- * the page can do, since the provers are native.
+ * The page owns the credential and the device key. Native owns the holder private seed
+ * (in the page's keystore; handed over per proof through `zkp.seed`) and runs the presenter.
  *
  * ### Page -> native
- *
- * - `capabilities()` -> `{ zkSystems: string[], busy: boolean }`. Use
- *   `zkSystems` to decide whether to offer a ZK presentation at all.
- * - `generate(params)` -> `{ proofId }`, immediately. The proof itself runs in
- *   the background and reports through `zkp.step` and `zkp.complete`.
- *   Starting a new proof cancels a running one, as starting a new proximity
- *   session stops the old one.
+ * - `capabilities()` -> `{ zkSystems: string[], busy: boolean, fakeProver: boolean }`.
+ * - `generate(params)` -> `{ proofId }`, then `zkp.step` / `zkp.complete`. A new proof cancels a running one.
  * - `cancel()`.
  *
  * `params`:
  * ```
  * {
- *   credential:        StoredCredential,      // same JSON shape proximity.credentials returns
- *   dcqlQuery:         object,                // the verifier's full dcql_query, forwarded as is;
- *                                             // native picks the proof system from its zk_system_type
- *   credentialQueryId: string?,               // which query to answer; default: the first one the credential matches
- *   transcript:
- *       { kind: "openid4vp", clientId, nonce, responseUri, verifierJwkThumbprint? }
- *     | { kind: "dc_api",    origin,   nonce, encryptionJwkThumbprint? }
- *     | { kind: "raw",       sessionTranscript }          // base64, already CBOR-encoded
- *   verifier:          { clientId, sessionId? }?          // required only when pairwise_pseudonym is requested
+ *   credential: StoredCredential,          // its device key is what the page signs with
+ *   plan: {
+ *     functions: [ { id, handle, params } ],   // e.g. pseudonym-v1-sha256, age_check
+ *     meta: { doctype_value: string }          // required; also the docType asked of the page for the seed
+ *   },
+ *   userValue?: string,                    // base64, only for configs whose function takes one
+ *   verifierId: string,                    // what the pseudonym is derived for
+ *   transcript: { kind: "openid4vp"|"dc_api"|"raw", ... }
  * }
  * ```
  *
- * ### Native -> page (handlers the page registers)
+ * ### Native -> page
+ * - `zkp.sign` `{ proofId, credentialId, algorithm: "ES256", data(base64) }` -> `{ signature }`
+ *   (base64 of raw 64-byte r||s, not DER, message not digest). Unchanged.
+ * - `zkp.seed` `{ proofId, credentialId, docType }` -> `{ seed }` (base64, 16 bytes): the holder private
+ *   seed for `docType`, derived by the page from its unlocked keystore. Held by native for this proof only.
+ * - `zkp.step` `{ proofId, step }`.
+ * - `zkp.complete` `{ proofId, success: true, token }` (`token` = CircuitZkPresentationCodec,
+ *   base64url) or `{ proofId, success: false, error: { code, message } }`.
+ *   Codes: bad_request, refused, sign_failed, unsupported_algorithm, cancelled, failed.
+ *   `CircuitZkError` carries no description by design, so it is always `refused`.
  *
- * - `zkp.sign` (call) `{ proofId, credentialId, algorithm: "ES256", data }`
- *   -> `{ signature }`. `data` is the message to sign (base64), not a digest:
- *   sign it with SHA-256/P-256 using the credential's device key and return
- *   the raw 64-byte `r || s` (what WebCrypto's ECDSA produces), not DER. Not
- *   every proof system calls this - Vega has no device binding - so the page
- *   must not assume it will be asked.
- * - `zkp.step` (notify) `{ proofId, step }`.
- * - `zkp.complete` (notify)
- *   `{ proofId, success: true, deviceResponse, system, queryId, disclosedClaims }`
- *   or `{ proofId, success: false, error: { code, message } }`.
- *   `deviceResponse` is base64url without padding, ready to go into
- *   `vp_token[queryId]` as the single element of its array.
- *
- * Error codes: `bad_request`, `no_zk_match`, `no_proof_system`,
- * `sign_failed`, `unsupported_algorithm`, `cancelled`, `failed`.
- *
- * ### Memory
- *
- * A resident prover is 100+ MB of native memory. It is dropped when the UI is
- * hidden or under memory pressure (as the SDK's own wallet does) and reloaded
- * from the on-device circuit cache on the next proof. Call [dispose] when the
- * hosting Activity is destroyed.
- *
- * @param circuitSources the go-zk-circuits catalog URL(s) - the value the SDK
- *   takes as `WalletConfig.zkCircuitUrls`.
+ * Notes:
+ * - The presenter is built per proof around the seed the page supplies. Its circuits must match the catalogue (`longfellow-nymauth`, `vega-nymauth`;
+ *   doctype `eu.europa.ec.eudi.nym_auth.1`).
+ * - The plan's `config` must be the one the chosen circuit was built for
+ *   (the catalogue lists `known-offender-matching-ssc`).
  */
 class ZkpBridge(
     context: Context,
     private val calls: JsCallHost,
     private val scope: CoroutineScope,
-    circuitSources: List<String>,
-    httpClient: OkHttpClient = OkHttpClient(),
+    private val config: ZkConfig,
 ) {
     private val appContext = context.applicationContext
+    private val json = Json { ignoreUnknownKeys = true }
+    private var job: Job? = null
 
-    private val json =
-        Json {
-            ignoreUnknownKeys = true
-            encodeDefaults = true
-        }
+    // One presenter per proof: its witness provider carries that proof's seed. Kept only so memory
+    // pressure can drop the resident prover.
+    @Volatile private var lastPresenter: CircuitZkPresenter? = null
 
-    private val zkPresentation: ZkMdocPresentation =
-        ZkMdocPresentation.standard(
-            circuitClient =
-                ZkCircuitClient(
-                    sources = circuitSources,
-                    httpClient = httpClient,
-                    // Circuits are immutable, tens of MB, and verified on
-                    // download: fetched once per device, then served from disk
-                    // with or without network. cacheDir, not files: nothing
-                    // here is user data and re-downloading is the only cost.
-                    cacheDir = File(appContext.cacheDir, "siros-zk-circuits"),
-                ),
-            // No BBS here: its holder state lives in the SDK's keystore
-            // container, which this host does not own.
-            extra = emptyList(),
-        )
+    private fun releaseProvers() {
+        lastPresenter?.releaseProvers()
+    }
 
-    private val zkSystemIds: List<String> get() = zkPresentation.registry.systemIds
-
+    // A resident prover is large; drop it when the UI is hidden or memory is low.
     private val memoryCallbacks =
         object : ComponentCallbacks2 {
             override fun onTrimMemory(level: Int) {
-                if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) zkPresentation.releaseProvers()
+                if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) releaseProvers()
             }
 
             override fun onConfigurationChanged(newConfig: Configuration) = Unit
 
             @Deprecated("Deprecated in Java")
-            override fun onLowMemory() = zkPresentation.releaseProvers()
+            override fun onLowMemory() = releaseProvers()
         }.also { appContext.registerComponentCallbacks(it) }
-
-    private var job: Job? = null
-
-    // ── Page -> native ──────────────────────────────────────────────────────
 
     fun capabilities(): JsonObject =
         buildJsonObject {
-            put("zkSystems", JsonArray(zkSystemIds.map { JsonPrimitive(it) }))
+            put("zkSystems", JsonArray(config.systemIds().map { JsonPrimitive(it) }))
             put("busy", job?.isActive == true)
+            // A fake prover produces no real proof; the page must not offer it to a real verifier.
+            put("fakeProver", config.prover.isFake)
         }
+
+    fun dispose() {
+        cancel()
+        appContext.unregisterComponentCallbacks(memoryCallbacks)
+        releaseProvers()
+    }
 
     fun generate(paramsJson: String): JsonObject {
         cancel()
         val proofId = UUID.randomUUID().toString()
         job =
             scope.launch {
-                // A Main.immediate scope (lifecycleScope) would otherwise run
-                // this body - and possibly report zkp.complete for a malformed
-                // request - before the page has received the proofId it needs
-                // to correlate that report with.
-                yield()
+                yield() // let the page receive proofId before any report for it
                 val report =
                     try {
                         success(proofId, prove(proofId, paramsJson))
@@ -173,13 +186,18 @@ class ZkpBridge(
                         calls.notify(COMPLETE, failure(proofId, "cancelled", "The proof was cancelled"))
                         throw e
                     } catch (e: Exception) {
-                        val known = proofFailureIn(e)
-                        if (known != null) {
-                            Timber.w("ZK proof $proofId failed: ${known.code} - ${known.message}")
-                            failure(proofId, known.code, known.message ?: known.code)
-                        } else {
-                            Timber.e(e, "ZK proof $proofId failed")
-                            failure(proofId, "failed", e.message ?: e::class.simpleName ?: "failed")
+                        val known = failureIn(e)
+                        when {
+                            known != null -> failure(proofId, known.code, known.message ?: known.code)
+                            e is CircuitZkError || e.cause is CircuitZkError -> {
+                                // No description by design; do not try to extract one.
+                                Timber.w("circuit_zk $proofId refused")
+                                failure(proofId, "refused", "The wallet refused this request")
+                            }
+                            else -> {
+                                Timber.e(e, "circuit_zk $proofId failed")
+                                failure(proofId, "failed", e.message ?: e::class.simpleName ?: "failed")
+                            }
                         }
                     }
                 calls.notify(COMPLETE, report)
@@ -187,210 +205,201 @@ class ZkpBridge(
         return buildJsonObject { put("proofId", proofId) }
     }
 
-    /** Cancels a running proof, which then reports `cancelled`. Safe when none is running. */
+    /**
+     * Chooses the circuit this build will prove with, for the page's registry host.
+     *
+     * `criteria`: `{ doctype, req: [{ fn_id, id, params }], acceptedCircuitIds?, acceptedSystems? }`.
+     * Resolves with `{ circuitId, proofSystem, proofSystemVersion, artifact? }`, or JSON null when no
+     * circuit fits. A circuit fits when it is for the doctype, is in the accepted ids and systems (when
+     * given), was built for the `config` of every pseudonym function in `req`, and the rulebook
+     * validator accepts the requested functions.
+     */
+    fun selectCircuit(criteriaJson: String): JsonElement {
+        val c =
+            runCatching { json.parseToJsonElement(criteriaJson).jsonObject }.getOrNull()
+                ?: throw Failure(BAD_REQUEST, "criteria must be a JSON object")
+        val doctype = c.str("doctype") ?: throw Failure(BAD_REQUEST, "doctype is required")
+        val req = c["req"] as? JsonArray ?: throw Failure(BAD_REQUEST, "req must be an array")
+        val ids = strings(c["acceptedCircuitIds"])
+        val systems = strings(c["acceptedSystems"])
+
+        val functions = planFunctionsOf(req)
+        val plan =
+            CircuitZkPlan(
+                functions = functions,
+                raw = JsonObject(mapOf("meta" to buildJsonObject { put("doctype_value", doctype) })),
+            )
+        if (config.validator.validate(plan) !is CircuitZkVerdict.Ok) return JsonNull
+
+        val configs =
+            functions
+                .filter { it.id == PSEUDONYM_FUNCTION }
+                .mapNotNull { (it.params["config"] as? JsonPrimitive)?.contentOrNull }
+                .toSet()
+
+        val chosen =
+            config.catalogue.firstOrNull { e ->
+                doctype in e.circuit.docTypes &&
+                        (ids == null || e.circuit.circuitId in ids) &&
+                        (systems == null || e.circuit.system in systems) &&
+                        configs.all { it == e.configuration }
+            } ?: return JsonNull
+
+        return buildJsonObject {
+            put("circuitId", chosen.circuit.circuitId)
+            put("proofSystem", chosen.circuit.system)
+            put("proofSystemVersion", chosen.proofSystemVersion)
+            chosen.artifact?.let { a ->
+                putJsonObject("artifact") {
+                    put("url", a.url)
+                    put("hash", a.hash)
+                    put("compression", a.compression)
+                }
+            }
+        }
+    }
+
+    private fun strings(e: JsonElement?): List<String>? =
+        (e as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+
     fun cancel() {
         job?.cancel()
         job = null
     }
 
-    fun dispose() {
-        cancel()
-        appContext.unregisterComponentCallbacks(memoryCallbacks)
-        zkPresentation.releaseProvers()
-    }
-
-    // ── The proof ───────────────────────────────────────────────────────────
-
     private suspend fun prove(
         proofId: String,
         paramsJson: String,
-    ): ProofResult {
+    ): Result {
         val params =
             runCatching { json.parseToJsonElement(paramsJson).jsonObject }.getOrNull()
-                ?: throw ProofFailure(BAD_REQUEST, "params must be a JSON object")
-        val credentialJson = params["credential"] ?: throw ProofFailure(BAD_REQUEST, "credential is missing")
+                ?: throw Failure(BAD_REQUEST, "params must be a JSON object")
         val credential =
             try {
-                json.decodeFromJsonElement(StoredCredential.serializer(), credentialJson)
+                json.decodeFromJsonElement(
+                    StoredCredential.serializer(),
+                    params["credential"] ?: throw Failure(BAD_REQUEST, "credential is missing"),
+                )
+            } catch (e: Failure) {
+                throw e
             } catch (e: Exception) {
-                // Name what is wrong (usually a missing required field), not just that something is.
-                throw ProofFailure(BAD_REQUEST, "credential is not a StoredCredential: ${e.message}")
+                throw Failure(BAD_REQUEST, "credential is not a StoredCredential: ${e.message}")
             }
-        // The verifier's query, forwarded unchanged by the wallet: its zk_system_type
-        // lists the proof systems the verifier accepts, and the SDK picks one here.
-        val dcqlQuery =
-            params["dcqlQuery"] as? JsonObject
-                ?: throw ProofFailure(BAD_REQUEST, "dcqlQuery must be an object")
-        val transcript =
-            params["transcript"] as? JsonObject
-                ?: throw ProofFailure(BAD_REQUEST, "transcript must be an object")
-        val wantedQueryId = params.str("credentialQueryId")
+        val credentialBytes =
+            runCatching { CredentialUtils.decodeMdocRawBytes(credential) }.getOrNull()
+                ?: throw Failure(BAD_REQUEST, "credential.raw is not a decodable mdoc")
 
-        // The query is matched natively rather than having the page pass
-        // systems and claims in: the requested proof systems, the pseudonym
-        // context and the claim paths come out of the matcher in exactly the
-        // types the prover takes, and a page re-deriving them is how the two
-        // ends would come to disagree about what was asked for.
-        // matchDcql with the registered proof systems (SDK 0.20+): without that
-        // list the shared DCQL engine treats every mso_mdoc_zk query as
-        // unanswerable and declines the whole request. Same call as
-        // SirosWallet.handleDCAPIRequest.
-        Timber.d("ZK proof $proofId: registered proof systems $zkSystemIds; query $dcqlQuery")
-        // pairwise_pseudonym is derived (from the credential's pseudonym_seed and
-        // the verifier's identity), not an element the credential holds, and the
-        // shared DCQL engine declines any request that names it. Match without it,
-        // then add it back for the prover below.
-        val pseudonymQueryIds = queryIdsRequestingPseudonym(dcqlQuery)
-        val matchQuery = if (pseudonymQueryIds.isEmpty()) dcqlQuery else withoutPseudonymClaims(dcqlQuery)
-        val results = CredentialMatcher.matchDcql(matchQuery, listOf(credential), zkSystemIds).queryResults
-        val match =
-            if (wantedQueryId != null) {
-                results.firstOrNull { it.queryId == wantedQueryId && it.candidates.any { c -> c.id == credential.id } }
-            } else {
-                // First match governs, the same rule the SDK applies everywhere.
-                results.firstOrNull { r -> r.candidates.any { it.id == credential.id } }
+        val verifierId = params.str("verifierId") ?: throw Failure(BAD_REQUEST, "verifierId is required")
+        val plan = planOf(params["plan"] as? JsonObject ?: throw Failure(BAD_REQUEST, "plan must be an object"))
+        val sessionTranscript =
+            sessionTranscriptOf(params["transcript"] as? JsonObject ?: throw Failure(BAD_REQUEST, "transcript must be an object"))
+
+        val docType =
+            ((params["plan"] as JsonObject)["meta"] as? JsonObject)?.str("doctype_value")
+                ?: throw Failure(BAD_REQUEST, "plan.meta.doctype_value is required")
+        val userValue = params.str("userValue")?.let { decodeB64(it) }
+
+        // The page's registry already chose a circuit; prove with that one, not whichever the presenter prefers.
+        val circuits =
+            params.str("circuitId")?.let { wanted ->
+                val e =
+                    config.catalogue.firstOrNull { it.circuit.circuitId == wanted }
+                        ?: throw Failure(BAD_REQUEST, "unknown circuitId $wanted")
+                if (docType !in e.circuit.docTypes) throw Failure(BAD_REQUEST, "circuit $wanted is not for $docType")
+                CircuitZkCircuitSource { listOf(e.circuit) }
+            } ?: config.circuits
+
+        // The page's keystore owns the secret; fetch it before proving because the SDK's witness
+        // provider is not suspending. It lives in this ByteArray for this proof only.
+        val seed = seedFromPage(proofId, credential.id, docType)
+        try {
+            val provider = PageSeedWitnessProvider(docType, seed, userValue)
+            val presenter =
+                CircuitZkPresenter(
+                    prover = config.prover,
+                    circuits = circuits,
+                    validator = config.validator,
+                    witnessProvider = provider,
+                    residency = config.residency,
+                )
+            lastPresenter = presenter
+
+            calls.notify(STEP, step(proofId, "computing_proof"))
+            val result =
+                presenter.present(
+                    CircuitZkPresenter.Request(
+                        credentialBytes = credentialBytes,
+                        plan = plan,
+                        verifierId = verifierId,
+                        sessionTranscript = sessionTranscript,
+                    ),
+                    ZkWitnessSigner { alg, data -> sign(proofId, credential.id, alg, data) },
+                )
+            Timber.i("circuit_zk $proofId produced a presentation (${result.base64Url.length} chars)")
+            return Result(result.base64Url)
+        } finally {
+            seed.fill(0)
+        }
+    }
+
+    /** Asks the page for the holder private seed of [docType]; it derives it from its unlocked keystore. */
+    private suspend fun seedFromPage(
+        proofId: String,
+        credentialId: Long,
+        docType: String,
+    ): ByteArray {
+        calls.notify(STEP, step(proofId, "awaiting_seed"))
+        val reply =
+            try {
+                calls.call(
+                    SEED,
+                    buildJsonObject {
+                        put("proofId", proofId)
+                        put("credentialId", credentialId)
+                        put("docType", docType)
+                    },
+                )
+            } catch (e: JsCallHost.JsCallException) {
+                throw Failure("seed_failed", "The page did not provide the seed: ${e.code}")
             }
-        if (match == null || match.format?.equals("mso_mdoc_zk", ignoreCase = true) != true) {
-            throw ProofFailure(
-                "no_zk_match",
-                "The credential does not answer an mso_mdoc_zk query" +
-                    (wantedQueryId?.let { " with id '$it'" } ?: "") +
-                    (match?.let { " (it matched '${it.queryId}' as ${it.format}, which is not a ZK request)" } ?: ""),
+        val seed = decodeB64((reply as? JsonObject)?.str("seed") ?: throw Failure("seed_failed", "$SEED returned no seed"))
+        if (seed.size != PRIVATE_SEED_BYTES) {
+            seed.fill(0)
+            throw Failure("seed_failed", "$SEED must return a $PRIVATE_SEED_BYTES-byte seed, got ${seed.size}")
+        }
+        return seed
+    }
+
+    // A plan function is `{ id, handle, params }`; a registry criteria function is `{ fn_id, id, params }`.
+    private fun planFunctionsOf(req: JsonArray): List<CircuitZkFunction> =
+        req.map { f ->
+            val o = f as? JsonObject ?: throw Failure(BAD_REQUEST, "functions must be objects")
+            CircuitZkFunction(
+                id = o.str("fn_id") ?: throw Failure(BAD_REQUEST, "fn_id is required"),
+                handle = o.str("id") ?: throw Failure(BAD_REQUEST, "function id is required"),
+                params = (o["params"] as? JsonObject) ?: JsonObject(emptyMap()),
             )
         }
 
-        // Each requestedClaims entry is a full claim path [namespace, element];
-        // the prover takes element identifiers and rejects a namespace passed
-        // as one.
-        val pseudonymRequested = match.queryId in pseudonymQueryIds
-        val claims =
-            (match.requestedClaims.mapNotNull { it.lastOrNull() } +
-                listOfNotNull(LongfellowZkProofSystem.PSEUDONYM_CLAIM.takeIf { pseudonymRequested })).distinct()
-
-        // The proof systems as the verifier wrote them. With a pseudonym the matcher
-        // saw a reduced num_attributes, so its specs cannot be used: the prover
-        // selects a circuit by the verifier's original count (pseudonym included).
-        val requestedSystems =
-            if (pseudonymRequested) {
-                zkSystemSpecsOf(dcqlQuery, match.queryId).ifEmpty { match.zkSystemTypes.orEmpty() }
-            } else {
-                match.zkSystemTypes.orEmpty()
-            }
-
-        // Only bind a pseudonym when it was asked for: a non-null identity makes
-        // the prover add and disclose pairwise_pseudonym unconditionally.
-        val verifierIdentity =
-            if (LongfellowZkProofSystem.PSEUDONYM_CLAIM in claims) {
-                val verifier = params["verifier"] as? JsonObject
-                val clientId =
-                    verifier?.str("clientId")
-                        ?: throw ProofFailure(BAD_REQUEST, "pairwise_pseudonym is requested but verifier.clientId is missing")
-                VerifierIdentity(
-                    clientId = clientId,
-                    ppidContext = match.ppidContext,
-                    sessionId = verifier.str("sessionId"),
+    private fun planOf(p: JsonObject): CircuitZkPlan {
+        val functions =
+            (p["functions"] as? JsonArray)?.map { f ->
+                val o = f as? JsonObject ?: throw Failure(BAD_REQUEST, "plan.functions entries must be objects")
+                CircuitZkFunction(
+                    id = o.str("id") ?: throw Failure(BAD_REQUEST, "function.id is required"),
+                    handle = o.str("handle") ?: throw Failure(BAD_REQUEST, "function.handle is required"),
+                    params = (o["params"] as? JsonObject) ?: JsonObject(emptyMap()),
                 )
-            } else {
-                null
-            }
-
-        val sessionTranscript = sessionTranscriptOf(transcript)
-        val credentialBytes =
-            runCatching { CredentialUtils.decodeMdocRawBytes(credential) }.getOrNull()
-                ?: throw ProofFailure(BAD_REQUEST, "credential.raw is not a decodable mdoc")
-
-        calls.notify(STEP, step(proofId, "computing_proof"))
-        val presented =
-            try {
-                zkPresentation.present(
-                    ZkMdocPresentation.Request(
-                        credentialBytes = credentialBytes,
-                        requestedSystems = requestedSystems,
-                        sessionTranscript = sessionTranscript,
-                        requestedClaims = claims,
-                        verifierIdentity = verifierIdentity,
-                    ),
-                    signer = { algorithm, data -> sign(proofId, credential.id, algorithm, data) },
-                )
-            } catch (e: ZkMdocPresentation.NoMatchingProofSystem) {
-                throw ProofFailure("no_proof_system", e.message ?: "No registered ZK proof system satisfies the request")
-            }
-
-        Timber.i("ZK proof $proofId generated with ${presented.system.systemId} (${presented.deviceResponse.size} bytes)")
-        return ProofResult(
-            deviceResponse = presented.deviceResponse,
-            systemId = presented.system.systemId,
-            queryId = match.queryId,
-            disclosedClaims = claims,
+            } ?: throw Failure(BAD_REQUEST, "plan.functions must be an array")
+        val meta = p["meta"] as? JsonObject
+        return CircuitZkPlan(
+            functions = functions,
+            raw = JsonObject(if (meta != null) mapOf("meta" to meta) else emptyMap()),
         )
     }
 
-    // ── pairwise_pseudonym handling ─────────────────────────────────────────
-
-    private fun credentialQueries(query: JsonObject): List<JsonObject> =
-        (query["credentials"] as? JsonArray)?.mapNotNull { it as? JsonObject }.orEmpty()
-
-    private fun isPseudonymClaim(claim: JsonElement): Boolean =
-        ((claim as? JsonObject)?.get("path") as? JsonArray)
-            ?.lastOrNull()
-            ?.let { (it as? JsonPrimitive)?.contentOrNull } == LongfellowZkProofSystem.PSEUDONYM_CLAIM
-
-    private fun queryIdsRequestingPseudonym(query: JsonObject): Set<String> =
-        credentialQueries(query)
-            .filter { q -> (q["claims"] as? JsonArray)?.any(::isPseudonymClaim) == true }
-            .mapNotNull { it.str("id") }
-            .toSet()
-
-    /** The query with pseudonym claims removed and each `num_attributes` reduced to match. */
-    private fun withoutPseudonymClaims(query: JsonObject): JsonObject {
-        val credentials =
-            credentialQueries(query).map { q ->
-                val claims = (q["claims"] as? JsonArray) ?: return@map q
-                val removed = claims.count(::isPseudonymClaim)
-                if (removed == 0) return@map q
-                val meta = q["meta"] as? JsonObject
-                val specs = (meta?.get("zk_system_type") as? JsonArray)?.map { spec ->
-                    val o = spec as? JsonObject ?: return@map spec
-                    val n = (o["num_attributes"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: return@map o
-                    JsonObject(o + ("num_attributes" to JsonPrimitive(n - removed)))
-                }
-                JsonObject(
-                    q +
-                        ("claims" to JsonArray(claims.filterNot(::isPseudonymClaim))) +
-                        listOfNotNull(
-                            meta?.let { m -> "meta" to JsonObject(m + listOfNotNull(specs?.let { "zk_system_type" to JsonArray(it) })) },
-                        ),
-                )
-            }
-        return JsonObject(query + ("credentials" to JsonArray(credentials)))
-    }
-
-    /** The zk_system_type entries of one credential query, as the SDK's ZkSystemSpec (extra keys become params). */
-    private fun zkSystemSpecsOf(
-        query: JsonObject,
-        queryId: String,
-    ): List<ZkSystemSpec> {
-        val entries =
-            credentialQueries(query)
-                .firstOrNull { it.str("id") == queryId }
-                ?.let { (it["meta"] as? JsonObject)?.get("zk_system_type") as? JsonArray }
-                .orEmpty()
-        return entries.mapNotNull { e ->
-            val o = e as? JsonObject ?: return@mapNotNull null
-            val system = o.str("system") ?: return@mapNotNull null
-            ZkSystemSpec(
-                id = o.str("id") ?: system,
-                system = system,
-                params =
-                    o
-                        .filterKeys { it != "id" && it != "system" }
-                        .mapNotNull { (k, v) -> (v as? JsonPrimitive)?.contentOrNull?.let { k to it } }
-                        .toMap(),
-            )
-        }
-    }
-
-    private fun sessionTranscriptOf(t: JsonObject) =
+    // Same transcript kinds as the previous bridge.
+    private fun sessionTranscriptOf(t: JsonObject): ByteArray =
         when (t.str("kind")) {
             "openid4vp" ->
                 MdocDeviceResponseBuilder.buildOpenID4VPSessionTranscript(
@@ -405,23 +414,17 @@ class ZkpBridge(
                     nonce = t.required("nonce"),
                     encryptionPublicJwkThumbprint = t.str("encryptionJwkThumbprint"),
                 )
-            "raw" -> decodeB64(t.required("sessionTranscript"), "transcript.sessionTranscript")
-            else -> throw ProofFailure(BAD_REQUEST, "transcript.kind must be openid4vp, dc_api or raw")
+            "raw" -> decodeB64(t.required("sessionTranscript"))
+            else -> throw Failure(BAD_REQUEST, "transcript.kind must be openid4vp, dc_api or raw")
         }
 
-    /**
-     * The page signs, because the device key never leaves it - the same
-     * reason `proximity.sign` exists.
-     */
     private suspend fun sign(
         proofId: String,
         credentialId: Long,
         algorithm: Long,
         data: ByteArray,
     ): ByteArray {
-        if (algorithm != COSE_ALG_ES256) {
-            throw ProofFailure("unsupported_algorithm", "The proof system asked for COSE alg $algorithm; only ES256 is supported")
-        }
+        if (algorithm != COSE_ALG_ES256) throw Failure("unsupported_algorithm", "only ES256 is supported, got COSE alg $algorithm")
         calls.notify(STEP, step(proofId, "awaiting_signature"))
         val reply =
             try {
@@ -435,65 +438,67 @@ class ZkpBridge(
                     },
                 )
             } catch (e: JsCallHost.JsCallException) {
-                throw ProofFailure("sign_failed", "The page did not sign: ${e.code}")
+                throw Failure("sign_failed", "The page did not sign: ${e.code}")
             }
-        val encoded =
-            (reply as? JsonObject)?.str("signature")
-                ?: throw ProofFailure("sign_failed", "$SIGN returned no signature")
-        val signature = decodeB64(encoded, "signature")
-        if (signature.size != ES256_RAW_SIGNATURE_BYTES) {
-            throw ProofFailure(
-                "sign_failed",
-                "$SIGN must return a raw 64-byte r||s ES256 signature, got ${signature.size} bytes (DER?)",
-            )
-        }
+        val signature = decodeB64((reply as? JsonObject)?.str("signature") ?: throw Failure("sign_failed", "no signature returned"))
+        if (signature.size != 64) throw Failure("sign_failed", "expected raw 64-byte r||s, got ${signature.size} bytes (DER?)")
         calls.notify(STEP, step(proofId, "computing_proof"))
         return signature
     }
 
-    // ── helpers ────────────────────────────────────────────────────────────
+    /**
+     * Serves the private seed the page supplied for this proof. The commitment is `SHA256(private_seed)`
+     * (as the SDK's HolderWitnessSource documents it), compared in constant time.
+     */
+    private class PageSeedWitnessProvider(
+        private val docType: String,
+        private val seed: ByteArray,
+        private val userValue: ByteArray?,
+    ) : CircuitZkWitnessProvider {
+        override fun witness(
+            function: CircuitZkFunction,
+            needs: Set<CircuitZkWitnessKind>,
+            credentialType: String,
+        ): CircuitZkFunctionWitness? {
+            if (CircuitZkWitnessKind.NOT_HELD_BY_WALLET in needs) return null
+            if (credentialType != docType) return null
+            if (CircuitZkWitnessKind.USER_VALUE in needs && userValue == null) return null
+            return CircuitZkFunctionWitness(
+                privateSeed = if (CircuitZkWitnessKind.PRIVATE_SEED in needs) seed.copyOf() else null,
+                userValue = if (CircuitZkWitnessKind.USER_VALUE in needs) userValue?.copyOf() else null,
+            )
+        }
 
-    private class ProofFailure(
-        val code: String,
-        message: String,
-    ) : Exception(message)
+        override fun privateSeedMatches(
+            credentialType: String,
+            psc: ByteArray,
+        ): Boolean =
+            credentialType == docType &&
+                    MessageDigest.isEqual(MessageDigest.getInstance("SHA-256").digest(seed), psc)
+    }
 
-    private class ProofResult(
-        val deviceResponse: ByteArray,
-        val systemId: String,
-        val queryId: String,
-        val disclosedClaims: List<String>,
-    )
+    private class Failure(val code: String, message: String) : Exception(message)
 
-    /** The prover may wrap what the signer threw; keep the code the signer chose. */
-    private fun proofFailureIn(e: Throwable): ProofFailure? {
-        var current: Throwable? = e
+    private class Result(val token: String)
+
+    private fun failureIn(e: Throwable): Failure? {
+        var c: Throwable? = e
         var depth = 0
-        while (current != null && depth++ < 8) {
-            if (current is ProofFailure) return current
-            current = current.cause
+        while (c != null && depth++ < 8) {
+            if (c is Failure) return c
+            c = c.cause
         }
         return null
     }
 
-    private fun success(
-        proofId: String,
-        r: ProofResult,
-    ): JsonObject =
+    private fun success(proofId: String, r: Result) =
         buildJsonObject {
             put("proofId", proofId)
             put("success", true)
-            put("deviceResponse", Base64.getUrlEncoder().withoutPadding().encodeToString(r.deviceResponse))
-            put("system", r.systemId)
-            put("queryId", r.queryId)
-            put("disclosedClaims", buildJsonArray { r.disclosedClaims.forEach { add(JsonPrimitive(it)) } })
+            put("token", r.token)
         }
 
-    private fun failure(
-        proofId: String,
-        code: String,
-        message: String,
-    ): JsonObject =
+    private fun failure(proofId: String, code: String, message: String) =
         buildJsonObject {
             put("proofId", proofId)
             put("success", false)
@@ -503,10 +508,7 @@ class ZkpBridge(
             }
         }
 
-    private fun step(
-        proofId: String,
-        step: String,
-    ): JsonObject =
+    private fun step(proofId: String, step: String) =
         buildJsonObject {
             put("proofId", proofId)
             put("step", step)
@@ -515,24 +517,21 @@ class ZkpBridge(
     private fun JsonObject.str(key: String): String? = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
 
     private fun JsonObject.required(key: String): String =
-        str(key)?.takeIf { it.isNotBlank() } ?: throw ProofFailure(BAD_REQUEST, "transcript.$key is required")
+        str(key)?.takeIf { it.isNotBlank() } ?: throw Failure(BAD_REQUEST, "transcript.$key is required")
 
-    /** Accepts standard or URL-safe base64, padded or not. */
-    private fun decodeB64(
-        value: String,
-        field: String,
-    ): ByteArray =
-        runCatching {
-            Base64.getUrlDecoder().decode(value.replace('+', '-').replace('/', '_').trimEnd('='))
-        }.getOrNull() ?: throw ProofFailure(BAD_REQUEST, "$field is not valid base64")
+    private fun decodeB64(value: String): ByteArray =
+        runCatching { Base64.getUrlDecoder().decode(value.replace('+', '-').replace('/', '_').trimEnd('=')) }.getOrNull()
+            ?: throw Failure(BAD_REQUEST, "not valid base64")
 
     companion object {
-        /** Handler names the page registers. Kept together so the contract is readable in one place. */
+        /** Handler names the page registers. Unchanged from the mso_mdoc_zk bridge. */
         const val SIGN = "zkp.sign"
+        const val SEED = "zkp.seed"
         const val STEP = "zkp.step"
         const val COMPLETE = "zkp.complete"
 
         private const val BAD_REQUEST = "bad_request"
-        private const val ES256_RAW_SIGNATURE_BYTES = 64
+        private const val PSEUDONYM_FUNCTION = "pseudonym-v1-sha256"
+        private const val PRIVATE_SEED_BYTES = 16
     }
 }
