@@ -27,6 +27,7 @@ import org.siros.wwwallet.json.DcApiCredential
 import org.siros.wwwallet.json.toList
 import org.siros.wwwallet.proximity.ProximityBridge
 import org.siros.wwwallet.storage.Settings
+import org.siros.wwwallet.zkp.ZkConfig
 import org.siros.wwwallet.zkp.ZkpBridge
 import timber.log.Timber
 import java.util.Base64
@@ -41,12 +42,11 @@ class WalletJsBridge(
     private val startPhotoIdMatch: () -> Unit,
     private val finishDcApiRequest: (response: String?, error: String?) -> Unit,
     /**
-     * The go-zk-circuits catalog URL(s) [ZkpBridge] downloads proof circuits
-     * from. Defaults to the comma-separated `ZK_CIRCUIT_URLS` build config
-     * field, so existing call sites need no change.
+     * Zero-knowledge presentation setup. Null (the default) means this build
+     * does not present with zero knowledge: `zkpCapabilitiesWrapped` reports no
+     * systems and `zkpGenerateWrapped` rejects.
      */
-    zkCircuitSources: List<String> =
-        BuildConfig.ZK_CIRCUIT_URLS.split(',').map { it.trim() }.filter { it.isNotEmpty() },
+    zkConfig: ZkConfig? = null,
 ) {
     companion object {
         const val JAVASCRIPT_BRIDGE_NAME = "nativeWrapper"
@@ -68,11 +68,12 @@ class WalletJsBridge(
     private val proximity = ProximityBridge(webView.context, calls, scope)
 
     /**
-     * Zero-knowledge mdoc proofs (`mso_mdoc_zk`), hosted by the SDK. Same
-     * split as [proximity]: the page owns the credential and the device key
-     * and signs through `zkp.sign`; the prover runs natively.
+     * Zero-knowledge presentations (`zkp_req` / `circuit_zk`: nym_auth pseudonym + age),
+     * hosted by the SDK. Same split as [proximity]: the page owns the
+     * credential and the device key and signs through `zkp.sign`; the holder
+     * seed and the prover stay native.
      */
-    private val zkp = ZkpBridge(webView.context, calls, scope, zkCircuitSources)
+    private val zkp = zkConfig?.let { ZkpBridge(webView.context, calls, scope, it) }
 
     private fun credentialsContainerByOption(mappedOptions: JSONObject): Container =
         try {
@@ -408,7 +409,7 @@ class WalletJsBridge(
     ) {
         scope.launch {
             try {
-                resolvePromise(promiseUuid, base64Json(zkp.capabilities()))
+                resolvePromise(promiseUuid, base64Json(zkp?.capabilities() ?: noZkCapabilities()))
             } catch (e: Exception) {
                 Timber.e(e, "Could not read ZK capabilities.")
                 rejectPromise(promiseUuid, base64Json(errorPayload(e)))
@@ -430,9 +431,36 @@ class WalletJsBridge(
     ) {
         scope.launch {
             try {
-                resolvePromise(promiseUuid, base64Json(zkp.generate(params)))
+                resolvePromise(
+                    promiseUuid,
+                    base64Json((zkp ?: error("Zero-knowledge presentations are not configured in this build")).generate(params)),
+                )
             } catch (e: Exception) {
                 Timber.e(e, "Could not start a ZK proof.")
+                rejectPromise(promiseUuid, base64Json(errorPayload(e)))
+            }
+        }
+    }
+
+    /**
+     * Chooses the circuit this build will prove with, for the page's circuit registry host. Resolves
+     * with `{ circuitId, proofSystem, proofSystemVersion, artifact? }` or null when no circuit fits.
+     * See [ZkpBridge.selectCircuit] for the shape of `criteria`.
+     */
+    @JavascriptInterface
+    @Suppress("unused")
+    fun zkpSelectCircuitWrapped(
+        promiseUuid: String,
+        criteria: String,
+    ) {
+        scope.launch {
+            try {
+                resolvePromise(
+                    promiseUuid,
+                    base64Json((zkp ?: error("Zero-knowledge presentations are not configured in this build")).selectCircuit(criteria)),
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Could not select a circuit.")
                 rejectPromise(promiseUuid, base64Json(errorPayload(e)))
             }
         }
@@ -445,7 +473,7 @@ class WalletJsBridge(
         promiseUuid: String,
         unusedParameter: String,
     ) {
-        scope.launch { zkp.cancel() }
+        scope.launch { zkp?.cancel() }
         resolvePromise(promiseUuid, base64Json(JsonPrimitive(true)))
     }
 
@@ -454,7 +482,7 @@ class WalletJsBridge(
      * and any resident prover. Call from the hosting Activity's `onDestroy`.
      */
     fun dispose() {
-        zkp.dispose()
+        zkp?.dispose()
     }
 
     // ── replies to calls we made into the page ──────────────────────────────
@@ -475,6 +503,12 @@ class WalletJsBridge(
         code: String,
         message: String,
     ) = calls.replyError(callId, code, message)
+
+    private fun noZkCapabilities(): JsonElement =
+        buildJsonObject {
+            put("zkSystems", kotlinx.serialization.json.JsonArray(emptyList()))
+            put("busy", JsonPrimitive(false))
+        }
 
     private fun base64Json(payload: JsonElement): String =
         Base64.getEncoder().encodeToString(

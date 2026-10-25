@@ -6,22 +6,36 @@ import org.siros.sdk.keystore.CircuitZkProver
 import org.siros.sdk.keystore.ZkProverResidency
 
 /**
- * Builds the [ZkConfig] for nym_auth `circuit_zk` presentations.
+ * Builds the [ZkConfig] for nym_auth `circuit_zk` / `zkp_req` presentations.
  *
  * [catalogue] mirrors the mdoc entries of the SIROS circuit catalogue
- * (https://api.circuits.siros.org/v1/manifest.json, manifest generated 2026-10-13):
+ * (https://api.circuits.siros.org/v1/manifest.json):
  * `nymauth-longfellow-mdoc-v1` (system `longfellow-nymauth`, systemVersion `61a8a73`) and
  * `nymauth-vega-mdoc-v1` (system `vega-nymauth`, systemVersion `c0ee259`), both for doctype
  * `eu.europa.ec.eudi.nym_auth.1` and configuration `known-offender-matching-ssc`.
- * Only mdoc is listed because [ZkpBridge] decodes mdoc credentials; add the `sdjwt` entries only
- * together with SD-JWT support. Re-copy these values when the catalogue is republished.
+ * Each declares the functions it proves: a circuit that declares none is offered for no plan.
  *
- * The prover must be a real [CircuitZkProver] for these circuits. The SDK ships only a fake one,
- * so the wallet cannot present until one is supplied.
+ * Rulebook v0.4 (`zkp_req`): a response states a `system_id` the request offered (`system_id_values`) and is proved by a
+ * proof system the request accepts (`proof_system_values`). The SDK takes the `system_id` from the circuit's id or aliases
+ * and compares [CircuitZkCircuit.proofSystem] with the accepted proof systems, so each circuit carries its v0.4 identity
+ * as an alias and its proof system.
+ *
+ * Only mdoc is listed because [ZkpBridge] decodes mdoc credentials. Re-copy these values when the catalogue is republished.
  */
 object NymAuthZk {
     const val DOC_TYPE = "eu.europa.ec.eudi.nym_auth.1"
     const val CATALOGUE_BASE = "https://api.circuits.siros.org"
+
+    /** The rulebook v0.4 identity of the Longfellow nym_auth circuits, and its proof system. */
+    const val LONGFELLOW_SYSTEM_ID = "urn:circuits:longfellow:nym_auth:v1"
+    const val LONGFELLOW_PROOF_SYSTEM = "longfellow-libzk-v1"
+
+    /** The same for Vega (catalogue manifest, nymauth-vega-mdoc-v1). */
+    const val VEGA_SYSTEM_ID = "urn:circuits:vega:nym_auth:v1"
+    const val VEGA_PROOF_SYSTEM = "vega-v1"
+
+    /** The SDK's function handler ids (v0.21.0: PseudonymFunctionHandler.functionId is "pseudonym"). */
+    private val FUNCTIONS = setOf("pseudonym", "age_check")
 
     val catalogue: List<ZkCircuit> =
         listOf(
@@ -31,6 +45,10 @@ object NymAuthZk {
                         system = "longfellow-nymauth",
                         circuitId = "nymauth-longfellow-mdoc-v1",
                         docTypes = setOf(DOC_TYPE),
+                        functions = FUNCTIONS,
+                        aliases = setOf(LONGFELLOW_SYSTEM_ID),
+                        systemVersion = "61a8a73",
+                        proofSystem = LONGFELLOW_PROOF_SYSTEM,
                     ),
                 configuration = "known-offender-matching-ssc",
                 proofSystemVersion = "61a8a73",
@@ -47,6 +65,10 @@ object NymAuthZk {
                         system = "vega-nymauth",
                         circuitId = "nymauth-vega-mdoc-v1",
                         docTypes = setOf(DOC_TYPE),
+                        functions = FUNCTIONS,
+                        aliases = setOf(VEGA_SYSTEM_ID),
+                        systemVersion = "c0ee259",
+                        proofSystem = VEGA_PROOF_SYSTEM,
                     ),
                 configuration = "known-offender-matching-ssc",
                 proofSystemVersion = "c0ee259",

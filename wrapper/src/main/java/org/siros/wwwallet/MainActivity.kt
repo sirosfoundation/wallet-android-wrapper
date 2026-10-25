@@ -53,6 +53,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import org.siros.sdk.credentials.ZkCircuitClient
+import org.siros.sdk.keystore.CatalogCircuitZkProver
+import org.siros.sdk.keystore.UniffiNymAuthNativeProver
 import org.siros.wwwallet.bridging.DebugMenuHandler
 import org.siros.wwwallet.bridging.WalletJsBridge
 import org.siros.wwwallet.credentials.AndroidContainer
@@ -63,11 +66,13 @@ import org.siros.wwwallet.json.DcApiRequests
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
+import org.siros.wwwallet.zkp.NymAuthZk
 import timber.log.Timber
 import ui.EnterBaseUrlDialog
+import java.io.File
 import java.lang.ref.WeakReference
 import java.security.MessageDigest
-import org.siros.wwwallet.zkp.debugZkConfig
+
 class MainActivity : ComponentActivity() {
     val vm: MainViewModel by viewModels<MainViewModel>()
 
@@ -129,7 +134,17 @@ class MainActivity : ComponentActivity() {
 
                     finish()
                 },
-                zkConfig = debugZkConfig(),
+                zkConfig =
+                    NymAuthZk.config(
+                        prover =
+                            CatalogCircuitZkProver(
+                                ZkCircuitClient(
+                                    sources = listOf(NymAuthZk.CATALOGUE_BASE),
+                                    cacheDir = File(cacheDir, "siros-circuit-zk"),
+                                ),
+                                UniffiNymAuthNativeProver(),
+                            ),
+                    ),
             )
 
         // Avoid circular reference.
