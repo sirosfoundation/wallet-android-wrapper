@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yubico.yubikit.fido.client.MultipleAssertionsAvailable
+import com.yubico.yubikit.fido.webauthn.PublicKeyCredential
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -297,6 +299,27 @@ class MainViewModel : ViewModel() {
         showPinDialog = false
         pinCallback?.invoke(pin)
         pinCallback = null
+    }
+
+    var showCredentialDialog by mutableStateOf(false)
+        private set
+
+    var assertions: MultipleAssertionsAvailable? = null
+        private set
+
+    private var credentialCallback: ((PublicKeyCredential?) -> Unit)? = null
+
+    fun requestCredential(assertions: MultipleAssertionsAvailable, callback: (PublicKeyCredential?) -> Unit) {
+        this.assertions = assertions
+        credentialCallback = callback
+        showCredentialDialog = true
+    }
+
+    fun onCredentialDialogDismissed(credential: PublicKeyCredential?) {
+        showCredentialDialog = false
+        assertions = null
+        credentialCallback?.invoke(credential)
+        credentialCallback = null
     }
 
     private suspend fun changeProviderRequested(uri: Uri): String? {

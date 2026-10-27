@@ -60,6 +60,7 @@ import org.siros.wwwallet.credentials.YubicoContainer
 import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.json.DcApiRequests
+import org.siros.wwwallet.ui.CredentialSelectionDialog
 import org.siros.wwwallet.ui.PinInputDialog
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
@@ -189,6 +190,13 @@ class MainActivity : ComponentActivity() {
 
                         if (vm.showPinDialog) {
                             PinInputDialog { vm.onPinDialogDismissed(it) }
+                        }
+                        else if (vm.showCredentialDialog) {
+                            vm.assertions?.let { assertions ->
+                                CredentialSelectionDialog(assertions) {
+                                    vm.onCredentialDialogDismissed(it)
+                                }
+                            }
                         }
                     }
 

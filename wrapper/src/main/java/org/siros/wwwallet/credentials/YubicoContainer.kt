@@ -1,7 +1,5 @@
 package org.siros.wwwallet.credentials
 
-import android.app.AlertDialog
-import android.content.DialogInterface
 import android.security.keystore.UserNotAuthenticatedException
 import android.util.Base64.NO_PADDING
 import android.util.Base64.NO_WRAP
@@ -32,7 +30,6 @@ import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialCreationOptions
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialDescriptor
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialRequestOptions
 import com.yubico.yubikit.fido.webauthn.SerializationType
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -41,7 +38,6 @@ import org.siros.wwwallet.MainActivity
 import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
 import timber.log.Timber
-import kotlin.coroutines.EmptyCoroutineContext
 
 sealed class Operation(
     open val options: JSONObject,
@@ -347,56 +343,23 @@ class YubicoContainer(
         kitOptions: PublicKeyCredentialRequestOptions,
         operation: Operation.GetOperation,
     ) {
-        askForCredentialSelection(
-            multiple,
-            success = { credential ->
-                kitOptions.allowCredentials.clear()
-                kitOptions.allowCredentials.add(
-                    PublicKeyCredentialDescriptor(
-                        "public-key",
-                        credential.rawId,
-                        null,
-                    ),
-                )
+        activity.vm.requestCredential(multiple) { credential ->
+            if (credential == null) return@requestCredential operation.failure(Throwable())
 
-                get(
-                    JSONObject(mapOf("publicKey" to kitOptions.toMap(SerializationType.JSON))),
-                    operation.success,
-                    operation.failure,
-                )
-            },
-            failure = {
-                operation.failure(Throwable())
-            },
-        )
-    }
+            kitOptions.allowCredentials.clear()
+            kitOptions.allowCredentials.add(
+                PublicKeyCredentialDescriptor(
+                    "public-key",
+                    credential.rawId,
+                    null,
+                ),
+            )
 
-    private fun askForCredentialSelection(
-        available: MultipleAssertionsAvailable,
-        success: (PublicKeyCredential) -> Unit,
-        failure: () -> Unit,
-    ) {
-        Dispatchers.Main.dispatch(EmptyCoroutineContext) {
-            val items = available.users.map { it.displayName }.toTypedArray()
-            val listener =
-                DialogInterface.OnClickListener { dialog, which ->
-                    val credential = available.select(which)
-                    Timber.i("credential selected: $credential")
-                    dialog?.dismiss()
-
-                    success(credential)
-                }
-
-            AlertDialog
-                .Builder(activity)
-                .setTitle("Select one")
-                .setItems(items, listener)
-                .setNegativeButton(android.R.string.cancel) { dialog, _ ->
-                    Timber.i("No user selected.")
-                    dialog.dismiss()
-
-                    failure()
-                }.show()
+            get(
+                JSONObject(mapOf("publicKey" to kitOptions.toMap(SerializationType.JSON))),
+                operation.success,
+                operation.failure,
+            )
         }
     }
 }

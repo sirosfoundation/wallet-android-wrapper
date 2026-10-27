@@ -50,4 +50,8 @@
     <string name="dialog_confirm">Confirm</string>
     <string name="dialog_hide_pin">Hide PIN</string>
     <string name="dialog_show_pin">Show PIN</string>
+
+    <!-- CredentialSelectionDialog -->
+    <string name="credential_dialog_title">Select Passkey to Use</string>
+    <string name="credential_dialog_explanation">The security key can have several passkeys on it. Please choose which passkey you would like to log in with.</string>
 </resources>

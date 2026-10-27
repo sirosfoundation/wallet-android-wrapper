@@ -63,7 +63,7 @@ private fun PinInputDialogContent(
         Color.White
     ) {
         Column(
-            Modifier.padding(24.dp),
+            Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
             Arrangement.spacedBy(32.dp),
             Alignment.CenterHorizontally
         ) {
@@ -71,7 +71,7 @@ private fun PinInputDialogContent(
                 stringResource(R.string.pin_dialog_title),
                 Modifier.fillMaxWidth(),
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Start,
+                textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleLarge,
             )
 
