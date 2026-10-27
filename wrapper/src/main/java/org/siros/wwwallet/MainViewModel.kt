@@ -285,6 +285,24 @@ class MainViewModel : ViewModel() {
         )
     }
 
+    var showStartDialog by mutableStateOf(false)
+        private set
+
+    private var startCallback: (() -> Unit)? = null
+
+    fun showStartDialog(callback: () -> Unit) {
+        startCallback = callback
+        showStartDialog = true
+    }
+
+    fun dismissStartDialog(runCallback: Boolean = true) {
+        showStartDialog = false
+
+        if (runCallback) startCallback?.invoke()
+
+        startCallback = null
+    }
+
     var showPinDialog by mutableStateOf(false)
         private set
 

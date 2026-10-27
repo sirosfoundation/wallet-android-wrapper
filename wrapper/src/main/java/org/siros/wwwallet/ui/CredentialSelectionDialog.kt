@@ -116,7 +116,7 @@ fun CredentialSelectionDialogContent(
 
 @Preview
 @Composable
-fun PreviewCredentialSelectionDialog() {
+private fun PreviewCredentialSelectionDialog() {
     MaterialTheme(
         if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
     ) {

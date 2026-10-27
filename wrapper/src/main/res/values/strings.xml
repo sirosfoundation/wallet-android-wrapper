@@ -44,14 +44,22 @@
     <string name="photo_id_match_refused_other">Your identity could not be verified, so no credential was issued. Please try again.</string>
     <string name="photo_id_match_ok">OK</string>
 
+    <!-- Dialogs -->
+    <string name="dialog_confirm">Confirm</string>
+
     <!-- PinInputDialog -->
     <string name="pin_dialog_title">Enter Your Security Key PIN</string>
     <string name="pin_dialog_hint">PIN</string>
-    <string name="dialog_confirm">Confirm</string>
     <string name="dialog_hide_pin">Hide PIN</string>
     <string name="dialog_show_pin">Show PIN</string>
 
     <!-- CredentialSelectionDialog -->
     <string name="credential_dialog_title">Select Passkey to Use</string>
     <string name="credential_dialog_explanation">The security key can have several passkeys on it. Please choose which passkey you would like to log in with.</string>
+
+    <!-- SecurityKeyStartDialog -->
+    <string name="start_dialog_title">Insert or Tap Your Security Key</string>
+    <string name="start_dialog_message1">Insert your USB security key.</string>
+    <string name="start_dialog_or">or</string>
+    <string name="start_dialog_message2">Hold the key against your device\'s NFC reader.</string>
 </resources>

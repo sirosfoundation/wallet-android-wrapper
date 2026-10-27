@@ -117,7 +117,7 @@ private fun PinInputDialogContent(
 
 @Preview
 @Composable
-fun PreviewPinInputDialog() {
+private fun PreviewPinInputDialog() {
     MaterialTheme(
         if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
     ) {

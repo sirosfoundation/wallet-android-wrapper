@@ -98,6 +98,13 @@ class YubicoContainer(
         }
 
     private fun startDiscoveries() {
+        activity.vm.showStartDialog {
+            manager.stopUsbDiscovery()
+            manager.stopNfcDiscovery(activity)
+
+            lastOperation?.failure(Throwable())
+        }
+
         manager.startUsbDiscovery(
             UsbConfiguration().handlePermissions(true),
             usbListener,
@@ -202,6 +209,8 @@ class YubicoContainer(
     }
 
     private fun deviceConnected(device: YubiKeyDevice) {
+        activity.vm.dismissStartDialog(false)
+
         lastOperation?.let { operation ->
             askForPin(operation, device)
         }

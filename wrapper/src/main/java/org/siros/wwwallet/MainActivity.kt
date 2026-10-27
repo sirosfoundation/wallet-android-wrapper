@@ -62,6 +62,7 @@ import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.json.DcApiRequests
 import org.siros.wwwallet.ui.CredentialSelectionDialog
 import org.siros.wwwallet.ui.PinInputDialog
+import org.siros.wwwallet.ui.SecurityKeyStartDialog
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -188,7 +189,10 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        if (vm.showPinDialog) {
+                        if (vm.showStartDialog) {
+                            SecurityKeyStartDialog { vm.dismissStartDialog() }
+                        }
+                        else if (vm.showPinDialog) {
                             PinInputDialog { vm.onPinDialogDismissed(it) }
                         }
                         else if (vm.showCredentialDialog) {
