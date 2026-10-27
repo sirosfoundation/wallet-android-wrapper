@@ -38,6 +38,7 @@ import org.siros.wwwallet.MainActivity
 import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
 import timber.log.Timber
+import kotlin.time.Duration.Companion.seconds
 
 sealed class Operation(
     open val options: JSONObject,
@@ -61,7 +62,8 @@ class YubicoContainer(
     val activity: MainActivity,
 ) : Container {
     companion object {
-        private const val PIN_CACHE_TIMEOUT_MS = 60_000L
+        // In seconds.
+        private const val PIN_CACHE_TIMEOUT = 60
     }
 
     private val manager: YubiKitManager = YubiKitManager(activity)
@@ -88,7 +90,7 @@ class YubicoContainer(
 
                 pinResetJob =
                     (activity as? LifecycleOwner)?.lifecycleScope?.launch {
-                        delay(PIN_CACHE_TIMEOUT_MS)
+                        delay(PIN_CACHE_TIMEOUT.seconds)
                         pin = null
                         Timber.i("PIN cleared after timeout.")
                     }
