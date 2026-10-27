@@ -60,6 +60,7 @@ import org.siros.wwwallet.credentials.YubicoContainer
 import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.json.DcApiRequests
+import org.siros.wwwallet.ui.PinInputDialog
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -184,6 +185,10 @@ class MainActivity : ComponentActivity() {
                             lifecycleScope.launch {
                                 vm.browseToUrl(url)
                             }
+                        }
+
+                        if (vm.showPinDialog) {
+                            PinInputDialog { vm.onPinDialogDismissed(it) }
                         }
                     }
 

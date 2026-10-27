@@ -43,4 +43,11 @@
     <string name="photo_id_match_refused_chip_photo_mismatch">Your face did not match the photo stored in your document\'s chip, so no credential was issued. Please try again, or use another identity document.</string>
     <string name="photo_id_match_refused_other">Your identity could not be verified, so no credential was issued. Please try again.</string>
     <string name="photo_id_match_ok">OK</string>
+
+    <!-- PinInputDialog -->
+    <string name="pin_dialog_title">Enter Your Security Key PIN</string>
+    <string name="pin_dialog_hint">PIN</string>
+    <string name="dialog_confirm">Confirm</string>
+    <string name="dialog_hide_pin">Hide PIN</string>
+    <string name="dialog_show_pin">Show PIN</string>
 </resources>

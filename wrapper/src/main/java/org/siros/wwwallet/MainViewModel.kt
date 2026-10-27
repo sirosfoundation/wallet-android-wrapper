@@ -5,6 +5,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -278,6 +281,22 @@ class MainViewModel : ViewModel() {
         updateBaseUrl(
             UpdateReason.WebpageError(description),
         )
+    }
+
+    var showPinDialog by mutableStateOf(false)
+        private set
+
+    private var pinCallback: ((String?) -> Unit)? = null
+
+    fun requestPin(callback: (String?) -> Unit) {
+        pinCallback = callback
+        showPinDialog = true
+    }
+
+    fun onPinDialogDismissed(pin: String?) {
+        showPinDialog = false
+        pinCallback?.invoke(pin)
+        pinCallback = null
     }
 
     private suspend fun changeProviderRequested(uri: Uri): String? {

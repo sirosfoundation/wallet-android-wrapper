@@ -1,17 +1,12 @@
 package org.siros.wwwallet.credentials
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.security.keystore.UserNotAuthenticatedException
-import android.text.InputType
 import android.util.Base64.NO_PADDING
 import android.util.Base64.NO_WRAP
 import android.util.Base64.URL_SAFE
 import android.util.Base64.encodeToString
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.FrameLayout
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.yubico.yubikit.android.YubiKitManager
@@ -42,6 +37,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import org.siros.wwwallet.MainActivity
 import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
 import timber.log.Timber
@@ -66,7 +62,7 @@ sealed class Operation(
 }
 
 class YubicoContainer(
-    val activity: Activity,
+    val activity: MainActivity,
 ) : Container {
     companion object {
         private const val PIN_CACHE_TIMEOUT_MS = 60_000L
@@ -167,7 +163,7 @@ class YubicoContainer(
         }
 
         // ask user for pin
-        requestPin { providedPin ->
+        activity.vm.requestPin { providedPin ->
             if (providedPin != null) {
                 pin = providedPin
                 routeToCorrectMethodWithPin(operation, device, providedPin)
@@ -401,52 +397,6 @@ class YubicoContainer(
 
                     failure()
                 }.show()
-        }
-    }
-
-    private fun requestPin(callback: (String?) -> Unit) {
-        Dispatchers.Main.dispatch(EmptyCoroutineContext) {
-            val pinEdit =
-                EditText(activity).apply {
-                    hint = "PIN"
-                    maxLines = 1
-                    minLines = 1
-                    inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-                    layoutParams =
-                        FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                        )
-                }
-
-            val density = activity.resources.displayMetrics.density
-            val marginHorizontal = (20 * density).toInt()
-            val marginVertical = (8 * density).toInt()
-
-            val container = FrameLayout(activity)
-            container.addView(pinEdit)
-            container.setPadding(marginHorizontal, marginVertical, marginHorizontal, marginVertical)
-
-            val dialog =
-                AlertDialog
-                    .Builder(activity)
-                    .setTitle("Pin Required")
-                    .setView(container)
-                    .setPositiveButton(android.R.string.ok) { dialog, _ ->
-                        Timber.i("PIN entered.")
-                        dialog.dismiss()
-                        callback(pinEdit.text.toString())
-                    }.setNegativeButton(android.R.string.cancel) { dialog, _ ->
-                        Timber.i("PIN entry cancelled.")
-                        dialog.dismiss()
-                        callback(null)
-                    }.show()
-
-            pinEdit.setOnEditorActionListener { v, _, _ ->
-                dialog.dismiss()
-                callback(v.text.toString())
-                true
-            }
         }
     }
 }
