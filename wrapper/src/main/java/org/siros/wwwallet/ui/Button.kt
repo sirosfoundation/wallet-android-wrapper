@@ -14,28 +14,31 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
 import org.siros.wwwallet.R
 
-enum class ButtonType(val containerColorRes: Int, val contentColorRes: Int, val borderColorRes: Int?) {
+enum class ButtonType(
+    val containerColorRes: Int,
+    val contentColorRes: Int,
+    val borderColorRes: Int?,
+) {
     PRIMARY(
         R.color.button_primary_background,
         R.color.button_primary_text,
-        null
+        null,
     ),
     OUTLINED(
         R.color.button_outlined_background,
         R.color.button_outlined_text,
-        R.color.button_outlined_border
-    )
+        R.color.button_outlined_border,
+    ),
 }
 
 @Composable
-fun ButtonType.buttonColors(): ButtonColors {
-    return ButtonDefaults.buttonColors(
+fun ButtonType.buttonColors(): ButtonColors =
+    ButtonDefaults.buttonColors(
         colorResource(containerColorRes),
         colorResource(contentColorRes),
         colorResource(containerColorRes),
-        colorResource(contentColorRes)
+        colorResource(contentColorRes),
     )
-}
 
 @Composable
 fun ButtonType.borderStroke(): BorderStroke? {
@@ -49,7 +52,7 @@ fun Button(
     onClick: () -> Unit,
     type: ButtonType,
     text: String,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ) {
     Button(
         onClick,
@@ -60,7 +63,7 @@ fun Button(
         enabled,
         shape = RoundedCornerShape(8.dp),
         colors = type.buttonColors(),
-        border = type.borderStroke()
+        border = type.borderStroke(),
     ) {
         Text(text)
     }

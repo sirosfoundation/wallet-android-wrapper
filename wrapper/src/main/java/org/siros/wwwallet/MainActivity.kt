@@ -191,11 +191,9 @@ class MainActivity : ComponentActivity() {
 
                         if (vm.showStartDialog) {
                             SecurityKeyStartDialog { vm.dismissStartDialog() }
-                        }
-                        else if (vm.showPinDialog) {
+                        } else if (vm.showPinDialog) {
                             PinInputDialog { vm.onPinDialogDismissed(it) }
-                        }
-                        else if (vm.showCredentialDialog) {
+                        } else if (vm.showCredentialDialog) {
                             vm.assertions?.let { assertions ->
                                 CredentialSelectionDialog(assertions) {
                                     vm.onCredentialDialogDismissed(it)

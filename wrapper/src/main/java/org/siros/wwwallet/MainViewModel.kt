@@ -327,7 +327,10 @@ class MainViewModel : ViewModel() {
 
     private var credentialCallback: ((PublicKeyCredential?) -> Unit)? = null
 
-    fun requestCredential(assertions: MultipleAssertionsAvailable, callback: (PublicKeyCredential?) -> Unit) {
+    fun requestCredential(
+        assertions: MultipleAssertionsAvailable,
+        callback: (PublicKeyCredential?) -> Unit,
+    ) {
         this.assertions = assertions
         credentialCallback = callback
         showCredentialDialog = true

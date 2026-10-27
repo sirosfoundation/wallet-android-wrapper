@@ -41,18 +41,14 @@ import androidx.compose.ui.window.Dialog
 import org.siros.wwwallet.R
 
 @Composable
-fun PinInputDialog(
-    onDismiss: (String?) -> Unit
-) {
+fun PinInputDialog(onDismiss: (String?) -> Unit) {
     Dialog(onDismissRequest = { }) {
         PinInputDialogContent(onDismiss)
     }
 }
 
 @Composable
-private fun PinInputDialogContent(
-    onDismiss: (String?) -> Unit
-) {
+private fun PinInputDialogContent(onDismiss: (String?) -> Unit) {
     var pin by remember { mutableStateOf("") }
 
     var passwordVisible by remember { mutableStateOf(false) }
@@ -60,12 +56,12 @@ private fun PinInputDialogContent(
     Surface(
         Modifier.fillMaxWidth().wrapContentHeight(),
         RoundedCornerShape(16.dp),
-        Color.White
+        Color.White,
     ) {
         Column(
             Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
             Arrangement.spacedBy(32.dp),
-            Alignment.CenterHorizontally
+            Alignment.CenterHorizontally,
         ) {
             Text(
                 stringResource(R.string.pin_dialog_title),
@@ -83,15 +79,15 @@ private fun PinInputDialogContent(
                 trailingIcon = {
                     IconButton({ passwordVisible = !passwordVisible }) {
                         Icon(
-                           if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            if (passwordVisible) stringResource(R.string.dialog_hide_pin) else stringResource(R.string.dialog_show_pin)
+                            if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            if (passwordVisible) stringResource(R.string.dialog_hide_pin) else stringResource(R.string.dialog_show_pin),
                         )
                     }
                 },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
             )
 
             Column(
@@ -108,7 +104,7 @@ private fun PinInputDialogContent(
                 Button(
                     { onDismiss(null) },
                     ButtonType.OUTLINED,
-                    stringResource(android.R.string.cancel)
+                    stringResource(android.R.string.cancel),
                 )
             }
         }

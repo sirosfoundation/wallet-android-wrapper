@@ -38,11 +38,11 @@ import org.siros.wwwallet.R
 @Composable
 fun CredentialSelectionDialog(
     assertions: MultipleAssertionsAvailable,
-    onDismiss: (PublicKeyCredential?) -> Unit
+    onDismiss: (PublicKeyCredential?) -> Unit,
 ) {
     Dialog(onDismissRequest = { }) {
         CredentialSelectionDialogContent(
-            assertions.users.map { it.displayName }.toTypedArray()
+            assertions.users.map { it.displayName }.toTypedArray(),
         ) {
             onDismiss(if (it == null) null else assertions.select(it))
         }
@@ -52,19 +52,19 @@ fun CredentialSelectionDialog(
 @Composable
 fun CredentialSelectionDialogContent(
     items: Array<String>,
-    onDismiss: (Int?) -> Unit
+    onDismiss: (Int?) -> Unit,
 ) {
     Surface(
         Modifier
             .fillMaxWidth()
             .wrapContentHeight(),
         RoundedCornerShape(16.dp),
-        Color.White
+        Color.White,
     ) {
         Column(
             Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
             Arrangement.spacedBy(32.dp),
-            Alignment.CenterHorizontally
+            Alignment.CenterHorizontally,
         ) {
             Text(
                 stringResource(R.string.credential_dialog_title),
@@ -78,27 +78,27 @@ fun CredentialSelectionDialogContent(
                 stringResource(R.string.credential_dialog_explanation),
                 Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
             )
 
             Box(
-                Modifier.fillMaxWidth().heightIn(max = 300.dp)
+                Modifier.fillMaxWidth().heightIn(max = 300.dp),
             ) {
                 LazyColumn(
                     Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     itemsIndexed(items) { index, name ->
                         ListItem(
                             { Text(name) },
                             Modifier.clickable { onDismiss(index) },
-                            colors = ListItemDefaults.colors(Color.Transparent)
+                            colors = ListItemDefaults.colors(Color.Transparent),
                         )
 
                         if (index < items.size - 1) {
                             HorizontalDivider(
                                 thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant
+                                color = MaterialTheme.colorScheme.outlineVariant,
                             )
                         }
                     }
@@ -108,7 +108,7 @@ fun CredentialSelectionDialogContent(
             Button(
                 { onDismiss(null) },
                 ButtonType.OUTLINED,
-                stringResource(android.R.string.cancel)
+                stringResource(android.R.string.cancel),
             )
         }
     }
@@ -122,7 +122,7 @@ private fun PreviewCredentialSelectionDialog() {
     ) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             CredentialSelectionDialogContent(
-                arrayOf("Foo", "Bar", "Baz", "Bam", "Bla")
+                arrayOf("Foo", "Bar", "Baz", "Bam", "Bla"),
             ) { }
         }
     }

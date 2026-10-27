@@ -34,27 +34,23 @@ import androidx.compose.ui.window.Dialog
 import org.siros.wwwallet.R
 
 @Composable
-fun SecurityKeyStartDialog(
-    onDismiss: () -> Unit
-) {
+fun SecurityKeyStartDialog(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = { }) {
         SecurityKeyStartDialogContent(onDismiss)
     }
 }
 
 @Composable
-private fun SecurityKeyStartDialogContent(
-    onDismiss: () -> Unit
-) {
+private fun SecurityKeyStartDialogContent(onDismiss: () -> Unit) {
     Surface(
         Modifier.fillMaxWidth().wrapContentHeight(),
         RoundedCornerShape(16.dp),
-        Color.White
+        Color.White,
     ) {
         Column(
             Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
             Arrangement.spacedBy(32.dp),
-            Alignment.CenterHorizontally
+            Alignment.CenterHorizontally,
         ) {
             Text(
                 stringResource(R.string.start_dialog_title),
@@ -67,20 +63,20 @@ private fun SecurityKeyStartDialogContent(
             Row(
                 Modifier.fillMaxWidth(),
                 Arrangement.Center,
-                Alignment.Top
+                Alignment.Top,
             ) {
                 Column(
                     Modifier.weight(43f),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box(
                         Modifier.width(80.dp).height(80.dp).background(colorResource(R.color.button_outlined_background)),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             painterResource(R.drawable.ic_usb),
                             null,
-                            tint = colorResource(R.color.button_primary_background)
+                            tint = colorResource(R.color.button_primary_background),
                         )
                     }
 
@@ -88,33 +84,33 @@ private fun SecurityKeyStartDialogContent(
                         stringResource(R.string.start_dialog_message1),
                         Modifier.padding(top = 8.dp),
                         textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
 
                 Column(
                     Modifier.weight(14f),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         stringResource(R.string.start_dialog_or),
                         Modifier.padding(top = 24.dp),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
 
                 Column(
                     Modifier.weight(43f),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box(
                         Modifier.width(80.dp).height(80.dp).background(colorResource(R.color.button_outlined_background)),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             painterResource(R.drawable.ic_nfc),
                             null,
-                            tint = colorResource(R.color.button_primary_background)
+                            tint = colorResource(R.color.button_primary_background),
                         )
                     }
 
@@ -122,7 +118,7 @@ private fun SecurityKeyStartDialogContent(
                         stringResource(R.string.start_dialog_message2),
                         Modifier.padding(top = 8.dp),
                         textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
@@ -130,7 +126,7 @@ private fun SecurityKeyStartDialogContent(
             Button(
                 { onDismiss() },
                 ButtonType.OUTLINED,
-                stringResource(android.R.string.cancel)
+                stringResource(android.R.string.cancel),
             )
         }
     }
