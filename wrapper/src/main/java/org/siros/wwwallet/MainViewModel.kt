@@ -12,6 +12,8 @@ import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yubico.yubikit.core.fido.CtapException
+import com.yubico.yubikit.fido.client.AuthInvalidClientError
 import com.yubico.yubikit.fido.client.MultipleAssertionsAvailable
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredential
 import kotlinx.coroutines.Dispatchers
@@ -353,13 +355,26 @@ class MainViewModel : ViewModel() {
     fun showError(throwable: Throwable) {
         if (throwable is UserCancellationException) return
 
+        var betterExplanation: String? = null
+
+        (throwable as? AuthInvalidClientError)?.let {
+            (it.cause as? CtapException)?.let { ctap ->
+                betterExplanation = when (ctap.ctapError) {
+                    CtapException.ERR_PIN_INVALID -> activity?.getString(R.string.error_pin_invalid)
+                    CtapException.ERR_PIN_NOT_SET -> activity?.getString(R.string.error_pin_not_set)
+                    CtapException.ERR_PUAT_REQUIRED -> activity?.getString(R.string.error_puat_required)
+                    else -> ctap.localizedMessage
+                }
+            }
+        }
+
         val genericNfcExplanation = activity?.getString(R.string.error_generic_nfc_explanation)
         val unknownError = "Unknown error"
 
         errorMessage = if (throwable is TagLostException) {
             genericNfcExplanation ?: throwable.localizedMessage ?: unknownError
         } else {
-            throwable.localizedMessage ?: genericNfcExplanation ?: unknownError
+            betterExplanation ?: throwable.localizedMessage ?: genericNfcExplanation ?: unknownError
         }
     }
 

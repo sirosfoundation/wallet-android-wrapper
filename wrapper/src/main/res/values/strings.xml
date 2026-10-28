@@ -66,4 +66,7 @@
     <!-- ErrorDialog -->
     <string name="error_dialog_title">There Has Been an Error</string>
     <string name="error_generic_nfc_explanation">Hold the security key against your device\'s NFC reader until it is recognized.</string>
+    <string name="error_pin_invalid">The provided PIN is invalid.</string>
+    <string name="error_pin_not_set">A PIN needs to be set.</string>
+    <string name="error_puat_required">Please provide PIN.</string>
 </resources>
