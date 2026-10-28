@@ -64,6 +64,7 @@ import org.siros.wwwallet.ui.CredentialSelectionDialog
 import org.siros.wwwallet.ui.ErrorDialog
 import org.siros.wwwallet.ui.PinInputDialog
 import org.siros.wwwallet.ui.SecurityKeyStartDialog
+import org.siros.wwwallet.ui.HandlingHintDialog
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -206,6 +207,12 @@ class MainActivity : ComponentActivity() {
                         } else if (vm.errorMessage.isNotEmpty()) {
                             ErrorDialog(vm.errorMessage) {
                                 vm.dismissError()
+                            }
+                        }
+
+                        vm.handlingHintType?.let {
+                            HandlingHintDialog(it) {
+                                vm.dismissHandlingHint()
                             }
                         }
                     }

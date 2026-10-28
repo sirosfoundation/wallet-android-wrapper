@@ -69,4 +69,10 @@
     <string name="error_pin_invalid">The provided PIN is invalid.</string>
     <string name="error_pin_not_set">A PIN needs to be set.</string>
     <string name="error_puat_required">Please provide PIN.</string>
+
+    <!-- HandlingHintDialog -->
+    <string name="handling_dialog_title_nfc">Tap Your Security Key</string>
+    <string name="handling_dialog_message_nfc">Hold the security key against your device\'s NFC reader until it is recognized.</string>
+    <string name="handling_dialog_title_usb">Touch Your Security Key</string>
+    <string name="handling_dialog_message_usb">Touch the key where it is blinking to confirm you are present.</string>
 </resources>

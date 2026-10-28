@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import org.siros.wwwallet.credentials.UserCancellationException
 import org.siros.wwwallet.json.DcApiRequestData
 import org.siros.wwwallet.storage.Settings
+import org.siros.wwwallet.ui.HandlingHintType
 import timber.log.Timber
 import java.net.URISyntaxException
 import kotlin.time.Duration.Companion.seconds
@@ -321,8 +322,15 @@ class MainViewModel : ViewModel() {
 
     fun onPinDialogDismissed(pin: String?) {
         showPinDialog = false
-        pinCallback?.invoke(pin)
-        pinCallback = null
+
+        viewModelScope.launch {
+            // When in USB mode, this delay is needed, otherwise the main thread will not
+            // have a chance to rerender the scene without the dialog.
+            delay(0.1.seconds)
+
+            pinCallback?.invoke(pin)
+            pinCallback = null
+        }
     }
 
     var showCredentialDialog by mutableStateOf(false)
@@ -345,8 +353,15 @@ class MainViewModel : ViewModel() {
     fun onCredentialDialogDismissed(credential: PublicKeyCredential?) {
         showCredentialDialog = false
         assertions = null
-        credentialCallback?.invoke(credential)
-        credentialCallback = null
+
+        viewModelScope.launch {
+            // When in USB mode, this delay is needed, otherwise the main thread will not
+            // have a chance to rerender the scene without the dialog.
+            delay(0.1.seconds)
+
+            credentialCallback?.invoke(credential)
+            credentialCallback = null
+        }
     }
 
     var errorMessage by mutableStateOf("")
@@ -380,6 +395,17 @@ class MainViewModel : ViewModel() {
 
     fun dismissError() {
         errorMessage = ""
+    }
+
+    var handlingHintType: HandlingHintType? by mutableStateOf(null)
+        private set
+
+    fun showHandlingHint(type: HandlingHintType) {
+        handlingHintType = type
+    }
+
+    fun dismissHandlingHint() {
+        handlingHintType = null
     }
 
     private suspend fun changeProviderRequested(uri: Uri): String? {

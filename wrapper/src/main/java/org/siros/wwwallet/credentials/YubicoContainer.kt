@@ -36,6 +36,7 @@ import org.json.JSONObject
 import org.siros.wwwallet.MainActivity
 import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
+import org.siros.wwwallet.ui.HandlingHintType
 import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
@@ -184,24 +185,32 @@ class YubicoContainer(
         device: YubiKeyDevice,
         pin: String?,
     ) {
-        try {
-            when (operation) {
-                is Operation.CreateOperation ->
-                    createWithDevice(
-                        device,
-                        operation,
-                        pin,
-                    )
+        activity.vm.showHandlingHint(if (device is UsbYubiKeyDevice) HandlingHintType.USB else HandlingHintType.NFC)
 
-                is Operation.GetOperation ->
-                    getWithDevice(
-                        device,
-                        operation,
-                        pin,
-                    )
+        activity.lifecycleScope.launch {
+            // When in USB mode, this delay is needed, otherwise the main thread will not
+            // have a chance to rerender the scene with the handling hint dialog.
+            delay(0.1.seconds)
+
+            try {
+                when (operation) {
+                    is Operation.CreateOperation ->
+                        createWithDevice(
+                            device,
+                            operation,
+                            pin,
+                        )
+
+                    is Operation.GetOperation ->
+                        getWithDevice(
+                            device,
+                            operation,
+                            pin,
+                        )
+                }
+            } catch (e: Throwable) {
+                Timber.e(e, "An unknown error appeared. Hide now.")
             }
-        } catch (e: Throwable) {
-            Timber.e(e, "An unknown error appeared. Hide now.")
         }
     }
 
@@ -270,6 +279,8 @@ class YubicoContainer(
             manager.stopNfcDiscovery(activity)
 
             client.close()
+
+            activity.vm.dismissHandlingHint()
         }
     }
 
@@ -343,6 +354,8 @@ class YubicoContainer(
             manager.stopNfcDiscovery(activity)
 
             client.close()
+
+            activity.vm.dismissHandlingHint()
         }
     }
 
