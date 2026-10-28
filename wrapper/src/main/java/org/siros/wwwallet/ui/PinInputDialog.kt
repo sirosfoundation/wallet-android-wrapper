@@ -42,70 +42,66 @@ import org.siros.wwwallet.R
 
 @Composable
 fun PinInputDialog(onDismiss: (String?) -> Unit) {
-    Dialog(onDismissRequest = { }) {
-        PinInputDialogContent(onDismiss)
-    }
-}
 
-@Composable
-private fun PinInputDialogContent(onDismiss: (String?) -> Unit) {
     var pin by remember { mutableStateOf("") }
 
     var passwordVisible by remember { mutableStateOf(false) }
 
-    Surface(
-        Modifier.fillMaxWidth().wrapContentHeight(),
-        RoundedCornerShape(16.dp),
-        Color.White,
-    ) {
-        Column(
-            Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
-            Arrangement.spacedBy(32.dp),
-            Alignment.CenterHorizontally,
+    Dialog(onDismissRequest = { }) {
+        Surface(
+            Modifier.fillMaxWidth().wrapContentHeight(),
+            RoundedCornerShape(16.dp),
+            Color.White,
         ) {
-            Text(
-                stringResource(R.string.pin_dialog_title),
-                Modifier.fillMaxWidth(),
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleLarge,
-            )
-
-            OutlinedTextField(
-                pin,
-                { pin = it },
-                Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.pin_dialog_hint)) },
-                trailingIcon = {
-                    IconButton({ passwordVisible = !passwordVisible }) {
-                        Icon(
-                            if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            if (passwordVisible) stringResource(R.string.dialog_hide_pin) else stringResource(R.string.dialog_show_pin),
-                        )
-                    }
-                },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true,
-                shape = RoundedCornerShape(8.dp),
-            )
-
             Column(
-                Modifier.fillMaxWidth(),
-                Arrangement.spacedBy(16.dp),
+                Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                Arrangement.spacedBy(32.dp),
+                Alignment.CenterHorizontally,
             ) {
-                Button(
-                    { onDismiss(pin) },
-                    ButtonType.PRIMARY,
-                    stringResource(R.string.dialog_confirm),
-                    pin.isNotEmpty(),
+                Text(
+                    stringResource(R.string.pin_dialog_title),
+                    Modifier.fillMaxWidth(),
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleLarge,
                 )
 
-                Button(
-                    { onDismiss(null) },
-                    ButtonType.OUTLINED,
-                    stringResource(android.R.string.cancel),
+                OutlinedTextField(
+                    pin,
+                    { pin = it },
+                    Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.pin_dialog_hint)) },
+                    trailingIcon = {
+                        IconButton({ passwordVisible = !passwordVisible }) {
+                            Icon(
+                                if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                if (passwordVisible) stringResource(R.string.dialog_hide_pin) else stringResource(R.string.dialog_show_pin),
+                            )
+                        }
+                    },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
                 )
+
+                Column(
+                    Modifier.fillMaxWidth(),
+                    Arrangement.spacedBy(16.dp),
+                ) {
+                    Button(
+                        { onDismiss(pin) },
+                        ButtonType.PRIMARY,
+                        stringResource(R.string.dialog_confirm),
+                        pin.isNotEmpty(),
+                    )
+
+                    Button(
+                        { onDismiss(null) },
+                        ButtonType.OUTLINED,
+                        stringResource(android.R.string.cancel),
+                    )
+                }
             }
         }
     }
@@ -118,7 +114,7 @@ private fun PreviewPinInputDialog() {
         if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
     ) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
-            PinInputDialogContent { }
+            PinInputDialog { }
         }
     }
 }

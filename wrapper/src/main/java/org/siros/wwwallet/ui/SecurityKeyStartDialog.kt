@@ -36,98 +36,93 @@ import org.siros.wwwallet.R
 @Composable
 fun SecurityKeyStartDialog(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = { }) {
-        SecurityKeyStartDialogContent(onDismiss)
-    }
-}
-
-@Composable
-private fun SecurityKeyStartDialogContent(onDismiss: () -> Unit) {
-    Surface(
-        Modifier.fillMaxWidth().wrapContentHeight(),
-        RoundedCornerShape(16.dp),
-        Color.White,
-    ) {
-        Column(
-            Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
-            Arrangement.spacedBy(32.dp),
-            Alignment.CenterHorizontally,
+        Surface(
+            Modifier.fillMaxWidth().wrapContentHeight(),
+            RoundedCornerShape(16.dp),
+            Color.White,
         ) {
-            Text(
-                stringResource(R.string.start_dialog_title),
-                Modifier.fillMaxWidth(),
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleLarge,
-            )
-
-            Row(
-                Modifier.fillMaxWidth(),
-                Arrangement.Center,
-                Alignment.Top,
+            Column(
+                Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                Arrangement.spacedBy(32.dp),
+                Alignment.CenterHorizontally,
             ) {
-                Column(
-                    Modifier.weight(43f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Text(
+                    stringResource(R.string.start_dialog_title),
+                    Modifier.fillMaxWidth(),
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleLarge,
+                )
+
+                Row(
+                    Modifier.fillMaxWidth(),
+                    Arrangement.Center,
+                    Alignment.Top,
                 ) {
-                    Box(
-                        Modifier.width(80.dp).height(80.dp).background(colorResource(R.color.button_outlined_background)),
-                        contentAlignment = Alignment.Center,
+                    Column(
+                        Modifier.weight(43f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(
-                            painterResource(R.drawable.ic_usb),
-                            null,
-                            tint = colorResource(R.color.button_primary_background),
+                        Box(
+                            Modifier.width(80.dp).height(80.dp).background(colorResource(R.color.button_outlined_background)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_usb),
+                                null,
+                                tint = colorResource(R.color.button_primary_background),
+                            )
+                        }
+
+                        Text(
+                            stringResource(R.string.start_dialog_message1),
+                            Modifier.padding(top = 8.dp),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
 
-                    Text(
-                        stringResource(R.string.start_dialog_message1),
-                        Modifier.padding(top = 8.dp),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-
-                Column(
-                    Modifier.weight(14f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        stringResource(R.string.start_dialog_or),
-                        Modifier.padding(top = 24.dp),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-
-                Column(
-                    Modifier.weight(43f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Box(
-                        Modifier.width(80.dp).height(80.dp).background(colorResource(R.color.button_outlined_background)),
-                        contentAlignment = Alignment.Center,
+                    Column(
+                        Modifier.weight(14f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(
-                            painterResource(R.drawable.ic_nfc),
-                            null,
-                            tint = colorResource(R.color.button_primary_background),
+                        Text(
+                            stringResource(R.string.start_dialog_or),
+                            Modifier.padding(top = 24.dp),
+                            textAlign = TextAlign.Center,
                         )
                     }
 
-                    Text(
-                        stringResource(R.string.start_dialog_message2),
-                        Modifier.padding(top = 8.dp),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    Column(
+                        Modifier.weight(43f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            Modifier.width(80.dp).height(80.dp).background(colorResource(R.color.button_outlined_background)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_nfc),
+                                null,
+                                tint = colorResource(R.color.button_primary_background),
+                            )
+                        }
+
+                        Text(
+                            stringResource(R.string.start_dialog_message2),
+                            Modifier.padding(top = 8.dp),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
+
+                Button(
+                    { onDismiss() },
+                    ButtonType.OUTLINED,
+                    stringResource(android.R.string.cancel),
+                )
             }
-
-            Button(
-                { onDismiss() },
-                ButtonType.OUTLINED,
-                stringResource(android.R.string.cancel),
-            )
         }
     }
 }
