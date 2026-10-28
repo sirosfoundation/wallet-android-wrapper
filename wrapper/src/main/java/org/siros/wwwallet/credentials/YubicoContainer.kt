@@ -58,7 +58,7 @@ sealed class Operation(
     ) : Operation(options, success, failure)
 }
 
-class UserCancellationException: Exception()
+class UserCancellationException : Exception()
 
 class YubicoContainer(
     val activity: MainActivity,
@@ -365,8 +365,11 @@ class YubicoContainer(
         operation: Operation.GetOperation,
     ) {
         activity.vm.requestCredential(multiple) { credential ->
-            if (credential == null) return@requestCredential operation.failure(
-                UserCancellationException())
+            if (credential == null) {
+                return@requestCredential operation.failure(
+                    UserCancellationException(),
+                )
+            }
 
             kitOptions.allowCredentials.clear()
             kitOptions.allowCredentials.add(

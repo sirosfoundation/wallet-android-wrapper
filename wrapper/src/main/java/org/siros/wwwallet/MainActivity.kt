@@ -62,9 +62,9 @@ import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.json.DcApiRequests
 import org.siros.wwwallet.ui.CredentialSelectionDialog
 import org.siros.wwwallet.ui.ErrorDialog
+import org.siros.wwwallet.ui.HandlingHintDialog
 import org.siros.wwwallet.ui.PinInputDialog
 import org.siros.wwwallet.ui.SecurityKeyStartDialog
-import org.siros.wwwallet.ui.HandlingHintDialog
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -136,7 +136,7 @@ class MainActivity : ComponentActivity() {
                 },
                 { throwable ->
                     vm.showError(throwable)
-                }
+                },
             )
 
         // Avoid circular reference.

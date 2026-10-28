@@ -42,7 +42,6 @@ import org.siros.wwwallet.R
 
 @Composable
 fun PinInputDialog(onDismiss: (String?) -> Unit) {
-
     var pin by remember { mutableStateOf("") }
 
     var passwordVisible by remember { mutableStateOf(false) }

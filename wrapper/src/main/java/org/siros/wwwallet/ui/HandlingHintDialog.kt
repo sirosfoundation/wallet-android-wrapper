@@ -31,35 +31,36 @@ import androidx.compose.ui.window.Dialog
 import org.siros.wwwallet.R
 
 enum class HandlingHintType {
-    NFC, USB
+    NFC,
+    USB,
 }
 
 @Composable
-private fun HandlingHintType.title(): String {
-    return when (this) {
+private fun HandlingHintType.title(): String =
+    when (this) {
         HandlingHintType.NFC -> stringResource(R.string.handling_dialog_title_nfc)
         HandlingHintType.USB -> stringResource(R.string.handling_dialog_title_usb)
     }
-}
 
 @Composable
-private fun HandlingHintType.message(): String {
-    return when (this) {
+private fun HandlingHintType.message(): String =
+    when (this) {
         HandlingHintType.NFC -> stringResource(R.string.handling_dialog_message_nfc)
         HandlingHintType.USB -> stringResource(R.string.handling_dialog_message_usb)
     }
-}
 
 @Composable
-private fun HandlingHintType.icon(): Painter {
-    return when (this) {
+private fun HandlingHintType.icon(): Painter =
+    when (this) {
         HandlingHintType.NFC -> painterResource(R.drawable.ic_nfc)
         HandlingHintType.USB -> painterResource(R.drawable.ic_usb)
     }
-}
 
 @Composable
-fun HandlingHintDialog(type: HandlingHintType = HandlingHintType.NFC, onDismiss: () -> Unit) {
+fun HandlingHintDialog(
+    type: HandlingHintType = HandlingHintType.NFC,
+    onDismiss: () -> Unit,
+) {
     Dialog(onDismissRequest = { }) {
         Surface(
             Modifier.fillMaxWidth().wrapContentHeight(),

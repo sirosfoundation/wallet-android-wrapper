@@ -374,23 +374,25 @@ class MainViewModel : ViewModel() {
 
         (throwable as? AuthInvalidClientError)?.let {
             (it.cause as? CtapException)?.let { ctap ->
-                betterExplanation = when (ctap.ctapError) {
-                    CtapException.ERR_PIN_INVALID -> activity?.getString(R.string.error_pin_invalid)
-                    CtapException.ERR_PIN_NOT_SET -> activity?.getString(R.string.error_pin_not_set)
-                    CtapException.ERR_PUAT_REQUIRED -> activity?.getString(R.string.error_puat_required)
-                    else -> ctap.localizedMessage
-                }
+                betterExplanation =
+                    when (ctap.ctapError) {
+                        CtapException.ERR_PIN_INVALID -> activity?.getString(R.string.error_pin_invalid)
+                        CtapException.ERR_PIN_NOT_SET -> activity?.getString(R.string.error_pin_not_set)
+                        CtapException.ERR_PUAT_REQUIRED -> activity?.getString(R.string.error_puat_required)
+                        else -> ctap.localizedMessage
+                    }
             }
         }
 
         val genericNfcExplanation = activity?.getString(R.string.error_generic_nfc_explanation)
         val unknownError = "Unknown error"
 
-        errorMessage = if (throwable is TagLostException) {
-            genericNfcExplanation ?: throwable.localizedMessage ?: unknownError
-        } else {
-            betterExplanation ?: throwable.localizedMessage ?: genericNfcExplanation ?: unknownError
-        }
+        errorMessage =
+            if (throwable is TagLostException) {
+                genericNfcExplanation ?: throwable.localizedMessage ?: unknownError
+            } else {
+                betterExplanation ?: throwable.localizedMessage ?: genericNfcExplanation ?: unknownError
+            }
     }
 
     fun dismissError() {

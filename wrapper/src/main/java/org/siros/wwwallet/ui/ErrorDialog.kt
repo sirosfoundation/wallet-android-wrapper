@@ -30,7 +30,10 @@ import androidx.compose.ui.window.Dialog
 import org.siros.wwwallet.R
 
 @Composable
-fun ErrorDialog(message: String, onDismiss: () -> Unit) {
+fun ErrorDialog(
+    message: String,
+    onDismiss: () -> Unit,
+) {
     Dialog(onDismissRequest = { }) {
         Surface(
             Modifier.fillMaxWidth().wrapContentHeight(),
