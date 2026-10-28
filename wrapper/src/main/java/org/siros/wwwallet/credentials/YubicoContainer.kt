@@ -1,6 +1,5 @@
 package org.siros.wwwallet.credentials
 
-import android.security.keystore.UserNotAuthenticatedException
 import android.util.Base64.NO_PADDING
 import android.util.Base64.NO_WRAP
 import android.util.Base64.URL_SAFE
@@ -58,6 +57,8 @@ sealed class Operation(
     ) : Operation(options, success, failure)
 }
 
+class UserCancellationException: Exception()
+
 class YubicoContainer(
     val activity: MainActivity,
 ) : Container {
@@ -102,7 +103,7 @@ class YubicoContainer(
             manager.stopUsbDiscovery()
             manager.stopNfcDiscovery(activity)
 
-            lastOperation?.failure(Throwable())
+            lastOperation?.failure(UserCancellationException())
         }
 
         manager.startUsbDiscovery(
@@ -173,11 +174,7 @@ class YubicoContainer(
                 pin = providedPin
                 routeToCorrectMethodWithPin(operation, device, providedPin)
             } else {
-                operation.failure(
-                    UserNotAuthenticatedException(
-                        "User did enter empty pin.",
-                    ),
-                )
+                operation.failure(UserCancellationException())
             }
         }
     }
@@ -355,7 +352,8 @@ class YubicoContainer(
         operation: Operation.GetOperation,
     ) {
         activity.vm.requestCredential(multiple) { credential ->
-            if (credential == null) return@requestCredential operation.failure(Throwable())
+            if (credential == null) return@requestCredential operation.failure(
+                UserCancellationException())
 
             kitOptions.allowCredentials.clear()
             kitOptions.allowCredentials.add(

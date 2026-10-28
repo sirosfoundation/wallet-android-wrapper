@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.siros.wwwallet.credentials.UserCancellationException
 import org.siros.wwwallet.json.DcApiRequestData
 import org.siros.wwwallet.storage.Settings
 import timber.log.Timber
@@ -350,6 +351,8 @@ class MainViewModel : ViewModel() {
         private set
 
     fun showError(throwable: Throwable) {
+        if (throwable is UserCancellationException) return
+
         val genericNfcExplanation = activity?.getString(R.string.error_generic_nfc_explanation)
         val unknownError = "Unknown error"
 
