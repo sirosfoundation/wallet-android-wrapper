@@ -61,6 +61,7 @@ import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.json.DcApiRequests
 import org.siros.wwwallet.ui.CredentialSelectionDialog
+import org.siros.wwwallet.ui.ErrorDialog
 import org.siros.wwwallet.ui.PinInputDialog
 import org.siros.wwwallet.ui.SecurityKeyStartDialog
 import org.siros.wwwallet.util.ShakeDetector
@@ -132,6 +133,9 @@ class MainActivity : ComponentActivity() {
 
                     finish()
                 },
+                { throwable ->
+                    vm.showError(throwable)
+                }
             )
 
         // Avoid circular reference.
@@ -198,6 +202,10 @@ class MainActivity : ComponentActivity() {
                                 CredentialSelectionDialog(assertions) {
                                     vm.onCredentialDialogDismissed(it)
                                 }
+                            }
+                        } else if (vm.errorMessage.isNotEmpty()) {
+                            ErrorDialog(vm.errorMessage) {
+                                vm.dismissError()
                             }
                         }
                     }

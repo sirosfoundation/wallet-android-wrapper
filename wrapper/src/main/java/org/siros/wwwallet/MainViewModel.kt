@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import android.nfc.TagLostException
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import com.yubico.yubikit.fido.client.MultipleAssertionsAvailable
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredential
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +27,7 @@ import org.siros.wwwallet.json.DcApiRequestData
 import org.siros.wwwallet.storage.Settings
 import timber.log.Timber
 import java.net.URISyntaxException
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
 @SuppressLint("StaticFieldLeak")
@@ -341,6 +344,24 @@ class MainViewModel : ViewModel() {
         assertions = null
         credentialCallback?.invoke(credential)
         credentialCallback = null
+    }
+
+    var errorMessage by mutableStateOf("")
+        private set
+
+    fun showError(throwable: Throwable) {
+        val genericNfcExplanation = activity?.getString(R.string.error_generic_nfc_explanation)
+        val unknownError = "Unknown error"
+
+        errorMessage = if (throwable is TagLostException) {
+            genericNfcExplanation ?: throwable.localizedMessage ?: unknownError
+        } else {
+            throwable.localizedMessage ?: genericNfcExplanation ?: unknownError
+        }
+    }
+
+    fun dismissError() {
+        errorMessage = ""
     }
 
     private suspend fun changeProviderRequested(uri: Uri): String? {
