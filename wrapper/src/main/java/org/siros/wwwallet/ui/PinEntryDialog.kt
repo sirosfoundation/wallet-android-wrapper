@@ -41,7 +41,7 @@ import androidx.compose.ui.window.Dialog
 import org.siros.wwwallet.R
 
 @Composable
-fun PinInputDialog(onDismiss: (String?) -> Unit) {
+fun PinEntryDialog(onDismiss: (String?) -> Unit) {
     var pin by remember { mutableStateOf("") }
 
     var passwordVisible by remember { mutableStateOf(false) }
@@ -108,12 +108,12 @@ fun PinInputDialog(onDismiss: (String?) -> Unit) {
 
 @Preview
 @Composable
-private fun PreviewPinInputDialog() {
+private fun PreviewPinEntryDialog() {
     MaterialTheme(
         if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
     ) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
-            PinInputDialog { }
+            PinEntryDialog { }
         }
     }
 }

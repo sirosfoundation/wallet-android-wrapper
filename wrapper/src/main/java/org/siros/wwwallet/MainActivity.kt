@@ -63,8 +63,9 @@ import org.siros.wwwallet.json.DcApiRequests
 import org.siros.wwwallet.ui.CredentialSelectionDialog
 import org.siros.wwwallet.ui.ErrorDialog
 import org.siros.wwwallet.ui.HandlingHintDialog
-import org.siros.wwwallet.ui.PinInputDialog
+import org.siros.wwwallet.ui.PinEntryDialog
 import org.siros.wwwallet.ui.SecurityKeyStartDialog
+import org.siros.wwwallet.ui.SetPinDialog
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -197,7 +198,9 @@ class MainActivity : ComponentActivity() {
                         if (vm.showStartDialog) {
                             SecurityKeyStartDialog { vm.dismissStartDialog() }
                         } else if (vm.showPinDialog) {
-                            PinInputDialog { vm.onPinDialogDismissed(it) }
+                            PinEntryDialog { vm.onPinDialogDismissed(it) }
+                        } else if (vm.showPinSetDialog) {
+                            SetPinDialog { vm.onPinSetDialogDismissed(it) }
                         } else if (vm.showCredentialDialog) {
                             vm.assertions?.let { assertions ->
                                 CredentialSelectionDialog(assertions) {

@@ -333,6 +333,27 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    var showPinSetDialog by mutableStateOf(false)
+        private set
+
+    fun requestPinSet(callback: (String?) -> Unit) {
+        pinCallback = callback
+        showPinSetDialog = true
+    }
+
+    fun onPinSetDialogDismissed(pin: String?) {
+        showPinSetDialog = false
+
+        viewModelScope.launch {
+            // When in USB mode, this delay is needed, otherwise the main thread will not
+            // have a chance to rerender the scene without the dialog.
+            delay(0.1.seconds)
+
+            pinCallback?.invoke(pin)
+            pinCallback = null
+        }
+    }
+
     var showCredentialDialog by mutableStateOf(false)
         private set
 
