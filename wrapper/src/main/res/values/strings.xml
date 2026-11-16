@@ -82,6 +82,7 @@
     <string name="error_pin_invalid">The provided PIN is invalid.</string>
     <string name="error_pin_not_set">A PIN needs to be set.</string>
     <string name="error_puat_required">Please provide PIN.</string>
+    <string name="error_no_credentials">There is no passkey for this site on this security key. Please add one or find another method for accessing this site.</string>
 
     <!-- HandlingHintDialog -->
     <string name="handling_dialog_title_nfc">Tap Your Security Key</string>

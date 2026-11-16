@@ -13,7 +13,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yubico.yubikit.core.fido.CtapException
-import com.yubico.yubikit.fido.client.AuthInvalidClientError
+import com.yubico.yubikit.fido.client.ClientError
 import com.yubico.yubikit.fido.client.MultipleAssertionsAvailable
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredential
 import kotlinx.coroutines.Dispatchers
@@ -393,13 +393,14 @@ class MainViewModel : ViewModel() {
 
         var betterExplanation: String? = null
 
-        (throwable as? AuthInvalidClientError)?.let {
+        (throwable as? ClientError)?.let {
             (it.cause as? CtapException)?.let { ctap ->
                 betterExplanation =
                     when (ctap.ctapError) {
                         CtapException.ERR_PIN_INVALID -> activity?.getString(R.string.error_pin_invalid)
                         CtapException.ERR_PIN_NOT_SET -> activity?.getString(R.string.error_pin_not_set)
                         CtapException.ERR_PUAT_REQUIRED -> activity?.getString(R.string.error_puat_required)
+                        CtapException.ERR_NO_CREDENTIALS -> activity?.getString(R.string.error_no_credentials)
                         else -> ctap.localizedMessage
                     }
             }
