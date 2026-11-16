@@ -129,8 +129,7 @@ class YubicoContainer(
 
             try {
                 client = createClient(device)
-            }
-            catch (t: Throwable) {
+            } catch (t: Throwable) {
                 stop()
                 failureCallback(t)
                 return@launch
@@ -142,8 +141,7 @@ class YubicoContainer(
                     if (newPin.isNotEmpty()) {
                         try {
                             client.setPin(newPin.toCharArray())
-                        }
-                        catch (t: Throwable) {
+                        } catch (t: Throwable) {
                             Timber.e(t, "Error while setting PIN.")
 
                             // Unset so the user sees the dialog again after a failed PIN set attempt.
@@ -162,11 +160,12 @@ class YubicoContainer(
                 stop(client)
 
                 // First run: Get a new PIN from the user.
-                newPin = suspendCancellableCoroutine { continuation ->
-                    activity.vm.requestPinSet { providedPin ->
-                        continuation.resume(providedPin) { _, _, _ -> }
+                newPin =
+                    suspendCancellableCoroutine { continuation ->
+                        activity.vm.requestPinSet { providedPin ->
+                            continuation.resume(providedPin) { _, _, _ -> }
+                        }
                     }
-                }
 
                 if (newPin == null) {
                     failureCallback(UserCancellationException())
@@ -180,11 +179,12 @@ class YubicoContainer(
             if (pin.isNullOrEmpty()) {
                 stop(client)
 
-                pin = suspendCancellableCoroutine { continuation ->
-                    activity.vm.requestPin { providedPin ->
-                        continuation.resume(providedPin) { _, _, _ -> }
+                pin =
+                    suspendCancellableCoroutine { continuation ->
+                        activity.vm.requestPin { providedPin ->
+                            continuation.resume(providedPin) { _, _, _ -> }
+                        }
                     }
-                }
 
                 if (pin == null) {
                     failureCallback(UserCancellationException())
@@ -193,8 +193,7 @@ class YubicoContainer(
 
                 create(options, successCallback, failureCallback)
                 return@launch
-            }
-            else {
+            } else {
                 pin = pin // Refresh timer
             }
 
@@ -269,11 +268,12 @@ class YubicoContainer(
             }
 
             if (pin.isNullOrEmpty()) {
-                pin = suspendCancellableCoroutine { continuation ->
-                    activity.vm.requestPin { providedPin ->
-                        continuation.resume(providedPin) { _, _, _ -> }
+                pin =
+                    suspendCancellableCoroutine { continuation ->
+                        activity.vm.requestPin { providedPin ->
+                            continuation.resume(providedPin) { _, _, _ -> }
+                        }
                     }
-                }
 
                 if (pin == null) {
                     stop()
@@ -283,8 +283,7 @@ class YubicoContainer(
 
                 get(options, successCallback, failureCallback)
                 return@launch
-            }
-            else {
+            } else {
                 pin = pin // Refresh timer
             }
 
@@ -348,8 +347,7 @@ class YubicoContainer(
 
                 if (newOptions == null) {
                     failureCallback(UserCancellationException())
-                }
-                else {
+                } else {
                     get(newOptions, successCallback, failureCallback)
                 }
             }
@@ -372,8 +370,7 @@ class YubicoContainer(
     private fun stop(client: WebAuthnClient? = null) {
         try {
             client?.close()
-        }
-        catch (_: Throwable) {
+        } catch (_: Throwable) {
             // Ignored. If we cannot close it anymore, because it's out of date, we're fine.
         }
 
@@ -385,11 +382,12 @@ class YubicoContainer(
         multiple: MultipleAssertionsAvailable,
         kitOptions: PublicKeyCredentialRequestOptions,
     ): JSONObject? {
-        val credential = suspendCancellableCoroutine { continuation ->
-            activity.vm.requestCredential(multiple) { credential ->
-                continuation.resume(credential) { _, _, _ -> }
+        val credential =
+            suspendCancellableCoroutine { continuation ->
+                activity.vm.requestCredential(multiple) { credential ->
+                    continuation.resume(credential) { _, _, _ -> }
+                }
             }
-        }
 
         if (credential == null) {
             return null

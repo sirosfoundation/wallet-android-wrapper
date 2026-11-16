@@ -82,47 +82,47 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
                         stringResource(R.string.set_pin_explanation),
                         Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
                     )
 
                     Row(
                         Modifier
                             .fillMaxWidth()
                             .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(
-                            Modifier.weight(1f)
+                            Modifier.weight(1f),
                         ) {
                             Text(
                                 stringResource(R.string.set_pin_remember),
                                 Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp),
                                 fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleSmall
+                                style = MaterialTheme.typography.titleSmall,
                             )
 
                             Text(
                                 stringResource(R.string.set_pin_disclaimer),
                                 Modifier.padding(16.dp, 0.dp, 0.dp, 4.dp),
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
                             )
 
                             Text(
                                 stringResource(R.string.set_pin_disclaimer_1),
                                 Modifier.padding(16.dp, 0.dp, 0.dp, 0.dp),
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
                             )
 
                             Text(
                                 stringResource(R.string.set_pin_disclaimer_2),
                                 Modifier.padding(16.dp, 0.dp, 0.dp, 0.dp),
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
                             )
 
                             Text(
                                 stringResource(R.string.set_pin_disclaimer_3),
                                 Modifier.padding(16.dp, 0.dp, 16.dp, 16.dp),
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
                             )
                         }
 
@@ -135,8 +135,9 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
                     }
 
                     Row(
-                        Modifier.fillMaxWidth()
-                            .toggleable(accepted, onValueChange = { accepted = it })
+                        Modifier
+                            .fillMaxWidth()
+                            .toggleable(accepted, onValueChange = { accepted = it }),
                     ) {
                         Checkbox(accepted, null)
 
@@ -155,7 +156,7 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
                             { showStep1 = false },
                             ButtonType.PRIMARY,
                             stringResource(R.string.set_pin_create_pin),
-                            accepted
+                            accepted,
                         )
 
                         Button(
@@ -186,9 +187,13 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
                                 IconButton({ passwordVisible1 = !passwordVisible1 }) {
                                     Icon(
                                         if (passwordVisible1) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                        if (passwordVisible1) stringResource(R.string.dialog_hide_pin) else stringResource(
-                                            R.string.dialog_show_pin
-                                        ),
+                                        if (passwordVisible1) {
+                                            stringResource(R.string.dialog_hide_pin)
+                                        } else {
+                                            stringResource(
+                                                R.string.dialog_show_pin,
+                                            )
+                                        },
                                     )
                                 }
                             },
@@ -207,9 +212,13 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
                                 IconButton({ passwordVisible2 = !passwordVisible2 }) {
                                     Icon(
                                         if (passwordVisible2) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                        if (passwordVisible2) stringResource(R.string.dialog_hide_pin) else stringResource(
-                                            R.string.dialog_show_pin
-                                        ),
+                                        if (passwordVisible2) {
+                                            stringResource(R.string.dialog_hide_pin)
+                                        } else {
+                                            stringResource(
+                                                R.string.dialog_show_pin,
+                                            )
+                                        },
                                     )
                                 }
                             },
