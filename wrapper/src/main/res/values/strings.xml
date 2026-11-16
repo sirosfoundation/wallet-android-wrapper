@@ -56,9 +56,12 @@
     <!-- SetPinDialog -->
     <string name="set_pin_dialog_title">No PIN Set</string>
     <string name="set_pin_explanation">Please create a PIN for your security key to protect the Passkeys stored there.</string>
-    <string name="set_pin_important">IMPORTANT!</string>
-    <string name="set_pin_disclaimer">Please remember your PIN, as you will need it to unlock your security key. This PIN is unique to this specific key and is separate from your main wallet account. Only you know the PIN. We can not help you reset the PIN if you forget it.</string>
-    <string name="set_pin_continue">Continue</string>
+    <string name="set_pin_remember">Please remember your PIN</string>
+    <string name="set_pin_disclaimer">You need a unique PIN to unlock this security key.</string>
+    <string name="set_pin_disclaimer_1">• Separate from your wallet</string>
+    <string name="set_pin_disclaimer_2">• Known only to you</string>
+    <string name="set_pin_disclaimer_3">• Cannot be reset if forgotten</string>
+    <string name="set_pin_create_pin">Create PIN</string>
     <string name="set_pin_dialog_title2">Create Your Security Key PIN</string>
     <string name="set_pin_confirm_hint">Confirm PIN</string>
     <string name="set_pin_confirmation">I understand that I must remember this PIN, as it cannot be recovered.</string>

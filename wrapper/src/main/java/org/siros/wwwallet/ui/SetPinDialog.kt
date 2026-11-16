@@ -1,7 +1,6 @@
 package org.siros.wwwallet.ui
 
-import android.view.RoundedCorner
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,11 +10,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -83,32 +85,85 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
                         style = MaterialTheme.typography.bodyMedium
                     )
 
-                    Column(
+                    Row(
                         Modifier
                             .fillMaxWidth()
-                            .background(Color.LightGray, RoundedCornerShape(8.dp))
+                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            stringResource(R.string.set_pin_important),
-                            Modifier.fillMaxWidth().padding(16.dp),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleSmall
-                        )
+                        Column(
+                            Modifier.weight(1f)
+                        ) {
+                            Text(
+                                stringResource(R.string.set_pin_remember),
+                                Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleSmall
+                            )
 
-                        Text(
-                            stringResource(R.string.set_pin_disclaimer),
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp, 0.dp, 16.dp, 16.dp),
-                            style = MaterialTheme.typography.bodyMedium
+                            Text(
+                                stringResource(R.string.set_pin_disclaimer),
+                                Modifier.padding(16.dp, 0.dp, 0.dp, 4.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                            Text(
+                                stringResource(R.string.set_pin_disclaimer_1),
+                                Modifier.padding(16.dp, 0.dp, 0.dp, 0.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                            Text(
+                                stringResource(R.string.set_pin_disclaimer_2),
+                                Modifier.padding(16.dp, 0.dp, 0.dp, 0.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                            Text(
+                                stringResource(R.string.set_pin_disclaimer_3),
+                                Modifier.padding(16.dp, 0.dp, 16.dp, 16.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
+                        Icon(
+                            Icons.Rounded.Warning,
+                            null,
+                            Modifier.padding(8.dp),
+                            colorResource(R.color.button_primary_background),
                         )
                     }
 
-                    Button(
-                        { showStep1 = false },
-                        ButtonType.PRIMARY,
-                        stringResource(R.string.set_pin_continue),
-                    )
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .toggleable(accepted, onValueChange = { accepted = it })
+                    ) {
+                        Checkbox(accepted, null)
+
+                        Text(
+                            stringResource(R.string.set_pin_confirmation),
+                            Modifier.padding(start = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+
+                    Column(
+                        Modifier.fillMaxWidth(),
+                        Arrangement.spacedBy(16.dp),
+                    ) {
+                        Button(
+                            { showStep1 = false },
+                            ButtonType.PRIMARY,
+                            stringResource(R.string.set_pin_create_pin),
+                            accepted
+                        )
+
+                        Button(
+                            { onDismiss(null) },
+                            ButtonType.OUTLINED,
+                            stringResource(android.R.string.cancel),
+                        )
+                    }
                 } else {
                     Text(
                         stringResource(R.string.set_pin_dialog_title2),
@@ -163,19 +218,6 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
                         )
-
-                        Row(
-                            Modifier.fillMaxWidth().padding(0.dp, 0.dp,16.dp, 0.dp)
-                        ) {
-                            Text(
-                                stringResource(R.string.set_pin_confirmation),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-
-                            Checkbox(
-                                accepted, { accepted = !accepted }
-                            )
-                        }
                     }
 
                     Column(
@@ -186,7 +228,7 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
                             { onDismiss(pin1) },
                             ButtonType.PRIMARY,
                             stringResource(R.string.dialog_confirm),
-                            accepted && pin1.isNotEmpty() && pin1 == pin2,
+                            pin1.isNotEmpty() && pin1 == pin2,
                         )
 
                         Button(
