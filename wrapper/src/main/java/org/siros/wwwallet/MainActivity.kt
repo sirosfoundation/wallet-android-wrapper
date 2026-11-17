@@ -253,14 +253,13 @@ class MainActivity : ComponentActivity() {
     private fun handleGetCredential(intent: Intent) {
         val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent)
 
-        val selectedId =
+        val selectedIds =
             request
                 ?.selectedCredentialSet
                 ?.credentials
-                ?.firstOrNull()
-                ?.credentialId
+                ?.map { it.credentialId }
 
-        if (selectedId == null) {
+        if (selectedIds.isNullOrEmpty()) {
             Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential ID given!")
             finishWithException("No credential ID given.")
             return
@@ -295,7 +294,7 @@ class MainActivity : ComponentActivity() {
         // Store for later response.
         lastCredentialRequest = request
 
-        vm.enqueueDcApiRequest(selectedId, getOrigin(request), firstRequest.protocol, firstRequest.data)
+        vm.enqueueDcApiRequest(selectedIds, getOrigin(request), firstRequest.protocol, firstRequest.data)
     }
 
     private fun getOrigin(request: ProviderGetCredentialRequest?): String {

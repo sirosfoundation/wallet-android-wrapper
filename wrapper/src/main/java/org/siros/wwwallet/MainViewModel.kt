@@ -111,19 +111,19 @@ class MainViewModel : ViewModel() {
     }
 
     fun enqueueDcApiRequest(
-        selectedId: String,
+        selectedIds: List<String>,
         origin: String,
         protocol: String,
         requestData: DcApiRequestData,
     ) {
-        Timber.i("Enqueued requested for ID: $selectedId, origin: $origin, protocol: $protocol, data: $requestData")
+        Timber.i("Enqueued requested for IDs: $selectedIds, origin: $origin, protocol: $protocol, data: $requestData")
 
         viewModelScope.launch {
             val allCredentials = Settings.getDcApiCredentials()
             var callbackUrl: String? = null
 
             for (credentials in allCredentials) {
-                val credential = credentials.value.firstOrNull { it.id == selectedId }
+                val credential = credentials.value.firstOrNull { it.id in selectedIds }
 
                 if (credential != null) {
                     callbackUrl = credentials.key
@@ -146,7 +146,8 @@ class MainViewModel : ViewModel() {
                     .appendQueryParameter("request_id", Uuid.random().toHexDashString())
                     .appendQueryParameter("request_origin", origin)
                     .appendQueryParameter("request_protocol", protocol)
-                    .appendQueryParameter("selected_credential_id", selectedId)
+
+            selectedIds.forEach { uri.appendQueryParameter("selected_credential_id", it) }
 
             requestData.addAsQuery(uri)
 
