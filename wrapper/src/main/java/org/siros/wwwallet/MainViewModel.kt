@@ -133,7 +133,10 @@ class MainViewModel : ViewModel() {
             }
 
             if (callbackUrl == null) {
-                throw CredentialsFromDifferentTenantsException()
+                throw CredentialsFromDifferentTenantsException(
+                    activity?.getString(R.string.error_credentials_from_different_tenants)
+                        ?: "Requested credentials cannot be from different tenants.",
+                )
             }
 
             val url =
@@ -321,4 +324,6 @@ class MainViewModel : ViewModel() {
     }
 }
 
-class CredentialsFromDifferentTenantsException: Exception("Requested credentials cannot be from different tenants.")
+class CredentialsFromDifferentTenantsException(
+    message: String,
+) : Exception(message)

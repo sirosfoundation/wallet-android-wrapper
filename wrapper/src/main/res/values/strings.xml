@@ -43,4 +43,13 @@
     <string name="photo_id_match_refused_chip_photo_mismatch">Your face did not match the photo stored in your document\'s chip, so no credential was issued. Please try again, or use another identity document.</string>
     <string name="photo_id_match_refused_other">Your identity could not be verified, so no credential was issued. Please try again.</string>
     <string name="photo_id_match_ok">OK</string>
+
+    <!-- MainActivity -->
+    <string name="error_no_credential_id_given">No credential ID given.</string>
+    <string name="error_no_credential_options_given">No credential options given.</string>
+    <string name="error_no_credential_request_given">No credential request given.</string>
+    <string name="error_unknown">Unknown error</string>
+
+    <!-- MainViewModel -->
+    <string name="error_credentials_from_different_tenants">Requested credentials cannot be from different tenants.</string>
 </resources>
