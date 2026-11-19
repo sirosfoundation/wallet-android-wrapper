@@ -68,19 +68,21 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
+          ruby-version: '3.3'
 
       - name: Install Fastlane
         run: gem install fastlane
+
+      - name: Write service account key
+        run: |
+          mkdir -p ~/.android
+          echo "${{ secrets.GCP_JSON_KEY }}" > ~/.android/sirosid-fastlane.json
+          chmod 600 ~/.android/sirosid-fastlane.json
 
       - name: Build Android App Bundle (AAB)
         run: ./gradlew bundleRelease
 
       - name: Deploy to Google Play
         env:
-          # The secret JSON key from Google Cloud Console
-          SUPPLY_JSON_KEY_DATA: ${{ secrets.GCP_JSON_KEY }}
-          # Point Fastlane to the AAB file created by ./gradlew bundleRelease
-          # ADJUST THIS PATH if your AAB is located elsewhere
           PLAY_STORE_AAB_PATH: ./wrapper/build/outputs/bundle/release/wrapper-release.aab
         run: fastlane android deploy_to_play_store
