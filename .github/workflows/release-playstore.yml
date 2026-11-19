@@ -69,7 +69,6 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
-          bundler-cache: true
 
       - name: Install Fastlane
         run: gem install fastlane
@@ -84,4 +83,4 @@ jobs:
           # Point Fastlane to the AAB file created by ./gradlew bundleRelease
           # ADJUST THIS PATH if your AAB is located elsewhere
           PLAY_STORE_AAB_PATH: ./wrapper/build/outputs/bundle/release/wrapper-release.aab
-        run: bundle exec fastlane android deploy_to_play_store
+        run: fastlane android deploy_to_play_store
