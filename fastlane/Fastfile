@@ -44,4 +44,20 @@ platform :android do
             skip_upload_screenshots: false,
         )
     end
+
+    desc "Full Deploy: Binary + Metadata"
+    lane :deploy_to_play_store do
+        supply(
+            # The path to the AAB is passed from the GitHub Action
+            aab: ENV["PLAY_STORE_AAB_PATH"],
+            skip_upload_apk: true,
+
+            skip_upload_screenshots: true,
+            skip_upload_images: true,
+
+            skip_upload_changelogs: false,
+
+            validate_only: false
+        )
+    end
 end
