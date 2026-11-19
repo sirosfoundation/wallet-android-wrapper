@@ -1,4 +1,4 @@
-name: Android Build and Publish
+name: Android Build and Publish to Github
 
 permissions:
   contents: write
@@ -22,7 +22,7 @@ on:
         type: string
 
 jobs:
-  release:
+  release-github:
     runs-on: ubuntu-latest
     env:
       WWWALLET_ANDROID_APPLICATION_ID: ${{ vars.WWWALLET_ANDROID_APPLICATION_ID }}

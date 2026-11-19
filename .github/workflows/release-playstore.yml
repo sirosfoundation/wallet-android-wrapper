@@ -1,4 +1,4 @@
-name: Android Build and Publish
+name: Android Build and Publish to Play Store
 
 permissions:
   contents: write
@@ -39,6 +39,7 @@ jobs:
       ANDROID_BUILD_TOOLS: ${{ vars.ANDROID_BUILD_TOOLS }}
       ANDROID_CMDLINE_TOOLS: ${{ vars.ANDROID_CMDLINE_TOOLS }}
       GITHUB_ACTOR: sirospackages
+      GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
     steps:
       - name: Update ubuntu
