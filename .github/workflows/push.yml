@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Update ubuntu
-        run: sudo apt-get update
+        run: sudo apt update && sudo apt -y upgrade
 
       - name: Enable KVM
         run: |
