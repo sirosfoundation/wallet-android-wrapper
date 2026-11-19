@@ -49,6 +49,7 @@ import androidx.credentials.registry.provider.selectedCredentialSet
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -303,6 +304,8 @@ class MainActivity : ComponentActivity() {
                     firstRequest.data,
                 )
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+
                 Timber.e(t, "Could not handle DC-API GET_CREDENTIAL.")
                 finishWithException(t.localizedMessage)
             }
