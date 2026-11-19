@@ -122,48 +122,54 @@ class MainViewModel : ViewModel() {
         currentUrl.update { url }
     }
 
-    fun enqueueDcApiRequest(
-        selectedId: String,
+    suspend fun enqueueDcApiRequest(
+        selectedIds: List<String>,
         origin: String,
         protocol: String,
         requestData: DcApiRequestData,
     ) {
-        Timber.i("Enqueued requested for ID: $selectedId, origin: $origin, protocol: $protocol, data: $requestData")
+        Timber.i("Enqueued requested for IDs: $selectedIds, origin: $origin, protocol: $protocol, data: $requestData")
 
-        viewModelScope.launch {
-            val allCredentials = Settings.getDcApiCredentials()
-            var callbackUrl: String? = null
+        val allCredentials = Settings.getDcApiCredentials()
+        var callbackUrl: String? = null
 
-            for (credentials in allCredentials) {
-                val credential = credentials.value.firstOrNull { it.id == selectedId }
+        for ((url, credentials) in allCredentials) {
+            val idsOfTenant = credentials.map { it.id }
 
-                if (credential != null) {
-                    callbackUrl = credentials.key
-                    break
-                }
+            // All selected credential IDs need to stem from the same tenant.
+            if (idsOfTenant.containsAll(selectedIds)) {
+                callbackUrl = url
+                break
             }
-
-            val url: Uri
-
-            if (callbackUrl != null && callbackUrl != DCAPI_CREDENTIALS_FALLBACK_URL) {
-                url = callbackUrl.toUri()
-            } else {
-                url = currentUrl.filterNotNull().first()
-            }
-
-            val uri =
-                url
-                    .buildUpon()
-                    .clearQuery()
-                    .appendQueryParameter("request_id", Uuid.random().toHexDashString())
-                    .appendQueryParameter("request_origin", origin)
-                    .appendQueryParameter("request_protocol", protocol)
-                    .appendQueryParameter("selected_credential_id", selectedId)
-
-            requestData.addAsQuery(uri)
-
-            browseToUrl(uri.build().toString())
         }
+
+        if (callbackUrl == null) {
+            throw CredentialsFromDifferentTenantsException(
+                activity?.getString(R.string.error_credentials_from_different_tenants)
+                    ?: "Requested credentials cannot be from different tenants.",
+            )
+        }
+
+        val url =
+            if (callbackUrl != DCAPI_CREDENTIALS_FALLBACK_URL) {
+                callbackUrl.toUri()
+            } else {
+                currentUrl.filterNotNull().first()
+            }
+
+        val uri =
+            url
+                .buildUpon()
+                .clearQuery()
+                .appendQueryParameter("request_id", Uuid.random().toHexDashString())
+                .appendQueryParameter("request_origin", origin)
+                .appendQueryParameter("request_protocol", protocol)
+
+        selectedIds.forEach { uri.appendQueryParameter("selected_credential_id", it) }
+
+        requestData.addAsQuery(uri)
+
+        browseToUrl(uri.build().toString())
     }
 
     /**
@@ -467,3 +473,7 @@ class MainViewModel : ViewModel() {
         const val DCAPI_CREDENTIALS_FALLBACK_URL = "**fallback**"
     }
 }
+
+class CredentialsFromDifferentTenantsException(
+    message: String,
+) : Exception(message)

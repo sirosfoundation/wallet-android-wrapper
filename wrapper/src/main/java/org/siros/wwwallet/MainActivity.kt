@@ -49,6 +49,7 @@ import androidx.credentials.registry.provider.selectedCredentialSet
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -124,7 +125,7 @@ class MainActivity : ComponentActivity() {
                     lastCredentialRequest = null
 
                     if (responseJson == null || request == null) {
-                        finishWithException(error ?: "Unknown error")
+                        finishWithException(error ?: getString(R.string.error_unknown))
                         return@WalletJsBridge
                     }
 
@@ -286,16 +287,15 @@ class MainActivity : ComponentActivity() {
     private fun handleGetCredential(intent: Intent) {
         val request = PendingIntentHandler.retrieveProviderGetCredentialRequest(intent)
 
-        val selectedId =
+        val selectedIds =
             request
                 ?.selectedCredentialSet
                 ?.credentials
-                ?.firstOrNull()
-                ?.credentialId
+                ?.map { it.credentialId }
 
-        if (selectedId == null) {
+        if (selectedIds.isNullOrEmpty()) {
             Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential ID given!")
-            finishWithException("No credential ID given.")
+            finishWithException(getString(R.string.error_no_credential_id_given))
             return
         }
 
@@ -303,7 +303,7 @@ class MainActivity : ComponentActivity() {
 
         if (option == null) {
             Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential options given!")
-            finishWithException("No credential options given.")
+            finishWithException(getString(R.string.error_no_credential_options_given))
             return
         }
 
@@ -321,14 +321,28 @@ class MainActivity : ComponentActivity() {
         val firstRequest = requests.requests.firstOrNull()
         if (firstRequest == null) {
             Timber.e("Could not handle DC-API GET_CREDENTIAL: No credential request given!")
-            finishWithException("No credential request given.")
+            finishWithException(getString(R.string.error_no_credential_request_given))
             return
         }
 
         // Store for later response.
         lastCredentialRequest = request
 
-        vm.enqueueDcApiRequest(selectedId, getOrigin(request), firstRequest.protocol, firstRequest.data)
+        lifecycleScope.launch {
+            try {
+                vm.enqueueDcApiRequest(
+                    selectedIds,
+                    getOrigin(request),
+                    firstRequest.protocol,
+                    firstRequest.data,
+                )
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+
+                Timber.e(t, "Could not handle DC-API GET_CREDENTIAL.")
+                finishWithException(t.localizedMessage)
+            }
+        }
     }
 
     private fun getOrigin(request: ProviderGetCredentialRequest?): String {
