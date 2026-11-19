@@ -122,22 +122,26 @@ class MainViewModel : ViewModel() {
             val allCredentials = Settings.getDcApiCredentials()
             var callbackUrl: String? = null
 
-            for (credentials in allCredentials) {
-                val credential = credentials.value.firstOrNull { it.id in selectedIds }
+            for ((url, credentials) in allCredentials) {
+                val idsOfTenant = credentials.map { it.id }
 
-                if (credential != null) {
-                    callbackUrl = credentials.key
+                // All selected credential IDs need to stem from the same tenant.
+                if (idsOfTenant.containsAll(selectedIds)) {
+                    callbackUrl = url
                     break
                 }
             }
 
-            val url: Uri
-
-            if (callbackUrl != null && callbackUrl != DCAPI_CREDENTIALS_FALLBACK_URL) {
-                url = callbackUrl.toUri()
-            } else {
-                url = currentUrl.filterNotNull().first()
+            if (callbackUrl == null) {
+                throw CredentialsFromDifferentTenantsException()
             }
+
+            val url =
+                if (callbackUrl != DCAPI_CREDENTIALS_FALLBACK_URL) {
+                    callbackUrl.toUri()
+                } else {
+                    currentUrl.filterNotNull().first()
+                }
 
             val uri =
                 url
@@ -316,3 +320,5 @@ class MainViewModel : ViewModel() {
         const val DCAPI_CREDENTIALS_FALLBACK_URL = "**fallback**"
     }
 }
+
+class CredentialsFromDifferentTenantsException: Exception("Requested credentials cannot be from different tenants.")
