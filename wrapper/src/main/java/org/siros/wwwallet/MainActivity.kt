@@ -294,7 +294,12 @@ class MainActivity : ComponentActivity() {
         // Store for later response.
         lastCredentialRequest = request
 
-        vm.enqueueDcApiRequest(selectedIds, getOrigin(request), firstRequest.protocol, firstRequest.data)
+        try {
+            vm.enqueueDcApiRequest(selectedIds, getOrigin(request), firstRequest.protocol, firstRequest.data)
+        } catch (t: Throwable) {
+            Timber.e(t, "Could not handle DC-API GET_CREDENTIAL.")
+            finishWithException(t.localizedMessage)
+        }
     }
 
     private fun getOrigin(request: ProviderGetCredentialRequest?): String {
