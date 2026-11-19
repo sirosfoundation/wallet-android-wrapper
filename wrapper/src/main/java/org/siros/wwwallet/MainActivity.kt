@@ -294,11 +294,18 @@ class MainActivity : ComponentActivity() {
         // Store for later response.
         lastCredentialRequest = request
 
-        try {
-            vm.enqueueDcApiRequest(selectedIds, getOrigin(request), firstRequest.protocol, firstRequest.data)
-        } catch (t: Throwable) {
-            Timber.e(t, "Could not handle DC-API GET_CREDENTIAL.")
-            finishWithException(t.localizedMessage)
+        lifecycleScope.launch {
+            try {
+                vm.enqueueDcApiRequest(
+                    selectedIds,
+                    getOrigin(request),
+                    firstRequest.protocol,
+                    firstRequest.data,
+                )
+            } catch (t: Throwable) {
+                Timber.e(t, "Could not handle DC-API GET_CREDENTIAL.")
+                finishWithException(t.localizedMessage)
+            }
         }
     }
 
