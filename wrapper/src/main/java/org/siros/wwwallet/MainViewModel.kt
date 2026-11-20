@@ -5,10 +5,19 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import android.nfc.TagLostException
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yubico.yubikit.core.fido.CtapException
+import com.yubico.yubikit.fido.client.ClientError
+import com.yubico.yubikit.fido.client.MultipleAssertionsAvailable
+import com.yubico.yubikit.fido.webauthn.PublicKeyCredential
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,10 +25,13 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.siros.wwwallet.credentials.UserCancellationException
 import org.siros.wwwallet.json.DcApiRequestData
 import org.siros.wwwallet.storage.Settings
+import org.siros.wwwallet.ui.HandlingHintType
 import timber.log.Timber
 import java.net.URISyntaxException
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
 @SuppressLint("StaticFieldLeak")
@@ -284,6 +296,146 @@ class MainViewModel : ViewModel() {
         updateBaseUrl(
             UpdateReason.WebpageError(description),
         )
+    }
+
+    var showStartDialog by mutableStateOf(false)
+        private set
+
+    private var startCallback: (() -> Unit)? = null
+
+    fun showStartDialog(callback: () -> Unit) {
+        startCallback = callback
+        showStartDialog = true
+    }
+
+    fun dismissStartDialog(runCallback: Boolean = true) {
+        showStartDialog = false
+
+        if (runCallback) startCallback?.invoke()
+
+        startCallback = null
+    }
+
+    var showPinDialog by mutableStateOf(false)
+        private set
+
+    private var pinCallback: ((String?) -> Unit)? = null
+
+    fun requestPin(callback: (String?) -> Unit) {
+        pinCallback = callback
+        showPinDialog = true
+    }
+
+    fun onPinDialogDismissed(pin: String?) {
+        showPinDialog = false
+
+        viewModelScope.launch {
+            // When in USB mode, this delay is needed, otherwise the main thread will not
+            // have a chance to rerender the scene without the dialog.
+            delay(0.1.seconds)
+
+            pinCallback?.invoke(pin)
+            pinCallback = null
+        }
+    }
+
+    var showPinSetDialog by mutableStateOf(false)
+        private set
+
+    fun requestPinSet(callback: (String?) -> Unit) {
+        pinCallback = callback
+        showPinSetDialog = true
+    }
+
+    fun onPinSetDialogDismissed(pin: String?) {
+        showPinSetDialog = false
+
+        viewModelScope.launch {
+            // When in USB mode, this delay is needed, otherwise the main thread will not
+            // have a chance to rerender the scene without the dialog.
+            delay(0.1.seconds)
+
+            pinCallback?.invoke(pin)
+            pinCallback = null
+        }
+    }
+
+    var showCredentialDialog by mutableStateOf(false)
+        private set
+
+    var assertions: MultipleAssertionsAvailable? = null
+        private set
+
+    private var credentialCallback: ((PublicKeyCredential?) -> Unit)? = null
+
+    fun requestCredential(
+        assertions: MultipleAssertionsAvailable,
+        callback: (PublicKeyCredential?) -> Unit,
+    ) {
+        this.assertions = assertions
+        credentialCallback = callback
+        showCredentialDialog = true
+    }
+
+    fun onCredentialDialogDismissed(credential: PublicKeyCredential?) {
+        showCredentialDialog = false
+        assertions = null
+
+        viewModelScope.launch {
+            // When in USB mode, this delay is needed, otherwise the main thread will not
+            // have a chance to rerender the scene without the dialog.
+            delay(0.1.seconds)
+
+            credentialCallback?.invoke(credential)
+            credentialCallback = null
+        }
+    }
+
+    var errorMessage by mutableStateOf("")
+        private set
+
+    fun showError(throwable: Throwable) {
+        if (throwable is UserCancellationException) return
+
+        var betterExplanation: String? = null
+
+        (throwable as? ClientError)?.let {
+            (it.cause as? CtapException)?.let { ctap ->
+                betterExplanation =
+                    when (ctap.ctapError) {
+                        CtapException.ERR_PIN_INVALID -> activity?.getString(R.string.error_pin_invalid)
+                        CtapException.ERR_PIN_NOT_SET -> activity?.getString(R.string.error_pin_not_set)
+                        CtapException.ERR_PUAT_REQUIRED -> activity?.getString(R.string.error_puat_required)
+                        CtapException.ERR_NO_CREDENTIALS -> activity?.getString(R.string.error_no_credentials)
+                        else -> ctap.localizedMessage
+                    }
+            }
+        }
+
+        val genericNfcExplanation = activity?.getString(R.string.error_generic_nfc_explanation)
+        val unknownError = "Unknown error"
+
+        errorMessage =
+            if (throwable is TagLostException) {
+                genericNfcExplanation ?: throwable.localizedMessage ?: unknownError
+            } else {
+                betterExplanation ?: throwable.localizedMessage ?: genericNfcExplanation ?: unknownError
+            }
+    }
+
+    fun dismissError() {
+        errorMessage = ""
+    }
+
+    var handlingHintType: HandlingHintType? by mutableStateOf(null)
+        private set
+
+    fun showHandlingHint(type: HandlingHintType) {
+        handlingHintType = type
+    }
+
+    fun dismissHandlingHint() {
+        handlingHintType = null
     }
 
     private suspend fun changeProviderRequested(uri: Uri): String? {

@@ -1,28 +1,19 @@
 package org.siros.wwwallet.credentials
 
-import android.app.Activity
-import android.app.AlertDialog
-import android.content.DialogInterface
-import android.security.keystore.UserNotAuthenticatedException
-import android.text.InputType
 import android.util.Base64.NO_PADDING
 import android.util.Base64.NO_WRAP
 import android.util.Base64.URL_SAFE
 import android.util.Base64.encodeToString
-import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.FrameLayout
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.yubico.yubikit.android.YubiKitManager
 import com.yubico.yubikit.android.transport.nfc.NfcConfiguration
 import com.yubico.yubikit.android.transport.nfc.NfcNotAvailable
-import com.yubico.yubikit.android.transport.nfc.NfcYubiKeyDevice
 import com.yubico.yubikit.android.transport.usb.UsbConfiguration
 import com.yubico.yubikit.android.transport.usb.UsbYubiKeyDevice
 import com.yubico.yubikit.core.YubiKeyDevice
 import com.yubico.yubikit.core.fido.CtapException
-import com.yubico.yubikit.core.util.Callback
+import com.yubico.yubikit.fido.client.Ctap2Client
 import com.yubico.yubikit.fido.client.MultipleAssertionsAvailable
 import com.yubico.yubikit.fido.client.WebAuthnClient
 import com.yubico.yubikit.fido.client.clientdata.ClientDataProvider
@@ -37,52 +28,30 @@ import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialCreationOptions
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialDescriptor
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialRequestOptions
 import com.yubico.yubikit.fido.webauthn.SerializationType
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
+import org.siros.wwwallet.MainActivity
 import org.siros.wwwallet.json.getOrNull
 import org.siros.wwwallet.json.toMap
+import org.siros.wwwallet.ui.HandlingHintType
 import timber.log.Timber
-import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.time.Duration.Companion.seconds
 
-sealed class Operation(
-    open val options: JSONObject,
-    open val success: (JSONObject) -> Unit,
-    open val failure: (Throwable) -> Unit,
-) {
-    data class CreateOperation(
-        override val options: JSONObject,
-        override val success: (JSONObject) -> Unit,
-        override val failure: (Throwable) -> Unit,
-    ) : Operation(options, success, failure)
-
-    data class GetOperation(
-        override val options: JSONObject,
-        override val success: (JSONObject) -> Unit,
-        override val failure: (Throwable) -> Unit,
-    ) : Operation(options, success, failure)
-}
+class UserCancellationException : Exception()
 
 class YubicoContainer(
-    val activity: Activity,
+    val activity: MainActivity,
 ) : Container {
     companion object {
-        private const val PIN_CACHE_TIMEOUT_MS = 60_000L
+        // In seconds.
+        private const val PIN_CACHE_TIMEOUT = 60
     }
 
     private val manager: YubiKitManager = YubiKitManager(activity)
-
-    private val usbListener: Callback<UsbYubiKeyDevice> =
-        Callback { device ->
-            deviceConnected(device)
-        }
-
-    private val nfcListener: Callback<NfcYubiKeyDevice> =
-        Callback { device ->
-            deviceConnected(device)
-        }
 
     private var pinResetJob: Job? = null
 
@@ -96,31 +65,50 @@ class YubicoContainer(
 
                 pinResetJob =
                     (activity as? LifecycleOwner)?.lifecycleScope?.launch {
-                        delay(PIN_CACHE_TIMEOUT_MS)
+                        delay(PIN_CACHE_TIMEOUT.seconds)
                         pin = null
                         Timber.i("PIN cleared after timeout.")
                     }
             }
         }
 
-    private fun startDiscoveries() {
-        manager.startUsbDiscovery(
-            UsbConfiguration().handlePermissions(true),
-            usbListener,
-        )
+    private suspend fun discoverDevice(): YubiKeyDevice? {
+        val deferred = CompletableDeferred<YubiKeyDevice?>()
+
+        activity.vm.showStartDialog {
+            manager.stopUsbDiscovery()
+            manager.stopNfcDiscovery(activity)
+
+            deferred.complete(null)
+        }
+
+        manager.startUsbDiscovery(UsbConfiguration().handlePermissions(true)) { device ->
+            manager.stopNfcDiscovery(activity)
+
+            activity.vm.dismissStartDialog(false)
+
+            deferred.complete(device)
+        }
 
         try {
             manager.startNfcDiscovery(
                 NfcConfiguration().timeout(10_000), // .disableNfcDiscoverySound(true),
                 activity,
-                nfcListener,
-            )
+            ) { device ->
+                manager.stopUsbDiscovery()
+
+                activity.vm.dismissStartDialog(false)
+
+                deferred.complete(device)
+            }
         } catch (e: NfcNotAvailable) {
             Timber.i(e, "No NFC, ignoring.")
         }
+
+        return deferred.await()
     }
 
-    private var lastOperation: Operation? = null
+    private var newPin: String? = null
 
     override fun create(
         options: JSONObject,
@@ -129,14 +117,139 @@ class YubicoContainer(
     ) {
         Timber.i("yubico create implementation called.")
 
-        lastOperation =
-            Operation.CreateOperation(
-                options = options,
-                success = successCallback,
-                failure = failureCallback,
-            )
+        activity.lifecycleScope.launch {
+            val device = discoverDevice()
 
-        startDiscoveries()
+            if (device == null) {
+                failureCallback(UserCancellationException())
+                return@launch
+            }
+
+            val client: WebAuthnClient
+
+            try {
+                client = createClient(device)
+            } catch (t: Throwable) {
+                stop()
+                failureCallback(t)
+                return@launch
+            }
+
+            if ((client as? Ctap2Client)?.isPinConfigured == false) {
+                // Second run: We now have a PIN to set.
+                newPin?.let { newPin ->
+                    if (newPin.isNotEmpty()) {
+                        try {
+                            client.setPin(newPin.toCharArray())
+                        } catch (t: Throwable) {
+                            Timber.e(t, "Error while setting PIN.")
+
+                            // Unset so the user sees the dialog again after a failed PIN set attempt.
+                            // It would be super confusing, when a new PIN would be set in another
+                            // session just like that. It could be the wrong security key.
+                            this@YubicoContainer.newPin = null
+                        }
+                    }
+
+                    stop(client)
+
+                    create(options, successCallback, failureCallback)
+                    return@launch
+                }
+
+                stop(client)
+
+                // First run: Get a new PIN from the user.
+                newPin =
+                    suspendCancellableCoroutine { continuation ->
+                        activity.vm.requestPinSet { providedPin ->
+                            continuation.resume(providedPin) { _, _, _ -> }
+                        }
+                    }
+
+                if (newPin == null) {
+                    failureCallback(UserCancellationException())
+                    return@launch
+                }
+
+                create(options, successCallback, failureCallback)
+                return@launch
+            }
+
+            if (pin.isNullOrEmpty()) {
+                stop(client)
+
+                pin =
+                    suspendCancellableCoroutine { continuation ->
+                        activity.vm.requestPin { providedPin ->
+                            continuation.resume(providedPin) { _, _, _ -> }
+                        }
+                    }
+
+                if (pin == null) {
+                    failureCallback(UserCancellationException())
+                    return@launch
+                }
+
+                create(options, successCallback, failureCallback)
+                return@launch
+            } else {
+                pin = pin // Refresh timer
+            }
+
+            activity.vm.showHandlingHint(if (device is UsbYubiKeyDevice) HandlingHintType.USB else HandlingHintType.NFC)
+
+            // When in USB mode, this delay is needed, otherwise the main thread will not
+            // have a chance to rerender the scene with the handling hint dialog.
+            delay(0.1.seconds)
+
+            val publicKey = options.publicKey!!
+            val kitOptions = PublicKeyCredentialCreationOptions.fromMap(publicKey.toMap())
+            val domain = publicKey.rp?.id ?: ""
+            val provider =
+                ClientDataProvider.fromClientDataJson(
+                    getClientOptions(
+                        type = "webauthn.create",
+                        origin = domain,
+                        challenge =
+                            encodeToString(
+                                kitOptions.challenge,
+                                NO_PADDING or NO_WRAP or URL_SAFE,
+                            ),
+                    ),
+                )
+            val enterprise = null
+            val state = null
+
+            try {
+                val result: PublicKeyCredential =
+                    client.makeCredential(
+                        provider,
+                        kitOptions,
+                        domain,
+                        pin?.toCharArray(),
+                        enterprise,
+                        state,
+                    )
+
+                Timber.i("Done, created $result.")
+                successCallback(JSONObject(result.toMap()))
+            } catch (ctap: CtapException) {
+                Timber.e(
+                    ctap,
+                    "Protocol exception: '${ctap.ctapError.toHumanReadable()}'.",
+                )
+                failureCallback(ctap)
+            } catch (th: Throwable) {
+                pin = null // Reset. This error might be due to an invalid PIN.
+                Timber.e(th, "Unexpected error: '${th.message}'.")
+                failureCallback(th)
+            } finally {
+                stop(client)
+
+                activity.vm.dismissHandlingHint()
+            }
+        }
     }
 
     override fun get(
@@ -146,130 +259,98 @@ class YubicoContainer(
     ) {
         Timber.i("yubico get implementation called.")
 
-        lastOperation =
-            Operation.GetOperation(
-                options = options,
-                success = successCallback,
-                failure = failureCallback,
-            )
+        activity.lifecycleScope.launch {
+            val device = discoverDevice()
 
-        startDiscoveries()
-    }
+            if (device == null) {
+                failureCallback(UserCancellationException())
+                return@launch
+            }
 
-    private fun askForPin(
-        operation: Operation,
-        device: YubiKeyDevice,
-    ) {
-        if (!pin.isNullOrBlank()) {
-            pin = pin // Refresh timer
-            routeToCorrectMethodWithPin(operation, device, pin)
-            return
-        }
+            if (pin.isNullOrEmpty()) {
+                pin =
+                    suspendCancellableCoroutine { continuation ->
+                        activity.vm.requestPin { providedPin ->
+                            continuation.resume(providedPin) { _, _, _ -> }
+                        }
+                    }
 
-        // ask user for pin
-        requestPin { providedPin ->
-            if (providedPin != null) {
-                pin = providedPin
-                routeToCorrectMethodWithPin(operation, device, providedPin)
+                if (pin == null) {
+                    stop()
+                    failureCallback(UserCancellationException())
+                    return@launch
+                }
+
+                get(options, successCallback, failureCallback)
+                return@launch
             } else {
-                operation.failure(
-                    UserNotAuthenticatedException(
-                        "User did enter empty pin.",
+                pin = pin // Refresh timer
+            }
+
+            activity.vm.showHandlingHint(if (device is UsbYubiKeyDevice) HandlingHintType.USB else HandlingHintType.NFC)
+
+            // When in USB mode, this delay is needed, otherwise the main thread will not
+            // have a chance to rerender the scene with the handling hint dialog.
+            delay(0.1.seconds)
+
+            val publicKey = options.publicKey!!
+            val kitOptions = PublicKeyCredentialRequestOptions.fromMap(publicKey.toMap())
+            val domain = publicKey.rpId ?: ""
+            val provider =
+                ClientDataProvider.fromClientDataJson(
+                    getClientOptions(
+                        type = "webauthn.get",
+                        origin = domain,
+                        challenge =
+                            encodeToString(
+                                kitOptions.challenge,
+                                NO_PADDING or NO_WRAP or URL_SAFE,
+                            ),
                     ),
                 )
-            }
-        }
-    }
+            val enterprise = null
+            var client: WebAuthnClient? = null
 
-    private fun routeToCorrectMethodWithPin(
-        operation: Operation,
-        device: YubiKeyDevice,
-        pin: String?,
-    ) {
-        try {
-            when (operation) {
-                is Operation.CreateOperation ->
-                    createWithDevice(
-                        device,
-                        operation,
-                        pin,
+            var newOptions: JSONObject? = null
+
+            try {
+                client = createClient(device)
+
+                val result =
+                    client.getAssertion(
+                        provider,
+                        kitOptions,
+                        domain,
+                        pin?.toCharArray(),
+                        enterprise,
                     )
 
-                is Operation.GetOperation ->
-                    getWithDevice(
-                        device,
-                        operation,
-                        pin,
-                    )
-            }
-        } catch (e: Throwable) {
-            Timber.e(e, "An unknown error appeared. Hide now.")
-        }
-    }
-
-    private fun deviceConnected(device: YubiKeyDevice) {
-        lastOperation?.let { operation ->
-            askForPin(operation, device)
-        }
-    }
-
-    private fun createWithDevice(
-        device: YubiKeyDevice,
-        operation: Operation.CreateOperation,
-        pin: String?,
-    ) {
-        val client = createClient(device)
-
-        val createOptions = operation.options
-        val publicKey = createOptions.publicKey!!
-        val kitOptions = PublicKeyCredentialCreationOptions.fromMap(publicKey.toMap())
-        val domain = publicKey.rp?.id ?: ""
-        val provider =
-            ClientDataProvider.fromClientDataJson(
-                getClientOptions(
-                    type = "webauthn.create",
-                    origin = domain,
-                    challenge =
-                        encodeToString(
-                            kitOptions.challenge,
-                            NO_PADDING or NO_WRAP or URL_SAFE,
-                        ),
-                ),
-            )
-        val enterprise = null
-        val state = null
-
-        try {
-            val result: PublicKeyCredential =
-                client.makeCredential(
-                    provider,
-                    kitOptions,
-                    domain,
-                    pin?.toCharArray(),
-                    enterprise,
-                    state,
+                Timber.i("Done, got $result.")
+                successCallback(JSONObject(result.toMap()))
+            } catch (ctap: CtapException) {
+                Timber.e(
+                    ctap,
+                    "Protocol exception: '${ctap.ctapError.toHumanReadable()}'.",
                 )
+                failureCallback(ctap)
+            } catch (multiple: MultipleAssertionsAvailable) {
+                Timber.i("Found several assertions. User selection needed.")
+                newOptions = requestSelection(multiple, kitOptions)
+            } catch (th: Throwable) {
+                pin = null // Reset. This error might be due to an invalid PIN.
+                Timber.e(th, "Unexpected error: '${th.message}'.")
+                failureCallback(th)
+            } finally {
+                stop(client)
 
-            Timber.i("Done, created $result.")
-            operation.success(JSONObject(result.toMap()))
-        } catch (ctap: CtapException) {
-            Timber.e(
-                ctap,
-                "Protocol exception: '${ctap.ctapError.toHumanReadable()}'.",
-            )
-            operation.failure(ctap)
-        } catch (th: Throwable) {
-            this.pin = null // Reset. This error might be due to an invalid PIN.
-            Timber.e(th, "Unexpected error: '${th.message}'.")
-            operation.failure(th)
-        } finally {
-            lastOperation = null
+                activity.vm.dismissHandlingHint()
 
-            // Finally stop discovery, since our operation is done.
-            manager.stopUsbDiscovery()
-            manager.stopNfcDiscovery(activity)
-
-            client.close()
+                if (newOptions == null) {
+                    failureCallback(UserCancellationException())
+                } else {
+                    get(newOptions, successCallback, failureCallback)
+                }
+            }
         }
     }
 
@@ -286,168 +367,42 @@ class YubicoContainer(
             ),
         )
 
-    private fun getWithDevice(
-        device: YubiKeyDevice,
-        operation: Operation.GetOperation,
-        pin: String?,
-    ) {
-        val client = createClient(device)
-
-        val getOptions = operation.options
-        val publicKey = getOptions.publicKey!!
-        val kitOptions = PublicKeyCredentialRequestOptions.fromMap(publicKey.toMap())
-        val domain = publicKey.rpId ?: ""
-        val provider =
-            ClientDataProvider.fromClientDataJson(
-                getClientOptions(
-                    type = "webauthn.get",
-                    origin = domain,
-                    challenge =
-                        encodeToString(
-                            kitOptions.challenge,
-                            NO_PADDING or NO_WRAP or URL_SAFE,
-                        ),
-                ),
-            )
-        val enterprise = null
+    private fun stop(client: WebAuthnClient? = null) {
         try {
-            val result =
-                client.getAssertion(
-                    provider,
-                    kitOptions,
-                    domain,
-                    pin?.toCharArray(),
-                    enterprise,
-                )
-
-            Timber.i("Done, got $result.")
-            operation.success(JSONObject(result.toMap()))
-        } catch (ctap: CtapException) {
-            Timber.e(
-                ctap,
-                "Protocol exception: '${ctap.ctapError.toHumanReadable()}'.",
-            )
-            operation.failure(ctap)
-        } catch (multiple: MultipleAssertionsAvailable) {
-            Timber.i("Found several assertions. User selection needed.")
-            requestSelection(multiple, kitOptions, operation)
-        } catch (th: Throwable) {
-            this.pin = null // Reset. This error might be due to an invalid PIN.
-            Timber.e(th, "Unexpected error: '${th.message}'.")
-            operation.failure(th)
-        } finally {
-            lastOperation = null
-
-            // Finally stop discovery, since our operation is done.
-            manager.stopUsbDiscovery()
-            manager.stopNfcDiscovery(activity)
-
-            client.close()
+            client?.close()
+        } catch (_: Throwable) {
+            // Ignored. If we cannot close it anymore, because it's out of date, we're fine.
         }
+
+        manager.stopUsbDiscovery()
+        manager.stopNfcDiscovery(activity)
     }
 
-    private fun requestSelection(
+    private suspend fun requestSelection(
         multiple: MultipleAssertionsAvailable,
         kitOptions: PublicKeyCredentialRequestOptions,
-        operation: Operation.GetOperation,
-    ) {
-        askForCredentialSelection(
-            multiple,
-            success = { credential ->
-                kitOptions.allowCredentials.clear()
-                kitOptions.allowCredentials.add(
-                    PublicKeyCredentialDescriptor(
-                        "public-key",
-                        credential.rawId,
-                        null,
-                    ),
-                )
-
-                get(
-                    JSONObject(mapOf("publicKey" to kitOptions.toMap(SerializationType.JSON))),
-                    operation.success,
-                    operation.failure,
-                )
-            },
-            failure = {
-                operation.failure(Throwable())
-            },
-        )
-    }
-
-    private fun askForCredentialSelection(
-        available: MultipleAssertionsAvailable,
-        success: (PublicKeyCredential) -> Unit,
-        failure: () -> Unit,
-    ) {
-        Dispatchers.Main.dispatch(EmptyCoroutineContext) {
-            val items = available.users.map { it.displayName }.toTypedArray()
-            val listener =
-                DialogInterface.OnClickListener { dialog, which ->
-                    val credential = available.select(which)
-                    Timber.i("credential selected: $credential")
-                    dialog?.dismiss()
-
-                    success(credential)
+    ): JSONObject? {
+        val credential =
+            suspendCancellableCoroutine { continuation ->
+                activity.vm.requestCredential(multiple) { credential ->
+                    continuation.resume(credential) { _, _, _ -> }
                 }
-
-            AlertDialog
-                .Builder(activity)
-                .setTitle("Select one")
-                .setItems(items, listener)
-                .setNegativeButton(android.R.string.cancel) { dialog, _ ->
-                    Timber.i("No user selected.")
-                    dialog.dismiss()
-
-                    failure()
-                }.show()
-        }
-    }
-
-    private fun requestPin(callback: (String?) -> Unit) {
-        Dispatchers.Main.dispatch(EmptyCoroutineContext) {
-            val pinEdit =
-                EditText(activity).apply {
-                    hint = "PIN"
-                    maxLines = 1
-                    minLines = 1
-                    inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-                    layoutParams =
-                        FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                        )
-                }
-
-            val density = activity.resources.displayMetrics.density
-            val marginHorizontal = (20 * density).toInt()
-            val marginVertical = (8 * density).toInt()
-
-            val container = FrameLayout(activity)
-            container.addView(pinEdit)
-            container.setPadding(marginHorizontal, marginVertical, marginHorizontal, marginVertical)
-
-            val dialog =
-                AlertDialog
-                    .Builder(activity)
-                    .setTitle("Pin Required")
-                    .setView(container)
-                    .setPositiveButton(android.R.string.ok) { dialog, _ ->
-                        Timber.i("PIN entered.")
-                        dialog.dismiss()
-                        callback(pinEdit.text.toString())
-                    }.setNegativeButton(android.R.string.cancel) { dialog, _ ->
-                        Timber.i("PIN entry cancelled.")
-                        dialog.dismiss()
-                        callback(null)
-                    }.show()
-
-            pinEdit.setOnEditorActionListener { v, _, _ ->
-                dialog.dismiss()
-                callback(v.text.toString())
-                true
             }
+
+        if (credential == null) {
+            return null
         }
+
+        kitOptions.allowCredentials.clear()
+        kitOptions.allowCredentials.add(
+            PublicKeyCredentialDescriptor(
+                "public-key",
+                credential.rawId,
+                null,
+            ),
+        )
+
+        return JSONObject(mapOf("publicKey" to kitOptions.toMap(SerializationType.JSON)))
     }
 }
 

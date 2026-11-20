@@ -52,4 +52,50 @@
 
     <!-- MainViewModel -->
     <string name="error_credentials_from_different_tenants">Requested credentials cannot be from different tenants.</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_confirm">Confirm</string>
+
+    <!-- PinEntryDialog -->
+    <string name="pin_dialog_title">Enter Your Security Key PIN</string>
+    <string name="pin_dialog_hint">PIN</string>
+    <string name="dialog_hide_pin">Hide PIN</string>
+    <string name="dialog_show_pin">Show PIN</string>
+
+    <!-- SetPinDialog -->
+    <string name="set_pin_dialog_title">No PIN Set</string>
+    <string name="set_pin_explanation">Please create a PIN for your security key to protect the Passkeys stored there.</string>
+    <string name="set_pin_remember">Please remember your PIN</string>
+    <string name="set_pin_disclaimer">You need a unique PIN to unlock this security key.</string>
+    <string name="set_pin_disclaimer_1">• Separate from your wallet</string>
+    <string name="set_pin_disclaimer_2">• Known only to you</string>
+    <string name="set_pin_disclaimer_3">• Cannot be reset if forgotten</string>
+    <string name="set_pin_create_pin">Create PIN</string>
+    <string name="set_pin_dialog_title2">Create Your Security Key PIN</string>
+    <string name="set_pin_confirm_hint">Confirm PIN</string>
+    <string name="set_pin_confirmation">I understand that I must remember this PIN, as it cannot be recovered.</string>
+
+    <!-- CredentialSelectionDialog -->
+    <string name="credential_dialog_title">Select Passkey to Use</string>
+    <string name="credential_dialog_explanation">The security key can have several passkeys on it. Please choose which passkey you would like to log in with.</string>
+
+    <!-- SecurityKeyStartDialog -->
+    <string name="start_dialog_title">Insert or Tap Your Security Key</string>
+    <string name="start_dialog_message1">Insert your USB security key.</string>
+    <string name="start_dialog_or">or</string>
+    <string name="start_dialog_message2">Hold the key against your device\'s NFC reader.</string>
+
+    <!-- ErrorDialog -->
+    <string name="error_dialog_title">There Has Been an Error</string>
+    <string name="error_generic_nfc_explanation">Hold the security key against your device\'s NFC reader until it is recognized.</string>
+    <string name="error_pin_invalid">The provided PIN is invalid.</string>
+    <string name="error_pin_not_set">A PIN needs to be set.</string>
+    <string name="error_puat_required">Please provide PIN.</string>
+    <string name="error_no_credentials">There is no passkey for this site on this security key. Please add one or find another method for accessing this site.</string>
+
+    <!-- HandlingHintDialog -->
+    <string name="handling_dialog_title_nfc">Tap Your Security Key</string>
+    <string name="handling_dialog_message_nfc">Hold the security key against your device\'s NFC reader until it is recognized.</string>
+    <string name="handling_dialog_title_usb">Touch Your Security Key</string>
+    <string name="handling_dialog_message_usb">Touch the key where it is blinking to confirm you are present.</string>
 </resources>
