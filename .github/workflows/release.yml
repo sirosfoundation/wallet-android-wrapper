@@ -22,7 +22,7 @@ on:
         type: string
 
 jobs:
-  release-github:
+  release:
     runs-on: ubuntu-latest
     environment:
       name: "Google Play API access"

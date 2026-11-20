@@ -12,7 +12,7 @@ plugins {
 }
 
 // TODO: List of supported installations for debugging. Reduce to one for final production!
-extra["baseDomains"] = listOf("id.siros.org") //, "demo.wwwallet.org", "qa.wwwallet.org")
+extra["baseDomains"] = listOf("id.siros.org", "id.siros.org/id/ft-test-1/") //, "native-dc-api.smncd.app.siros.org") //, "demo.wwwallet.org", "qa.wwwallet.org")
 @Suppress("UNCHECKED_CAST")
 val baseDomains = extra["baseDomains"] as List<String>
 
