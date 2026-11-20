@@ -1,3 +1,9 @@
+# 0.1.20
+
+- Updated dependencies.
+- Added support for multiple credentials during DC-API flow.
+- Set up fully automatic deployment to Google Play through Github action.
+
 # 0.1.19
 
 - Updated FaceTec SDK.
