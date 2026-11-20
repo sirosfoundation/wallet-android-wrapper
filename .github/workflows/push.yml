@@ -1,4 +1,4 @@
-name: Android Build on Push
+name: Build and Test on Push
 
 permissions:
   contents: write
