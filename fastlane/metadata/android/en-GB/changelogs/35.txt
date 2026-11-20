@@ -1,0 +1,1 @@
+- Improved FaceTec support. Don't let app die, when FaceTec lib doesn't work.

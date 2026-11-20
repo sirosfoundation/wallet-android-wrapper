@@ -1,0 +1,4 @@
+- Fix handling of oversized incoming BLE notifications.
+- Encrypt user settings for in-depth defence.
+- Improved DC-API support with multiple tenants used.
+- Fixed crashes during collection of debug logs.

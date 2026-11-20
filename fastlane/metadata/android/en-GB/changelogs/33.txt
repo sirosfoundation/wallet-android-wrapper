@@ -1,0 +1,1 @@
+- New version to add FaceTec support to Github-Action releases.
