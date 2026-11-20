@@ -40,6 +40,7 @@ jobs:
       ANDROID_CMDLINE_TOOLS: ${{ vars.ANDROID_CMDLINE_TOOLS }}
       GITHUB_ACTOR: sirospackages
       GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      GCP_JSON_KEY: ${{ secrets.GCP_JSON_KEY }}
 
     steps:
       - name: Checkout code
@@ -73,7 +74,7 @@ jobs:
       - name: Write service account key
         run: |
           mkdir -p ~/.android
-          echo "${{ secrets.GCP_JSON_KEY }}" > ~/.android/sirosid-fastlane.json
+          echo "$GCP_JSON_KEY" > ~/.android/sirosid-fastlane.json
           chmod 600 ~/.android/sirosid-fastlane.json
 
       - name: Build Android App Bundle (AAB)
