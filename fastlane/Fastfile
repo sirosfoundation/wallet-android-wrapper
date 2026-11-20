@@ -50,7 +50,7 @@ platform :android do
             # The path to the AAB is passed from the GitHub Action
             aab: ENV["PLAY_STORE_AAB_PATH"],
             skip_upload_apk: true,
-            track: "alpha",
+            track: "internal",
 
             skip_upload_screenshots: true,
             skip_upload_images: true,
