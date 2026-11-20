@@ -18,7 +18,7 @@ on:
       tag:
         description: Which tag to build from?
         required: true
-        default: v0.0.14
+        default: v0.1.19
         type: string
 
 jobs:
