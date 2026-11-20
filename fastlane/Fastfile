@@ -1,5 +1,3 @@
-opt_out_usage
-
 # This file contains the fastlane.tools configuration
 # You can find the documentation at https://docs.fastlane.tools
 #
@@ -12,8 +10,7 @@ opt_out_usage
 #     https://docs.fastlane.tools/plugins/available-plugins
 #
 
-# Uncomment the line if you want fastlane to automatically update itself
-# update_fastlane
+opt_out_usage
 
 default_platform(:android)
 
@@ -53,7 +50,7 @@ platform :android do
             # The path to the AAB is passed from the GitHub Action
             aab: ENV["PLAY_STORE_AAB_PATH"],
             skip_upload_apk: true,
-            track: "beta",
+            track: "alpha",
 
             skip_upload_screenshots: true,
             skip_upload_images: true,
