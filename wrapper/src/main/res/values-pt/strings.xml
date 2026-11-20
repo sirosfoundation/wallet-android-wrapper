@@ -25,6 +25,7 @@
     <string name="photo_id_match_refused_document_expired">Este documento expirou, pelo que não foi emitida nenhuma credencial. Utilize um documento de identificação válido.</string>
     <string name="photo_id_match_refused_document_unreadable">Não foi possível ler os dados do documento, pelo que não foi emitida nenhuma credencial. Tente novamente ou utilize outro documento de identificação.</string>
     <string name="photo_id_match_refused_chip_photo_mismatch">O seu rosto não correspondeu à fotografia guardada no chip do seu documento, pelo que não foi emitida nenhuma credencial. Tente novamente ou utilize outro documento de identificação.</string>
+    <string name="photo_id_match_refused_chip_data_unverified">Não foi possível verificar o chip do seu documento, pelo que não foi emitido nenhum certificado. Só podem ser utilizados dados assinados pelo chip do documento. Utilize um passaporte ou um cartão de identificação nacional com um chip legível.</string>
     <string name="photo_id_match_refused_other">Não foi possível verificar a sua identidade, pelo que não foi emitida nenhuma credencial. Tente novamente.</string>
     <string name="photo_id_match_ok">OK</string>
 </resources>
