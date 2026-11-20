@@ -1,0 +1,3 @@
+- Updated dependencies.
+- Added support for multiple credentials during DC-API flow.
+- Set up fully automatic deployment to Google Play through Github action.

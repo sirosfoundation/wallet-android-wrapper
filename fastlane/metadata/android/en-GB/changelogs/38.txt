@@ -1,0 +1,1 @@
+- Fixed Siros ID credential issuance failing after a completed FaceTec scan.

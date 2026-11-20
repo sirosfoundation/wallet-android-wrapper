@@ -10,8 +10,7 @@
 #     https://docs.fastlane.tools/plugins/available-plugins
 #
 
-# Uncomment the line if you want fastlane to automatically update itself
-# update_fastlane
+opt_out_usage
 
 default_platform(:android)
 
@@ -42,6 +41,41 @@ platform :android do
 
             skip_upload_images: false,
             skip_upload_screenshots: false,
+        )
+    end
+
+    desc "Full Deploy: Binary + Metadata"
+    lane :deploy_to_play_store do
+        supply(
+            # The path to the AAB is passed from the GitHub Action
+            aab: ENV["PLAY_STORE_AAB_PATH"],
+            skip_upload_apk: true,
+            track: "beta",
+
+            skip_upload_screenshots: true,
+            skip_upload_images: true,
+
+            skip_upload_changelogs: false,
+
+            validate_only: false
+        )
+    end
+
+    desc "Deploy dev-testing branch to internal testing"
+    lane :deploy_dev_testing do
+        supply(
+            # The path to the AAB is passed from the GitHub Action
+            aab: ENV["PLAY_STORE_AAB_PATH"],
+            skip_upload_apk: true,
+            track: "internal",
+
+            skip_upload_screenshots: true,
+            skip_upload_images: true,
+
+            skip_upload_metadata: true,
+            skip_upload_changelogs: true,
+
+            validate_only: false
         )
     end
 end

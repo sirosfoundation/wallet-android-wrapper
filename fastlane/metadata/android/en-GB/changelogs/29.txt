@@ -1,0 +1,2 @@
+- Fixed reception of new credential.
+- Updated dependencies.

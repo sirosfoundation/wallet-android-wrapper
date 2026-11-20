@@ -1,0 +1,5 @@
+- Fixed complete JS breakdown because of illegal `innerHTML` calls in conjunction with
+  `require-trusted-types-for` Content-Security-Policy.
+- Updated dependencies and SDK.
+- Fixed `LocalContainer` not adhering to specifications.
+- Appeased ktlintcheck.

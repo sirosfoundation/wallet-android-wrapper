@@ -1,0 +1,2 @@
+- Updated FaceTec SDK.
+- Improved error handling and error messages during passport check.

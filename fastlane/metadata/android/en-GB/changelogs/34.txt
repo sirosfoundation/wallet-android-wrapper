@@ -1,0 +1,1 @@
+- Added rage-shake debug menu to extract logs also in released apps.

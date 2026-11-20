@@ -1,4 +1,4 @@
-name: Android Build on Push
+name: Build and Test on Push
 
 permissions:
   contents: write
@@ -38,9 +38,6 @@ jobs:
       # as Facetec provides ARM ABIs only, but Ubuntu runners can only run x86 emulators!
 
     steps:
-      - name: Update ubuntu
-        run: sudo apt-get update
-
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

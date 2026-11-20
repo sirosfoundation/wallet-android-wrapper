@@ -1,20 +1,22 @@
 package build
 
 import groovy.json.JsonSlurper
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import java.net.URI
 
 fun Project.getLogs(): String {
-    val lastTag = runCommand("git tag --sort=taggerdate | tail -2 | head -1")
-    val start = if (lastTag.isBlank()) {
-        val first = runCommand("git rev-list HEAD | tail -1")
-        first
-    } else {
-        lastTag
-    }
-    val end = "HEAD"
+    val versionCode = property("wallet.versionCode").toString()
+    val changelogFile = rootProject.file("fastlane/metadata/android/en-GB/changelogs/$versionCode.txt")
 
-    return runCommand("git log $start..$end --format=\"%s\"")
+    if (!changelogFile.exists()) {
+        throw GradleException(
+            "Changelog file not found: ${changelogFile.path}. " +
+                "Create it before building or releasing version $versionCode."
+        )
+    }
+
+    return changelogFile.readText().trim()
 }
 
 fun Project.getReleaseQuoteAndAuthor(): Pair<String, String> {

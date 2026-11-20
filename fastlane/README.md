@@ -31,6 +31,14 @@ Upload Play Store Metadata
 
 Upload Play Store Screenshots
 
+### android deploy_to_play_store
+
+```sh
+[bundle exec] fastlane android deploy_to_play_store
+```
+
+Full Deploy: Binary + Metadata
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.

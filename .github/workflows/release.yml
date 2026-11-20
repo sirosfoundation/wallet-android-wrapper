@@ -1,4 +1,4 @@
-name: Android Build and Publish
+name: Build, Test and Publish to Github and Play Store
 
 permissions:
   contents: write
@@ -13,17 +13,20 @@ on:
       reason:
         description: Why did you trigger this workflow run manually?
         required: true
-        default: Needing a new build.
+        default: Need a new build.
         type: string
       tag:
         description: Which tag to build from?
         required: true
-        default: v0.0.14
+        default: v0.1.19
         type: string
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment:
+      name: "Google Play API access"
+      deployment: false
     env:
       WWWALLET_ANDROID_APPLICATION_ID: ${{ vars.WWWALLET_ANDROID_APPLICATION_ID }}
       WWWALLET_ANDROID_KEY_ALIAS: ${{ secrets.WWWALLET_ANDROID_KEY_ALIAS }}
@@ -37,11 +40,9 @@ jobs:
       ANDROID_CMDLINE_TOOLS: ${{ vars.ANDROID_CMDLINE_TOOLS }}
       GITHUB_ACTOR: sirospackages
       GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      GCP_JSON_KEY: ${{ secrets.GCP_JSON_KEY }}
 
     steps:
-      - name: Update ubuntu
-        run: sudo apt-get update
-
       - name: Checkout code
         uses: actions/checkout@v6
 
@@ -61,6 +62,14 @@ jobs:
 
       - name: Add build-tools to PATH
         run: echo "$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}" >> $GITHUB_PATH
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install Fastlane
+        run: gem install fastlane
 
       - name: Code Style
         run: ./gradlew ktlintCheck
@@ -97,3 +106,23 @@ jobs:
             --notes-file .release-note.md \
             ./release-assets/wwwallet-${TAG}.apk \
             ./release-assets/wwwallet-debug-${TAG}.apk
+
+      - name: Write service account key
+        run: |
+          mkdir -p ~/.android
+          echo "$GCP_JSON_KEY" > ~/.android/sirosid-fastlane.json
+          chmod 600 ~/.android/sirosid-fastlane.json
+
+      - name: Build Android App Bundle (AAB)
+        env:
+          WWWALLET_ANDROID_KEY_ALIAS: ${{ secrets.PLAYSTORE_KEY_ALIAS }}
+          WWWALLET_ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.PLAYSTORE_KEY_ALIAS }}
+          WWWALLET_ANDROID_KEY_PASSWORD: ${{ secrets.PLAYSTORE_KEY_PASSWORD }}
+          WWWALLET_ANDROID_STORE_PASSWORD: ${{ secrets.PLAYSTORE_KEYSTORE_PASSWORD }}
+          WWWALLET_ANDROID_STORE_B64: ${{ secrets.PLAYSTORE_SIGNING_KEYSTORE_B64 }}
+        run: ./gradlew bundleRelease
+
+      - name: Deploy to Google Play
+        env:
+          PLAY_STORE_AAB_PATH: ./wrapper/build/outputs/bundle/release/wrapper-release.aab
+        run: fastlane android deploy_to_play_store
