@@ -39,9 +39,6 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
     steps:
-      - name: Update ubuntu
-        run: sudo apt update && sudo apt -y upgrade
-
       - name: Checkout code
         uses: actions/checkout@v6
 
