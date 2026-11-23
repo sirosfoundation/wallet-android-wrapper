@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.yubico.yubikit.fido.ctap.ClientPin
 import org.siros.wwwallet.R
 
 @Composable
@@ -234,7 +235,7 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
                             { onDismiss(pin1) },
                             ButtonType.PRIMARY,
                             stringResource(R.string.dialog_confirm),
-                            pin1.isNotEmpty() && pin1 == pin2,
+                            checkPin(pin1) && pin1 == pin2,
                         )
 
                         Button(
@@ -248,6 +249,32 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
         }
     }
 }
+
+/**
+ * Checks PIN length against YubiKit's configured MIN_PIN_LEN and MAX_PIN_LEN,
+ * which it would throw upon.
+ *
+ * Unfortunately, these values are not public, so we try to get them via reflection,
+ * with a fallback to the values as they were when this check was created.
+ */
+private fun checkPin(pin: String): Boolean {
+    val pinArray = pin.toCharArray()
+
+    return pinArray.size >= getField("MIN_PIN_LEN", 4) && pinArray.size <= getField("MAX_PIN_LEN", 63)
+}
+
+private fun getField(
+    name: String,
+    default: Int,
+): Int =
+    try {
+        ClientPin::class.java.getDeclaredField(name).let {
+            it.isAccessible = true
+            it.getInt(null)
+        }
+    } catch (_: Throwable) {
+        default
+    }
 
 @Preview
 @Composable

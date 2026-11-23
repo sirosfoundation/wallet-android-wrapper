@@ -18,6 +18,10 @@
 
 -dontwarn com.facetec.sdk.**
 -keep,includecode,includedescriptorclasses class com.facetec.sdk.** { *; }
+-keepclassmembers class com.yubico.yubikit.fido.ctap.ClientPin {
+    static int MIN_PIN_LEN;
+    static int MAX_PIN_LEN;
+}
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
