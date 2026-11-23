@@ -211,6 +211,9 @@ class YubicoContainer(
 
                 create(options, successCallback, failureCallback)
                 return@launch
+            } else {
+                // Stop the user from playing bate-and-switch with us.
+                newPin = null
             }
 
             if (pin.isNullOrEmpty()) {
