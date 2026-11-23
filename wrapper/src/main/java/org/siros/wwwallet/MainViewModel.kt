@@ -355,8 +355,9 @@ class MainViewModel : ViewModel() {
             // have a chance to rerender the scene without the dialog.
             delay(0.1.seconds)
 
-            pinCallback?.invoke(pin)
+            val callback = pinCallback
             pinCallback = null
+            callback?.invoke(pin)
         }
     }
 
