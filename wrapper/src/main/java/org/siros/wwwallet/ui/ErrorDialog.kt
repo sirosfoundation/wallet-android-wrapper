@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,7 +38,7 @@ fun ErrorDialog(
             color = MaterialTheme.colorScheme.surface,
         ) {
             Column(
-                Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 24.dp),
                 Arrangement.spacedBy(32.dp),
                 Alignment.CenterHorizontally,
             ) {
