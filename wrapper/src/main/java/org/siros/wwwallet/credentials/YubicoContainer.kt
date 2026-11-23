@@ -83,10 +83,13 @@ class YubicoContainer(
             deferred.complete(null)
         }
 
-        var usbAlreadyWon = false
+        var usbWon = false
+        var nfcWon = false
 
         manager.startUsbDiscovery(UsbConfiguration().handlePermissions(true)) { device ->
-            usbAlreadyWon = true // Called synchronously, when USB key already attached and activated.
+            if (nfcWon) return@startUsbDiscovery
+
+            usbWon = true
 
             if (!activity.isDestroyed) manager.stopNfcDiscovery(activity)
 
@@ -95,12 +98,18 @@ class YubicoContainer(
             deferred.complete(device)
         }
 
-        if (!usbAlreadyWon) {
+        // Above callback could have been called synchronously, when a USB key was already
+        // attached and activated.
+        if (!usbWon) {
             try {
                 manager.startNfcDiscovery(
                     NfcConfiguration().timeout(10_000), // .disableNfcDiscoverySound(true),
                     activity,
                 ) { device ->
+                    if (usbWon) return@startNfcDiscovery
+
+                    nfcWon = true
+
                     manager.stopUsbDiscovery()
 
                     activity.vm.dismissStartDialog(false)
