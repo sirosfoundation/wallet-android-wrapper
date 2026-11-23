@@ -342,6 +342,9 @@ class YubicoContainer(
                 failureCallback(ctap)
             } catch (multiple: MultipleAssertionsAvailable) {
                 Timber.i("Found several assertions. User selection needed.")
+
+                activity.vm.dismissHandlingHint()
+
                 newOptions = requestSelection(multiple, kitOptions)
 
                 if (newOptions == null) {
