@@ -78,7 +78,7 @@ class YubicoContainer(
 
         activity.vm.showStartDialog {
             manager.stopUsbDiscovery()
-            manager.stopNfcDiscovery(activity)
+            if (!activity.isDestroyed) manager.stopNfcDiscovery(activity)
 
             deferred.complete(null)
         }
@@ -88,7 +88,7 @@ class YubicoContainer(
         manager.startUsbDiscovery(UsbConfiguration().handlePermissions(true)) { device ->
             usbAlreadyWon = true // Called synchronously, when USB key already attached and activated.
 
-            manager.stopNfcDiscovery(activity)
+            if (!activity.isDestroyed) manager.stopNfcDiscovery(activity)
 
             activity.vm.dismissStartDialog(false)
 
@@ -393,7 +393,7 @@ class YubicoContainer(
         }
 
         manager.stopUsbDiscovery()
-        manager.stopNfcDiscovery(activity)
+        if (!activity.isDestroyed) manager.stopNfcDiscovery(activity)
     }
 
     private suspend fun requestSelection(
