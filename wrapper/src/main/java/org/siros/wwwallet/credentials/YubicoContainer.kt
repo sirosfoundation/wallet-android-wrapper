@@ -29,6 +29,7 @@ import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialDescriptor
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredentialRequestOptions
 import com.yubico.yubikit.fido.webauthn.SerializationType
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -117,7 +118,7 @@ class YubicoContainer(
     ) {
         Timber.i("yubico create implementation called.")
 
-        activity.lifecycleScope.launch {
+        activity.lifecycleScope.launch(Dispatchers.IO) {
             val device = discoverDevice()
 
             if (device == null) {
@@ -206,10 +207,6 @@ class YubicoContainer(
 
             activity.vm.showHandlingHint(if (device is UsbYubiKeyDevice) HandlingHintType.USB else HandlingHintType.NFC)
 
-            // When in USB mode, this delay is needed, otherwise the main thread will not
-            // have a chance to rerender the scene with the handling hint dialog.
-            delay(0.1.seconds)
-
             val publicKey = options.publicKey!!
             val kitOptions = PublicKeyCredentialCreationOptions.fromMap(publicKey.toMap())
             val domain = publicKey.rp?.id ?: ""
@@ -266,7 +263,7 @@ class YubicoContainer(
     ) {
         Timber.i("yubico get implementation called.")
 
-        activity.lifecycleScope.launch {
+        activity.lifecycleScope.launch(Dispatchers.IO) {
             val device = discoverDevice()
 
             if (device == null) {
@@ -295,10 +292,6 @@ class YubicoContainer(
             }
 
             activity.vm.showHandlingHint(if (device is UsbYubiKeyDevice) HandlingHintType.USB else HandlingHintType.NFC)
-
-            // When in USB mode, this delay is needed, otherwise the main thread will not
-            // have a chance to rerender the scene with the handling hint dialog.
-            delay(0.1.seconds)
 
             val publicKey = options.publicKey!!
             val kitOptions = PublicKeyCredentialRequestOptions.fromMap(publicKey.toMap())
