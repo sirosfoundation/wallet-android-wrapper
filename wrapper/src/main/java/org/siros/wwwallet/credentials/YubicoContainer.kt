@@ -183,7 +183,9 @@ class YubicoContainer(
                         // NOTE: We *could* set this@YubicoContainer.pin = newPin, however,
                         // we want the user to remember their freshly set PIN, so we deliberately
                         // *don't* do that, so the user has a chance to repeat it again and
-                        // remember it.
+                        // remember it. And we make damn sure there's no old PIN set from an earlier
+                        // attempt with another key.
+                        this@YubicoContainer.pin = null
 
                         stop(client)
 
