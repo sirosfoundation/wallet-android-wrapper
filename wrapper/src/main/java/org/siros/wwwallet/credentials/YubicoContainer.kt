@@ -336,6 +336,10 @@ class YubicoContainer(
             } catch (multiple: MultipleAssertionsAvailable) {
                 Timber.i("Found several assertions. User selection needed.")
                 newOptions = requestSelection(multiple, kitOptions)
+
+                if (newOptions == null) {
+                    failureCallback(UserCancellationException())
+                }
             } catch (th: Throwable) {
                 pin = null // Reset. This error might be due to an invalid PIN.
                 Timber.e(th, "Unexpected error: '${th.message}'.")
@@ -345,10 +349,8 @@ class YubicoContainer(
 
                 activity.vm.dismissHandlingHint()
 
-                if (newOptions == null) {
-                    failureCallback(UserCancellationException())
-                } else {
-                    get(newOptions, successCallback, failureCallback)
+                newOptions?.let {
+                    get(it, successCallback, failureCallback)
                 }
             }
         }
