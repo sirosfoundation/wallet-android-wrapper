@@ -149,6 +149,13 @@ class YubicoContainer(
                             client.setPin(newPin.toCharArray())
                         } catch (t: Throwable) {
                             Timber.e(t, "Error while setting PIN.")
+
+                            this@YubicoContainer.newPin = null
+
+                            stop(client)
+
+                            failureCallback(t)
+                            return@launch
                         }
 
                         // Always unset. Another attempt to set a PIN on an unconfigured security
