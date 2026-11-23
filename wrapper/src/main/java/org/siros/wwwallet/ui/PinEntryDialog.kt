@@ -35,7 +35,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import org.siros.wwwallet.R
-import org.siros.wwwallet.ui.theme.WalletTheme
 
 @Composable
 fun PinEntryDialog(onDismiss: (String?) -> Unit) {

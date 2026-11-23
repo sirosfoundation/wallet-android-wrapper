@@ -36,7 +36,7 @@ import org.json.JSONObject
 import org.siros.wwwallet.R
 import org.siros.wwwallet.credentials.LocalContainer
 import org.siros.wwwallet.json.getNested
-import org.siros.wwwallet.ui.theme.WalletTheme
+import org.siros.wwwallet.ui.WalletTheme
 import timber.log.Timber
 import kotlin.uuid.ExperimentalUuidApi
 

@@ -63,7 +63,7 @@ import org.siros.wwwallet.ui.HandlingHintDialog
 import org.siros.wwwallet.ui.PinEntryDialog
 import org.siros.wwwallet.ui.SecurityKeyStartDialog
 import org.siros.wwwallet.ui.SetPinDialog
-import org.siros.wwwallet.ui.theme.WalletTheme
+import org.siros.wwwallet.ui.WalletTheme
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient

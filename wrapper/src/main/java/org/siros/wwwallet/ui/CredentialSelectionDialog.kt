@@ -31,7 +31,6 @@ import androidx.compose.ui.window.Dialog
 import com.yubico.yubikit.fido.client.MultipleAssertionsAvailable
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredential
 import org.siros.wwwallet.R
-import org.siros.wwwallet.ui.theme.WalletTheme
 
 @Composable
 fun CredentialSelectionDialog(
