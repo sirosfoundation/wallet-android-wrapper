@@ -234,25 +234,25 @@ class YubicoContainer(
 
             activity.vm.showHandlingHint(if (device is UsbYubiKeyDevice) HandlingHintType.USB else HandlingHintType.NFC)
 
-            val publicKey = options.publicKey!!
-            val kitOptions = PublicKeyCredentialCreationOptions.fromMap(publicKey.toMap())
-            val domain = publicKey.rp?.id ?: ""
-            val provider =
-                ClientDataProvider.fromClientDataJson(
-                    getClientOptions(
-                        type = "webauthn.create",
-                        origin = domain,
-                        challenge =
-                            encodeToString(
-                                kitOptions.challenge,
-                                NO_PADDING or NO_WRAP or URL_SAFE,
-                            ),
-                    ),
-                )
-            val enterprise = null
-            val state = null
-
             try {
+                val publicKey = options.publicKey!!
+                val kitOptions = PublicKeyCredentialCreationOptions.fromMap(publicKey.toMap())
+                val domain = publicKey.rp?.id ?: ""
+                val provider =
+                    ClientDataProvider.fromClientDataJson(
+                        getClientOptions(
+                            type = "webauthn.create",
+                            origin = domain,
+                            challenge =
+                                encodeToString(
+                                    kitOptions.challenge,
+                                    NO_PADDING or NO_WRAP or URL_SAFE,
+                                ),
+                        ),
+                    )
+                val enterprise = null
+                val state = null
+
                 val result: PublicKeyCredential =
                     client.makeCredential(
                         provider,
@@ -320,27 +320,28 @@ class YubicoContainer(
 
             activity.vm.showHandlingHint(if (device is UsbYubiKeyDevice) HandlingHintType.USB else HandlingHintType.NFC)
 
-            val publicKey = options.publicKey!!
-            val kitOptions = PublicKeyCredentialRequestOptions.fromMap(publicKey.toMap())
-            val domain = publicKey.rpId ?: ""
-            val provider =
-                ClientDataProvider.fromClientDataJson(
-                    getClientOptions(
-                        type = "webauthn.get",
-                        origin = domain,
-                        challenge =
-                            encodeToString(
-                                kitOptions.challenge,
-                                NO_PADDING or NO_WRAP or URL_SAFE,
-                            ),
-                    ),
-                )
-            val enterprise = null
+            var kitOptions: PublicKeyCredentialRequestOptions? = null
             var client: WebAuthnClient? = null
-
             var newOptions: JSONObject? = null
 
             try {
+                val publicKey = options.publicKey!!
+                kitOptions = PublicKeyCredentialRequestOptions.fromMap(publicKey.toMap())
+                val domain = publicKey.rpId ?: ""
+                val provider =
+                    ClientDataProvider.fromClientDataJson(
+                        getClientOptions(
+                            type = "webauthn.get",
+                            origin = domain,
+                            challenge =
+                                encodeToString(
+                                    kitOptions.challenge,
+                                    NO_PADDING or NO_WRAP or URL_SAFE,
+                                ),
+                        ),
+                    )
+                val enterprise = null
+
                 client = createClient(device)
 
                 val result =
@@ -365,7 +366,9 @@ class YubicoContainer(
 
                 activity.vm.dismissHandlingHint()
 
-                newOptions = requestSelection(multiple, kitOptions)
+                newOptions = kitOptions?.let {
+                    requestSelection(multiple, it)
+                }
 
                 if (newOptions == null) {
                     failureCallback(UserCancellationException())
