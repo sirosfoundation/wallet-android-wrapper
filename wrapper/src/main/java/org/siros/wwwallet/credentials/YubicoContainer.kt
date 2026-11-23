@@ -140,7 +140,7 @@ class YubicoContainer(
                 // User might have chickened out of setting a PIN on a new security key.
                 // Remove stored new PIN again, so no surprises happen on a second attempt and UI
                 // is shown again.
-                this@YubicoContainer.newPin = null
+                newPin = null
 
                 failureCallback(UserCancellationException())
                 return@launch
@@ -151,6 +151,8 @@ class YubicoContainer(
             try {
                 client = createClient(device)
             } catch (t: Throwable) {
+                newPin = null
+
                 stop()
                 failureCallback(t)
                 return@launch
