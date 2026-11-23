@@ -121,6 +121,11 @@ class YubicoContainer(
             val device = discoverDevice()
 
             if (device == null) {
+                // User might have chickened out of setting a PIN on a new security key.
+                // Remove stored new PIN again, so no surprises happen on a second attempt and UI
+                // is shown again.
+                this@YubicoContainer.newPin = null
+
                 failureCallback(UserCancellationException())
                 return@launch
             }
@@ -143,18 +148,20 @@ class YubicoContainer(
                             client.setPin(newPin.toCharArray())
                         } catch (t: Throwable) {
                             Timber.e(t, "Error while setting PIN.")
-
-                            // Unset so the user sees the dialog again after a failed PIN set attempt.
-                            // It would be super confusing, when a new PIN would be set in another
-                            // session just like that. It could be the wrong security key.
-                            this@YubicoContainer.newPin = null
                         }
+
+                        // Always unset. Another attempt to set a PIN on an unconfigured security
+                        // key (be it the same after a failed attempt or a second one after a
+                        // successful attempt) should always show UI again, and not
+                        // automatically set an earlier defined PIN, which would be highly
+                        // confusing to the user.
+                        this@YubicoContainer.newPin = null
+
+                        stop(client)
+
+                        create(options, successCallback, failureCallback)
+                        return@launch
                     }
-
-                    stop(client)
-
-                    create(options, successCallback, failureCallback)
-                    return@launch
                 }
 
                 stop(client)
