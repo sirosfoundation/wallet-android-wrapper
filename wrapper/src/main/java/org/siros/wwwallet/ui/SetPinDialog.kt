@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.yubico.yubikit.fido.ctap.ClientPin
 import org.siros.wwwallet.R
+import timber.log.Timber
 
 @Composable
 fun SetPinDialog(onDismiss: (String?) -> Unit) {
@@ -256,11 +257,14 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
  *
  * Unfortunately, these values are not public, so we try to get them via reflection,
  * with a fallback to the values as they were when this check was created.
+ *
+ * NOTICE: The MIN_PIN_LEN refers to number of *characters*, while the MAX_PIN_LEN refers to the
+ * number of *bytes of a UTF-8 encoded string*!
  */
 private fun checkPin(pin: String): Boolean {
-    val pinArray = pin.toCharArray()
+    if (pin.toCharArray().size < getField("MIN_PIN_LEN", 4)) return false
 
-    return pinArray.size >= getField("MIN_PIN_LEN", 4) && pinArray.size <= getField("MAX_PIN_LEN", 63)
+    return pin.toByteArray(Charsets.UTF_8).size <= getField("MAX_PIN_LEN", 63)
 }
 
 private fun getField(
@@ -272,7 +276,9 @@ private fun getField(
             it.isAccessible = true
             it.getInt(null)
         }
-    } catch (_: Throwable) {
+    } catch (t: Throwable) {
+        Timber.e(t)
+
         default
     }
 
