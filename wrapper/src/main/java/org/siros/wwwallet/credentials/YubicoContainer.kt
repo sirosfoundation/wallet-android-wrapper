@@ -83,7 +83,11 @@ class YubicoContainer(
             deferred.complete(null)
         }
 
+        var usbAlreadyWon = false
+
         manager.startUsbDiscovery(UsbConfiguration().handlePermissions(true)) { device ->
+            usbAlreadyWon = true // Called synchronously, when USB key already attached and activated.
+
             manager.stopNfcDiscovery(activity)
 
             activity.vm.dismissStartDialog(false)
@@ -91,19 +95,21 @@ class YubicoContainer(
             deferred.complete(device)
         }
 
-        try {
-            manager.startNfcDiscovery(
-                NfcConfiguration().timeout(10_000), // .disableNfcDiscoverySound(true),
-                activity,
-            ) { device ->
-                manager.stopUsbDiscovery()
+        if (!usbAlreadyWon) {
+            try {
+                manager.startNfcDiscovery(
+                    NfcConfiguration().timeout(10_000), // .disableNfcDiscoverySound(true),
+                    activity,
+                ) { device ->
+                    manager.stopUsbDiscovery()
 
-                activity.vm.dismissStartDialog(false)
+                    activity.vm.dismissStartDialog(false)
 
-                deferred.complete(device)
+                    deferred.complete(device)
+                }
+            } catch (e: NfcNotAvailable) {
+                Timber.i(e, "No NFC, ignoring.")
             }
-        } catch (e: NfcNotAvailable) {
-            Timber.i(e, "No NFC, ignoring.")
         }
 
         return deferred.await()
