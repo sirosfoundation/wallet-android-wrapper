@@ -1,7 +1,6 @@
 package org.siros.wwwallet.ui
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +18,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +31,7 @@ import androidx.compose.ui.window.Dialog
 import com.yubico.yubikit.fido.client.MultipleAssertionsAvailable
 import com.yubico.yubikit.fido.webauthn.PublicKeyCredential
 import org.siros.wwwallet.R
+import org.siros.wwwallet.ui.theme.WalletTheme
 
 @Composable
 fun CredentialSelectionDialog(
@@ -59,7 +57,7 @@ fun CredentialSelectionDialogContent(
             .fillMaxWidth()
             .wrapContentHeight(),
         RoundedCornerShape(16.dp),
-        Color.White,
+        color = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
@@ -117,9 +115,7 @@ fun CredentialSelectionDialogContent(
 @Preview
 @Composable
 private fun PreviewCredentialSelectionDialog() {
-    MaterialTheme(
-        if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
-    ) {
+    WalletTheme {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             CredentialSelectionDialogContent(
                 arrayOf("Foo", "Bar", "Baz", "Bam", "Bla"),

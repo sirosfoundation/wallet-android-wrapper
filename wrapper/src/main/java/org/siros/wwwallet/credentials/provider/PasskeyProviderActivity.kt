@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,8 +17,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -39,6 +36,7 @@ import org.json.JSONObject
 import org.siros.wwwallet.R
 import org.siros.wwwallet.credentials.LocalContainer
 import org.siros.wwwallet.json.getNested
+import org.siros.wwwallet.ui.theme.WalletTheme
 import timber.log.Timber
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -54,9 +52,7 @@ class PasskeyProviderActivity : ComponentActivity() {
             }
 
         setContent {
-            MaterialTheme(
-                if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
-            ) {
+            WalletTheme {
                 enableEdgeToEdge()
 
                 Scaffold { paddingValues ->

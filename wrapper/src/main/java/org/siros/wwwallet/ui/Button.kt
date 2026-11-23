@@ -7,44 +7,36 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
-import org.siros.wwwallet.R
 
-enum class ButtonType(
-    val containerColorRes: Int,
-    val contentColorRes: Int,
-    val borderColorRes: Int?,
-) {
-    PRIMARY(
-        R.color.button_primary_background,
-        R.color.button_primary_text,
-        null,
-    ),
-    OUTLINED(
-        R.color.button_outlined_background,
-        R.color.button_outlined_text,
-        R.color.button_outlined_border,
-    ),
+enum class ButtonType {
+    PRIMARY,
+    OUTLINED,
 }
 
 @Composable
 fun ButtonType.buttonColors(): ButtonColors =
-    ButtonDefaults.buttonColors(
-        colorResource(containerColorRes),
-        colorResource(contentColorRes),
-        colorResource(containerColorRes),
-        colorResource(contentColorRes),
-    )
+    when (this) {
+        ButtonType.PRIMARY ->
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            )
+        ButtonType.OUTLINED ->
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            )
+    }
 
 @Composable
 fun ButtonType.borderStroke(): BorderStroke? {
-    if (borderColorRes == null) return null
-
-    return BorderStroke(1.dp, colorResource(borderColorRes))
+    if (this == ButtonType.PRIMARY) return null
+    return BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
 }
 
 @Composable

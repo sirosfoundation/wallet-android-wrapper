@@ -21,16 +21,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -67,6 +63,7 @@ import org.siros.wwwallet.ui.HandlingHintDialog
 import org.siros.wwwallet.ui.PinEntryDialog
 import org.siros.wwwallet.ui.SecurityKeyStartDialog
 import org.siros.wwwallet.ui.SetPinDialog
+import org.siros.wwwallet.ui.theme.WalletTheme
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -168,9 +165,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            MaterialTheme(
-                if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
-            ) {
+            WalletTheme {
                 enableEdgeToEdge()
 
                 val url by vm.url.collectAsState()

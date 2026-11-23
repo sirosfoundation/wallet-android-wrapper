@@ -1,6 +1,5 @@
 package org.siros.wwwallet.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,13 +12,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -28,6 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import org.siros.wwwallet.R
+import org.siros.wwwallet.ui.theme.WalletTheme
 
 @Composable
 fun ErrorDialog(
@@ -38,7 +34,7 @@ fun ErrorDialog(
         Surface(
             Modifier.fillMaxWidth().wrapContentHeight(),
             RoundedCornerShape(16.dp),
-            Color.White,
+            color = MaterialTheme.colorScheme.surface,
         ) {
             Column(
                 Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
@@ -63,7 +59,7 @@ fun ErrorDialog(
                 Icon(
                     painterResource(R.drawable.ic_cross_circle),
                     null,
-                    tint = colorResource(R.color.error),
+                    tint = MaterialTheme.colorScheme.error,
                 )
 
                 Button(
@@ -79,9 +75,7 @@ fun ErrorDialog(
 @Preview
 @Composable
 private fun PreviewErrorDialog() {
-    MaterialTheme(
-        if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
-    ) {
+    WalletTheme {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             ErrorDialog("Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy.") {}
         }
