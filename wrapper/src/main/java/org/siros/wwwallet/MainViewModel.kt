@@ -438,6 +438,21 @@ class MainViewModel : ViewModel() {
         handlingHintType = null
     }
 
+    fun dismissAllDialogs() {
+        dismissStartDialog(false)
+
+        pinCallback = null
+        showPinDialog = false
+        showPinSetDialog = false
+
+        assertions = null
+        credentialCallback = null
+        showCredentialDialog = false
+
+        dismissError()
+        dismissHandlingHint()
+    }
+
     private suspend fun changeProviderRequested(uri: Uri): String? {
         if (uri.query == null) {
             updateBaseUrl(reason = UpdateReason.DeeplinkRequest)

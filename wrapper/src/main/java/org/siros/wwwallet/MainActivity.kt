@@ -256,6 +256,8 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
+        vm.dismissAllDialogs()
+
         if (::shakeDetector.isInitialized) {
             shakeDetector.stop()
         }
