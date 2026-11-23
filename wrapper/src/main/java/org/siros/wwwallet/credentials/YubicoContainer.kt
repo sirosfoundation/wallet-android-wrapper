@@ -368,9 +368,10 @@ class YubicoContainer(
 
                 activity.vm.dismissHandlingHint()
 
-                newOptions = kitOptions?.let {
-                    requestSelection(multiple, it)
-                }
+                newOptions =
+                    kitOptions?.let {
+                        requestSelection(multiple, it)
+                    }
 
                 if (newOptions == null) {
                     failureCallback(UserCancellationException())
