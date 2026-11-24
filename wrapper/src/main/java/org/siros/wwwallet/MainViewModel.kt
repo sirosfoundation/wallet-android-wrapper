@@ -408,19 +408,22 @@ class MainViewModel : ViewModel() {
                         CtapException.ERR_PIN_NOT_SET -> activity?.getString(R.string.error_pin_not_set)
                         CtapException.ERR_PUAT_REQUIRED -> activity?.getString(R.string.error_puat_required)
                         CtapException.ERR_NO_CREDENTIALS -> activity?.getString(R.string.error_no_credentials)
+                        CtapException.ERR_PIN_AUTH_BLOCKED -> activity?.getString(R.string.error_pin_auth_blocked)
+                        CtapException.ERR_PIN_BLOCKED -> activity?.getString(R.string.error_pin_blocked)
+                        CtapException.ERR_PIN_POLICY_VIOLATION -> activity?.getString(R.string.error_pin_policy_violation)
                         else -> ctap.localizedMessage
                     }
             }
         }
 
-        val genericNfcExplanation = activity?.getString(R.string.error_generic_nfc_explanation)
+        val genericExplanation = activity?.getString(R.string.error_generic_explanation)
         val unknownError = "Unknown error"
 
         errorMessage =
             if (throwable is TagLostException) {
-                genericNfcExplanation ?: throwable.localizedMessage ?: unknownError
+                genericExplanation ?: throwable.localizedMessage ?: unknownError
             } else {
-                betterExplanation ?: throwable.localizedMessage ?: genericNfcExplanation ?: unknownError
+                betterExplanation ?: throwable.localizedMessage ?: genericExplanation ?: unknownError
             }
     }
 

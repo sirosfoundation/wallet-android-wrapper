@@ -87,11 +87,14 @@
 
     <!-- ErrorDialog -->
     <string name="error_dialog_title">There Has Been an Error</string>
-    <string name="error_generic_nfc_explanation">Hold the security key against your device\'s NFC reader until it is recognized.</string>
+    <string name="error_generic_explanation">The security key could not complete the request. Please try again.</string>
     <string name="error_pin_invalid">The provided PIN is invalid.</string>
     <string name="error_pin_not_set">A PIN needs to be set.</string>
     <string name="error_puat_required">Please provide PIN.</string>
     <string name="error_no_credentials">There is no passkey for this site on this security key. Please add one or find another method for accessing this site.</string>
+    <string name="error_pin_auth_blocked">PIN entry is temporarily blocked. Disconnect and reconnect the security key before trying again.</string>
+    <string name="error_pin_blocked">The security key PIN is blocked. Use another security key or consult your key\'s recovery instructions.</string>
+    <string name="error_pin_policy_violation">The PIN does not meet this security key\'s PIN requirements.</string>
 
     <!-- HandlingHintDialog -->
     <string name="handling_dialog_title_nfc">Tap Your Security Key</string>
