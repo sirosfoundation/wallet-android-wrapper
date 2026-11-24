@@ -261,11 +261,9 @@ fun SetPinDialog(onDismiss: (String?) -> Unit) {
  * NOTICE: The MIN_PIN_LEN refers to number of *characters*, while the MAX_PIN_LEN refers to the
  * number of *bytes of a UTF-8 encoded string*!
  */
-private fun checkPin(pin: String): Boolean {
-    if (pin.toCharArray().size < getField("MIN_PIN_LEN", 4)) return false
-
-    return pin.toByteArray(Charsets.UTF_8).size <= getField("MAX_PIN_LEN", 63)
-}
+private fun checkPin(pin: String): Boolean =
+    pin.toCharArray().size >= getField("MIN_PIN_LEN", 4) &&
+        pin.toByteArray(Charsets.UTF_8).size <= getField("MAX_PIN_LEN", 63)
 
 private fun getField(
     name: String,
