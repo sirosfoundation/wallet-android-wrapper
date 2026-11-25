@@ -121,7 +121,12 @@ class YubicoContainer(
             }
         }
 
-        return deferred.await()
+        return try {
+            deferred.await()
+        } catch (_: Throwable) {
+            stop()
+            null
+        }
     }
 
     private var newPin: String? = null
