@@ -21,16 +21,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -61,6 +57,13 @@ import org.siros.wwwallet.credentials.YubicoContainer
 import org.siros.wwwallet.facetec.FaceTecManager
 import org.siros.wwwallet.facetec.FaceTecProvider
 import org.siros.wwwallet.json.DcApiRequests
+import org.siros.wwwallet.ui.CredentialSelectionDialog
+import org.siros.wwwallet.ui.ErrorDialog
+import org.siros.wwwallet.ui.HandlingHintDialog
+import org.siros.wwwallet.ui.PinEntryDialog
+import org.siros.wwwallet.ui.SecurityKeyStartDialog
+import org.siros.wwwallet.ui.SetPinDialog
+import org.siros.wwwallet.ui.WalletTheme
 import org.siros.wwwallet.util.ShakeDetector
 import org.siros.wwwallet.webkit.WalletWebChromeClient
 import org.siros.wwwallet.webkit.WalletWebViewClient
@@ -130,6 +133,9 @@ class MainActivity : ComponentActivity() {
 
                     finish()
                 },
+                { throwable ->
+                    vm.showError(throwable)
+                },
             )
 
         // Avoid circular reference.
@@ -159,9 +165,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            MaterialTheme(
-                if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
-            ) {
+            WalletTheme {
                 enableEdgeToEdge()
 
                 val url by vm.url.collectAsState()
@@ -184,6 +188,30 @@ class MainActivity : ComponentActivity() {
                         ) { url ->
                             lifecycleScope.launch {
                                 vm.browseToUrl(url)
+                            }
+                        }
+
+                        if (vm.showStartDialog) {
+                            SecurityKeyStartDialog { vm.dismissStartDialog() }
+                        } else if (vm.showPinDialog) {
+                            PinEntryDialog { vm.onPinDialogDismissed(it) }
+                        } else if (vm.showPinSetDialog) {
+                            SetPinDialog { vm.onPinSetDialogDismissed(it) }
+                        } else if (vm.showCredentialDialog) {
+                            vm.assertions?.let { assertions ->
+                                CredentialSelectionDialog(assertions) {
+                                    vm.onCredentialDialogDismissed(it)
+                                }
+                            }
+                        } else if (vm.errorMessage.isNotEmpty()) {
+                            ErrorDialog(vm.errorMessage) {
+                                vm.dismissError()
+                            }
+                        }
+
+                        vm.handlingHintType?.let {
+                            HandlingHintDialog(it) {
+                                vm.dismissHandlingHint()
                             }
                         }
                     }
@@ -227,6 +255,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        vm.dismissAllDialogs()
 
         if (::shakeDetector.isInitialized) {
             shakeDetector.stop()

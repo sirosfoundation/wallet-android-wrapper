@@ -39,6 +39,7 @@ class WalletJsBridge(
     private val debugMenuHandler: DebugMenuHandler?,
     private val startPhotoIdMatch: () -> Unit,
     private val finishDcApiRequest: (response: String?, error: String?) -> Unit,
+    private val showError: (throwable: Throwable) -> Unit,
 ) {
     companion object {
         const val JAVASCRIPT_BRIDGE_NAME = "nativeWrapper"
@@ -269,11 +270,12 @@ class WalletJsBridge(
             failureCallback = { th ->
                 Timber.e(th, "Creation failed.")
 
+                showError(th)
+
                 dispatcher.dispatch(EmptyCoroutineContext) {
                     webView.evaluateJavascript(
                         """
-                        console.log('credential creation failed', JSON.stringify("$th"))
-                        alert('Credential creation failed: ' + JSON.stringify("${th.localizedMessage}"))
+                        console.log('CREATE credential failed', JSON.stringify("$th"))
                         $JAVASCRIPT_BRIDGE_NAME.__reject__("$promiseUuid", JSON.stringify("$th"));
                         """.trimIndent(),
                     ) {}
@@ -310,11 +312,12 @@ class WalletJsBridge(
             failureCallback = { th ->
                 Timber.e(th, "Get failed.")
 
+                showError(th)
+
                 dispatcher.dispatch(EmptyCoroutineContext) {
                     webView.evaluateJavascript(
                         """
-                        console.log('credential getting failed', JSON.stringify("$th"))
-                        alert('Credential getting failed: ' + JSON.stringify("${th.localizedMessage}"))
+                        console.log('GET credential failed', JSON.stringify("$th"))
                         $JAVASCRIPT_BRIDGE_NAME.__reject__("$promiseUuid", JSON.stringify("$th"));
                         """.trimIndent(),
                     ) {}
