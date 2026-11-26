@@ -25,6 +25,7 @@
     <string name="photo_id_match_refused_document_expired">Tämä asiakirja on vanhentunut, joten todistusta ei myönnetty. Käytä voimassa olevaa henkilöllisyysasiakirjaa.</string>
     <string name="photo_id_match_refused_document_unreadable">Asiakirjan tietoja ei voitu lukea, joten todistusta ei myönnetty. Yritä uudelleen tai käytä toista henkilöllisyysasiakirjaa.</string>
     <string name="photo_id_match_refused_chip_photo_mismatch">Kasvosi eivät vastanneet asiakirjasi siruun tallennettua kuvaa, joten todistusta ei myönnetty. Yritä uudelleen tai käytä toista henkilöllisyysasiakirjaa.</string>
+    <string name="photo_id_match_refused_chip_data_unverified">Asiakirjasi sirua ei voitu varmentaa, joten todistusta ei myönnetty. Vain asiakirjan sirun allekirjoittamia tietoja voidaan käyttää. Käytä passia tai kansallista henkilökorttia, jossa on luettava siru.</string>
     <string name="photo_id_match_refused_other">Henkilöllisyyttäsi ei voitu vahvistaa, joten todistusta ei myönnetty. Yritä uudelleen.</string>
     <string name="photo_id_match_ok">OK</string>
 </resources>
