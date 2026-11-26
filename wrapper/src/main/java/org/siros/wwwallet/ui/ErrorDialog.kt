@@ -66,7 +66,7 @@ fun ErrorDialog(
                 Button(
                     { onDismiss() },
                     ButtonType.OUTLINED,
-                    stringResource(android.R.string.cancel),
+                    stringResource(android.R.string.ok),
                 )
             }
         }
