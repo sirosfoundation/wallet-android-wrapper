@@ -18,6 +18,7 @@ val includeFaceTec = faceTecToken.isNotBlank()
 android {
     namespace = "org.siros.wwwallet"
     compileSdk = 37
+    compileSdkMinor = 2
 
     defaultConfig {
         applicationId = env("WWWALLET_ANDROID_APPLICATION_ID")
